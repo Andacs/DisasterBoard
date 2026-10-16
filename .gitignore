@@ -1,0 +1,12 @@
+Binaries/
+Intermediate/
+DerivedDataCache/
+Saved/
+.vs/
+*.sln
+*.slnx
+# paket ve teslim ciktisi (ZIP repoya girmez)
+Build/Package/
+Build/Windows/
+Build/*.log
+Build/Teslim/
