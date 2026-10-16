@@ -1,8 +1,11 @@
 # DisasterBoard
 
-<Tek cümlelik oyun tanımı: oyuncu ne yapar, ne olunca kazanır.>
+Karton bir masa oyunu kasabasında tarayıcıyla binaların deprem risklerini bulursun; her eve uygun afet çantasını hazırlar, şehir risklerini araçlarla giderirsin. Deprem gelmeden bütün binalar hazırsa kazanırsın.
 
-48 saatlik game jam projesi. Unreal Engine 5.8, Windows PC. <N> kişilik ekip.
+Tema: **depreme hazırlık ve farkındalık.** Görsel dil: 3D lowpoly, cozy, karton (cardboard) kasaba, masa oyunu.
+Akış çizimleri: `Docs/Cizimler/akis_01..09.jpg`. Oda/masa/takvim taslağı: `Art/Sahne/AnaMenu_OyunAlani.blend`.
+
+48 saatlik game jam projesi. Unreal Engine 5.8, Windows PC. 4 kişilik ekip (FreakLabs), tek programcı Andaç.
 
 ---
 
@@ -11,7 +14,7 @@
 1. **Projeyi/modülü yeniden adlandırma.** Proje adı `DisasterBoard`; `.uproject`, modül,
    `Target.cs` dosyaları, `DISASTERBOARD_API` makrosu ve `DefaultEngine.ini` redirect'leri birbirine
    bağlı.
-2. **Seviye dosyasının tek sahibi var: `<isim>`.** Başkası `L_Ana` seviyesini kaydetmez.
+2. **Seviye dosyasının tek sahibi var: Andaç.** Sahne (oda, masa, tahta, takvim) koddan kuruluyor; seviyede yalnızca ışık var. Başkası `L_Ana` seviyesini kaydetmez.
 3. **Seviyenin kopyası açılmaz.** Deneme gerekiyorsa `L_Test` kullanılır ve oradaki hiçbir şeyin
    ana seviyeye taşınmayacağı bilinir.
 4. **`Content/Vendor/` dokunulmaz.** İndirilen paketler yeniden adlandırılmaz, taşınmaz — UE 5.8
@@ -22,13 +25,22 @@
 
 ## Kapsam
 
-**Çekirdek mekanik:** <tek cümle>
+**Çekirdek mekanik:** tara → riskli binayı gör → notu oku → çantayı hazırla / şehir aracını seç → binaya uygula → tik.
+
+**Akış (çizimlere göre, 17 Ekim):**
+1. Ana menü **duvardaki takvimde** (Oyna · Ayarlar · Emeği Geçenler · Çıkış). Ayarlar / Emeği Geçenler'e basınca takvim sayfası aşağıdan yukarı kalkar, yeni sayfada seçenekler.
+2. Oyna → kamera takvimden masadaki tahtaya döner.
+3. **A** (baretli görevli, sol alt): "Bir sorun var" → tarayıcıya yönlendirir. Tarayıcıya basınca tahta taranır, riskli binalarda uyarı (!) çıkar.
+4. Sağda **çanta paneli** açılır; **B** nasıl kullanılacağını anlatır. Panelin sağ altındaki **not kağıdında** bulunan sorunlar yazar. Oyuncu eşyalarla çanta hazırlar.
+5. Panel kapanınca **C** alt paneli anlatır: solda şehir araçları (rögar?, eşya sabitleme?, yangın musluğu, bina güçlendirme), sağda hazırlanan çantalar.
+6. Çantayı / aracı seç → riskli binaya tıkla → doğruysa binada yeşil tik.
+7. Deprem gelir (geri sayım). Hazır binalar ayakta kalır. Hepsi hazırsa kazanırsın; değilse kaçırılanlar ve "doğrusu ne" bilgisi gösterilir.
 
 **Bitecekler:** mekanik · bir seviye · kazanma/kaybetme · yeniden başlama · çalışan paket
 
-**Bitmeyecekler:** <menü, kayıt, diyalog, ikinci seviye, ikinci mekanik — neyse yaz>
+**Bitmeyecekler:** kayıt, ikinci tahta/seviye (gerekirse aynı tahta farklı veriyle), karakter animasyonu (A/B/C portre + balon), sesli diyalog.
 
-**Kesme sırası:** 1. <___> 2. <___> 3. <___>
+**Kesme sırası:** 1. takvim sayfası kalkma animasyonu (düz geçiş) 2. deprem animasyonu (yalnızca sonuç ekranı) 3. Ayarlar sayfası 4. kamera geçişi (doğrudan tahtadan başla)
 
 ---
 
@@ -36,11 +48,11 @@
 
 | Alan | Kim |
 |---|---|
-| Kod / oynanış | <___> |
-| Seviye dosyası | <___> |
-| Asset / sanat | <___> |
-| Ses | <___> |
-| Paketleme / teslim | <___> |
+| Kod / oynanış | Andaç |
+| Seviye dosyası | Andaç |
+| Asset / sanat | Mert (merttaarslan-ai), Asil (WgexWasHere?) |
+| Ses | belirlenmedi |
+| Paketleme / teslim | Andaç, Yiğit (CezeryeF?) |
 
 ---
 
