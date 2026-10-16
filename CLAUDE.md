@@ -115,13 +115,40 @@ Tek dal: `main`. Herkes oraya push eder. Feature branch + PR 48 saatte maliyeti 
 
 ## Bilinen durum
 
-<Jam boyunca güncellenecek. Her 6 saatte bir:>
+**17 Ekim ~02.30 (saat 8,5): çekirdek döngü baştan sona çalışıyor, ekranda görüldü** (`DBTest`, görüntüler
+`Docs/EkranGoruntuleri/`): takvim menüsü → Ayarlar / Emeği Geçenler'de sayfa yukarı kalkıyor → Oyna → kamera
+takvimden tahtaya → A konuşur → tarayıcı tıklanınca yeşil çizgi tahtayı tarar, riskli binalarda (!) çıkar → B +
+hazırlık masası (8 eşya, 4'lük çanta, not kağıdı) → panel kapanınca C alt paneli anlatır → oyun: 2:30 geri
+sayım, araç / çanta seç + binaya tıkla → tik; yanlış araç ve eksik çanta −10 sn ve sebebini söyler → deprem
+(hazır olmayan bina çöker) → sonuç kartı (her sorun için "doğrusu ne") → Tekrar Oyna (`?Direkt=1`, menü ve
+konuşmalar atlanır) / Menü.
 
-**Çalışıyor ve ekranda görüldü:** boş proje: L_Ana ve L_Test (ışık, gök, sis), pakette açıldı. Oyun kodu yok.
+**Kod düzeni (`Source/DisasterBoard/`, önek `DB`):**
+- `DBData.cpp` — **bütün içerik**: eşyalar, şehir araçları, 10 bina (hücre, ölçü, renk), 7 sorun (not, gereken
+  eşya/araç, sonuçtaki bilgi), A/B/C konuşmaları, jenerik. Metin değiştirmek için yalnızca bu dosya.
+- `DBWorld` — oda, masa, tahta, binalar, takvim, iki kamera **koddan** (BasicShapes + renkli MID); tarama
+  çizgisi, sayfa çevirme, deprem, zıplama animasyonları. Güneş yönü oyunda ayarlanır, seviye dosyası değişmez.
+  Mert'in mesh'i gelince ilgili `Part(...)` çağrısı mesh'le değişir.
+- `DBGameMode` — akış (`EDBPhase`), çantalar, seçim, ceza, deprem, sonuç. Ayarlar: `QuakeSeconds` 150,
+  `WrongPenaltySeconds` 10, `BagCapacity` 4, `MaxBags` 4.
+- `DBHUD` — bütün arayüz Canvas ile (asset yok), 1080p ölçüsü × `S`. Tıklanabilir alanlar her karede `Hits`.
+- `DBPlayerController` — sol tık / Esc + sağ tık (geri, seçimi bırak) / F5 (baştan). Konsol: `DBTest`,
+  `DBExposure <EV>`, `DBTime <sn>`, `DBQuake`.
 
-**Derlendi, ekranda görülmedi:** <___>  ← 2'yi geçerse yeni özellik durur
+**Ölçülenler:** tahta 5×5, hücre 26 cm; tahta kamerası 450 cm, −50°, yaw 45° (330'da üstteki işaretler
+kesiliyordu). Menü kamerası takvimden 250 cm. Pozlama sabit EV100 1,9.
 
-**Bozuk:** <___>
+**Test:** `UnrealEditor.exe <tam yol>\DisasterBoard.uproject /Game/DisasterBoard/Maps/L_Ana -game -windowed
+-ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~75 sn oynar, 18 görüntü
+`Saved/Screenshots/WindowsEditor/DB_*.png`, kendisi kapanır. Test tıklama işlevlerini doğrudan çağırıyor.
+
+**Derlendi, ekranda görülmedi:** gerçek fareyle tıklama/hover (imleç, tooltip), Ayarlar'daki tam ekran ve
+grafik düğmeleri ← 2'yi geçerse yeni özellik durur
+
+**Bozuk:** —
+
+**Ekipten bekleyen kararlar:** alt paneldeki ilk iki ikonun anlamı (şimdilik "Toplanma Alanı", "Eşya
+Sabitleme"); A/B/C'nin adları (şimdilik Ayaz, Berna, Cem); portre görselleri; sorun/eşya listesi.
 
 ---
 

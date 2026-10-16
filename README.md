@@ -1,6 +1,6 @@
 # DisasterBoard
 
-[İki cümle: oyuncu ne yapar, neyle uğraşır. Formdaki "kısa açıklama" ile aynı olsun.]
+Karton bir masa oyunu kasabasında tarayıcıyla binaların deprem risklerini bulursun. Her eve ihtiyacına göre afet çantası hazırlar, şehir risklerini belediye araçlarıyla giderirsin; deprem gelmeden kasabayı hazırlamaya çalışırsın.
 
 CIVIL GAME JAM 2026 · **FreakLabs**
 
@@ -38,7 +38,7 @@ Her satır: ad · üretici/sağlayıcı · bağlantı · lisans (gerçek koşull
 | Görsel | [Kullanıldı / Kullanılmadı] | [Unreal Engine temel şekilleri (`/Engine/BasicShapes`) · Epic Games · [Unreal Engine EULA](https://www.unrealengine.com/eula) · ...] |
 | Ses | [...] | [...] |
 | Kod | Kullanıldı | **Unreal Engine 5.8** · Epic Games · [Unreal Engine EULA](https://www.unrealengine.com/eula) · oyun motoru. Derleme, paketleme, trailer ve teslim betikleri (`Build/`, `Tools/`) takımın jam öncesi hazırladığı genel araçlardır (madde 3.1); oyuna girmez. |
-| Metin | [...] | [...] |
+| Metin | Kullanıldı | **Claude (Anthropic)** · oyun içi konuşmaların, sorun notlarının ve sonuç ekranındaki hazırlık bilgilerinin ilk taslağı · `Source/DisasterBoard/DBData.cpp` |
 | Diğer | [...] | [Yazı tipleri: ad · sağlayıcı · Google Fonts bağlantısı · SIL OFL 1.1 (lisans metni `Art/Fonts/*/OFL.txt`) · nerede kullanıldı. Roboto · Google · Apache 2.0 · motorla gelir, yedek yazı tipi.] |
 
 [Repoda bulunmayan dosyalar: yeniden dağıtımı kısıtlı ham asset varsa adı, nereden edinileceği, projeye
@@ -52,7 +52,7 @@ Her satır: araç · amaç · oyundaki yeri. Çok küçük kullanım da yazılı
 |---|---|---|
 | Görsel | [...] | [...] |
 | Ses | [...] | [...] |
-| Kod | [Kullanıldı] | [**Claude (Anthropic)** · ... · ...] |
+| Kod | Kullanıldı | **Claude (Anthropic, Claude Code)** · oyun kodunun yazımı (C++: akış, arayüz, sahne kurulumu, otomatik test) · `Source/DisasterBoard/` |
 | Metin | [...] | [...] |
 | Diğer | [...] | [...] |
 
