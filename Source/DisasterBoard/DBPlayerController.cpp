@@ -8,6 +8,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
+#include "InputActionValue.h"
 #include "TimerManager.h"
 #include "UnrealClient.h"
 
@@ -58,7 +59,22 @@ void ADBPlayerController::SetupInputComponent()
 		EIC->BindAction(Action, ETriggerEvent::Started, this, Handler);
 	};
 	Bind(TEXT("IA_Click"), { EKeys::LeftMouseButton }, &ADBPlayerController::OnClick);
-	Bind(TEXT("IA_Back"), { EKeys::Escape, EKeys::RightMouseButton }, &ADBPlayerController::OnBack);
+	Bind(TEXT("IA_Back"), { EKeys::Escape }, &ADBPlayerController::OnBack);
+	Bind(TEXT("IA_RotLeft"), { EKeys::Q }, &ADBPlayerController::OnRotLeft);
+	Bind(TEXT("IA_RotRight"), { EKeys::E }, &ADBPlayerController::OnRotRight);
+	// Sağ tık: sürüklenirse tahtayı döndürür, sürüklenmeden bırakılırsa "geri" (seçimi bırak / masayı kapat)
+	{
+		UInputAction* Rmb = NewObject<UInputAction>(this, TEXT("IA_Rmb"));
+		Mapping->MapKey(Rmb, EKeys::RightMouseButton);
+		EIC->BindAction(Rmb, ETriggerEvent::Started, this, &ADBPlayerController::OnRmbDown);
+		EIC->BindAction(Rmb, ETriggerEvent::Completed, this, &ADBPlayerController::OnRmbUp);
+	}
+	{
+		UInputAction* Zoom = NewObject<UInputAction>(this, TEXT("IA_Zoom"));
+		Zoom->ValueType = EInputActionValueType::Axis1D;
+		Mapping->MapKey(Zoom, EKeys::MouseWheelAxis);
+		EIC->BindAction(Zoom, ETriggerEvent::Triggered, this, &ADBPlayerController::OnZoom);
+	}
 	Bind(TEXT("IA_Restart"), { EKeys::F5 }, &ADBPlayerController::OnRestart);
 	Bind(TEXT("IA_Music"), { EKeys::M }, &ADBPlayerController::OnMusic);
 }
@@ -66,6 +82,26 @@ void ADBPlayerController::SetupInputComponent()
 void ADBPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
+
+	// Sağ tıkla sürükleyerek tahtayı döndür
+	if (bRmbDown)
+	{
+		float RX = 0.f, RY = 0.f;
+		if (GetMousePosition(RX, RY))
+		{
+			const float Dx = RX - RmbLastX;
+			RmbLastX = RX;
+			RmbTotal += FMath::Abs(Dx);
+			if (RmbTotal > 6.f)
+			{
+				bRmbDragged = true;
+			}
+			if (bRmbDragged && CanControlBoard())
+			{
+				GM()->World->RotateBoardView(Dx * 0.35f);
+			}
+		}
+	}
 
 	HoveredBuilding = -1;
 	ADBGameMode* G = GM();
@@ -106,6 +142,52 @@ void ADBPlayerController::OnClick()
 	if (HoveredBuilding >= 0)
 	{
 		G->ClickBuilding(HoveredBuilding);
+	}
+}
+
+bool ADBPlayerController::CanControlBoard() const
+{
+	const ADBGameMode* G = GM();
+	return G && G->World && G->IsBoardPhase() && G->Phase != EDBPhase::ToBoard && G->Phase != EDBPhase::Result;
+}
+
+void ADBPlayerController::OnZoom(const FInputActionValue& Value)
+{
+	const ADBHUD* H = GetHUD<ADBHUD>();
+	float MX = 0.f, MY = 0.f;
+	GetMousePosition(MX, MY);
+	if (CanControlBoard() && !(H && H->IsOverUI(FVector2D(MX, MY))))
+	{
+		GM()->World->ZoomBoardView(-Value.Get<float>() * 30.f);
+	}
+}
+
+void ADBPlayerController::OnRotLeft()
+{
+	if (CanControlBoard()) GM()->World->RotateBoardView(-90.f);
+}
+
+void ADBPlayerController::OnRotRight()
+{
+	if (CanControlBoard()) GM()->World->RotateBoardView(90.f);
+}
+
+void ADBPlayerController::OnRmbDown()
+{
+	float MX = 0.f, MY = 0.f;
+	GetMousePosition(MX, MY);
+	bRmbDown = true;
+	bRmbDragged = false;
+	RmbLastX = MX;
+	RmbTotal = 0.f;
+}
+
+void ADBPlayerController::OnRmbUp()
+{
+	bRmbDown = false;
+	if (!bRmbDragged)
+	{
+		OnBack();
 	}
 }
 
@@ -204,68 +286,83 @@ void ADBPlayerController::DBTest()
 		GetWorldTimerManager().SetTimer(TestTimer, this, &ADBPlayerController::RunTestStep, 0.6f, true, 2.f);
 		return;
 	}
+	// Fabrika yardımcısı: çantayı istasyonların önüne getirip tıklar (bant durmadığı için test konumu doğrudan ayarlar)
+	auto Fab = [this](int32 Kit, TArray<int32> Personal)
+	{
+		ADBGameMode* M = GM();
+		const FDBContent& C = FDBContent::Get();
+		M->SetBagT(ADBGameMode::StationCenter(0));
+		M->StationClick(0, Kit);
+		for (int32 It : Personal)
+		{
+			for (int32 K = 1; K <= C.Stations.Num(); ++K)
+			{
+				const int32 B = C.Stations[K - 1].Items.IndexOfByKey(It);
+				if (B != INDEX_NONE)
+				{
+					M->SetBagT(ADBGameMode::StationCenter(K));
+					M->StationClick(K, B);
+				}
+			}
+		}
+		M->SetBagT(0.85f);
+	};
 	// Oyun hikâyeyle açılır (menüden önce)
 	Add([this] { Shot(TEXT("00a_hikaye_1")); });
-	Add([this] { GM()->NextComic(); });
-	Add([this] { Shot(TEXT("00b_hikaye_2")); });
-	Add([this] { GM()->NextComic(); });
-	Add([this] { Shot(TEXT("00c_hikaye_3")); });
-	Add([this] { GM()->NextComic(); });
-	Add([this] { Shot(TEXT("00d_hikaye_4")); });
-	Add([this] { GM()->NextComic(); });
-	Add([this] { Shot(TEXT("01_menu")); });
-	Add([this] { GM()->OpenMenuPage(EDBMenuPage::Credits); });
-	Add([] {});
-	Add([this] { Shot(TEXT("02_jenerik")); });
-	Add([this] { GM()->CloseMenuPage(); });
+	Add([this] { GM()->SkipComic(); });
+	Add([this] { Shot(TEXT("01_menu")); GM()->ClickPlay(); });
 	Add([] {});
 	Add([] {});
-	Add([this] { DBMusicWav(); GM()->ClickPlay(); });
-	Add([] {});
-	Add([this] { Shot(TEXT("04_A_konusuyor")); });
 	Talk(2);
 	Add([this] { Shot(TEXT("04b_A_tarayiciyi_gosteriyor")); });
 	Talk(1);
-	Add([this] { Shot(TEXT("05_tarayici_bekliyor")); });
 	Add([this] { GM()->StartScan(); });
 	Add([this] { Shot(TEXT("06_taraniyor")); });
 	Add([] {});
 	Add([this] { Shot(TEXT("07_istekler")); });
 	Talk(1);
-	Add([this] { Shot(TEXT("08_B_panel")); });
-	Talk(1);
-	Add([this] { Shot(TEXT("08b_B_turleri_gosteriyor")); });
+	Add([this] { Shot(TEXT("08_fabrika_B")); });
+	Talk(2);
+	Add([this] { Shot(TEXT("08b_B_temel_kiti_gosteriyor")); });
 	Talk(4);
-	// Eşyalar: 0 Su, 1 Sargı Bezi, 2 Yangın Tüpü, 3 El Feneri, 4 Düdük, 5 Antiseptik, 6 Duman Maskesi
-	// İlk yardım = Su + Sargı Bezi + Antiseptik · Deprem = Su + El Feneri + Düdük · Yangın = Yangın Tüpü + El Feneri + Duman Maskesi
-	Add([this] { ADBGameMode* M = GM(); M->SetDraftKit(0); M->AddItem(1); M->AddItem(5); M->AddItem(0); });
-	Add([this] { Shot(TEXT("09_canta_dolu")); });
-	Add([this] { ADBGameMode* M = GM(); M->PackBag(); M->SetDraftKit(0); M->AddItem(1); M->AddItem(5); M->AddItem(0); M->PackBag(); });
-	// Bilerek yanlış: deprem çantasına duman maskesi
-	Add([this] { ADBGameMode* M = GM(); M->SetDraftKit(1); M->AddItem(0); M->AddItem(3); M->AddItem(6); M->PackBag(); });
-	Add([this] { Shot(TEXT("09b_yanlis_kombinasyon")); });
-	Add([this] { ADBGameMode* M = GM(); M->RemoveDraftAt(2); M->AddItem(4); M->PackBag(); M->SetDraftKit(2); M->AddItem(2); M->AddItem(3); M->AddItem(6); M->PackBag(); });
-	Add([this] { Shot(TEXT("10_cantalar_hazir")); });
+	// Eşyalar: 8 Kalp İlacı, 9 Astım Spreyi, 10 Gözlük, 11 Bebek Maması, 12 Bebek Bezi, 13 Kedi Maması, 14 Battaniye, 15 Powerbank, 16 Belgeler
+	// Siparişler sırası: Ayşe (İY + kalp ilacı, gözlük), Okul (İY + astım), Yılmaz (Deprem + mama, bez), Öğrenci (Deprem + powerbank, kedi maması), Fırın (Yangın + belgeler, battaniye)
+	Add([this] { Shot(TEXT("09_bant_akiyor")); });
+	Add([this, Fab] { Fab(0, { 8, 10 }); });
+	Add([this] { Shot(TEXT("09b_canta_hazir_iniyor")); GM()->SetBagT(0.999f); });
+	Add([] {});
+	Add([this] { Shot(TEXT("09c_teslim_edildi")); });
+	// Okul: bilerek astım spreyi unutuldu
+	Add([this, Fab] { Fab(0, {}); GM()->SetBagT(0.999f); });
+	Add([this] { Shot(TEXT("09d_yanlis_canta")); });
+	Add([] {});
+	Add([this, Fab] { Fab(0, { 9 }); GM()->SetBagT(0.999f); });
+	Add([] {});
+	Add([this, Fab] { Fab(1, { 11, 12 }); GM()->SetBagT(0.999f); });
+	Add([] {});
+	Add([this] { GM()->CycleOrder(1); });
+	Add([] {});
+	Add([this, Fab] { Fab(2, { 16, 14 }); GM()->SetBagT(0.999f); });
+	Add([] {});
 	Add([this] { GM()->ClosePanel(); });
 	Add([this] { Shot(TEXT("11_C_konusuyor")); });
-	Talk(1);
-	Add([this] { Shot(TEXT("11b_C_onlemleri_gosteriyor")); });
-	Talk(5);
+	Talk(6);
 	Add([this] { Shot(TEXT("12_oyun")); });
-	// Binalar: 0 Ayşe, 1 Okul, 3 Yılmaz, 4 Apartman, 6 Fırın, 7 Market, 8 Öğrenci, 10 Sahil, 11 Ahşap
-	Add([this] { ADBGameMode* M = GM(); M->SelectBag(0); M->ClickBuilding(0); M->SelectBag(1); M->ClickBuilding(1); M->SelectBag(2); M->ClickBuilding(3); M->SelectBag(3); M->ClickBuilding(6); });
-	Add([this] { Shot(TEXT("13_cantalar_gitti")); });
+	// Kamera: döndür ve yakınlaştır
+	Add([this] { GM()->World->RotateBoardView(90.f); GM()->World->ZoomBoardView(-90.f); });
+	Add([this] { Shot(TEXT("12b_kamera_dondu_yaklasti")); GM()->World->RotateBoardView(-90.f); GM()->World->ZoomBoardView(90.f); });
+	Add([] {});
+	// Binalar: 4 Apartman, 7 Market, 8 Öğrenci, 10 Sahil, 11 Ahşap
 	Add([this] { ADBGameMode* M = GM(); M->SelectTool(1); M->ClickBuilding(4); });
 	Add([this] { Shot(TEXT("15_yanlis_onlem")); });
-	Add([this] { ADBGameMode* M = GM(); M->SelectTool(3); M->ClickBuilding(4); M->SelectTool(0); M->ClickBuilding(7); M->SelectTool(2); M->ClickBuilding(11); });
-	Add([this] { ADBGameMode* M = GM(); M->SelectTool(1); M->ClickBuilding(10); });
+	Add([this] { ADBGameMode* M = GM(); M->SelectTool(3); M->ClickBuilding(4); M->SelectTool(0); M->ClickBuilding(7); M->SelectTool(2); M->ClickBuilding(11); M->SelectTool(1); M->ClickBuilding(10); });
 	Add([this] { Shot(TEXT("16_tahliye")); });
+	// Öğrenci evine tıkla: fabrika o siparişle açılır
+	Add([this] { GM()->ClickBuilding(8); });
 	Add([] {});
-	Add([this] { GM()->TogglePanel(); });
-	Add([this] { ADBGameMode* M = GM(); M->SetDraftKit(1); M->AddItem(0); M->AddItem(3); M->AddItem(4); });
-	Add([this] { Shot(TEXT("17_cekmece_acik")); GM()->PackBag(); });
-	Add([this] { GM()->TogglePanel(); });
-	Add([this] { ADBGameMode* M = GM(); M->SelectBag(0); M->ClickBuilding(8); });
+	Add([this] { Shot(TEXT("17_binadan_siparis")); });
+	Add([this, Fab] { Fab(1, { 15, 13 }); GM()->SetBagT(0.999f); });
+	Add([] {});
 	Add([] {});
 	Add([this] { Shot(TEXT("18_sonuc")); });
 	Add([this] { UE_LOG(LogDBInput, Log, TEXT("DB_TEST DONE para=%d hata=%d"), GM()->Money, GM()->Mistakes); });

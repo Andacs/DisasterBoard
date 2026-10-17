@@ -33,6 +33,16 @@ private:
 	void OnBack();
 	void OnRestart();
 	void OnMusic();
+	void OnZoom(const struct FInputActionValue& Value);
+	void OnRotLeft();
+	void OnRotRight();
+	void OnRmbDown();
+	void OnRmbUp();
+	bool bRmbDown = false;
+	bool bRmbDragged = false;
+	float RmbLastX = 0.f;
+	float RmbTotal = 0.f;
+	bool CanControlBoard() const;
 	ADBGameMode* GM() const;
 
 	UPROPERTY() TObjectPtr<UInputMappingContext> Mapping;

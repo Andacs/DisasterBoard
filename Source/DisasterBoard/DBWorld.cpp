@@ -118,11 +118,14 @@ void ADBWorld::BuildRoom()
 	const float H = 560.f;
 	const float Span = 1400.f;
 	Part(R, CubeMesh, FVector(0, 0, FloorZ - 1.f), FVector(Span, Span, 2.f), RGB(170, 132, 98));
-	// İki duvar köşe oluşturur; kaide bu köşeye dayalı (blend: Cube.001)
-	Part(R, CubeMesh, FVector(WallX + 2.f, 0, FloorZ + H * 0.5f), FVector(4.f, Span, H), RGB(238, 224, 198));
-	Part(R, CubeMesh, FVector(0, WallY + 2.f, FloorZ + H * 0.5f), FVector(Span, 4.f, H), RGB(228, 210, 180));
-	Part(R, CubeMesh, FVector(WallX - 1.f, 0, FloorZ + 6.f), FVector(4.f, Span, 12.f), RGB(196, 154, 108));
-	Part(R, CubeMesh, FVector(0, WallY - 1.f, FloorZ + 6.f), FVector(Span, 4.f, 12.f), RGB(196, 154, 108));
+	// İki duvar köşe oluşturur; kaide bu köşeye dayalı (blend: Cube.001). Kamera duvarın arkasına dönünce duvar gizlenir.
+	WallXRoot = Node(R, FVector::ZeroVector);
+	WallYRoot = Node(R, FVector::ZeroVector);
+	Part(WallXRoot, CubeMesh, FVector(WallX + 2.f, 0, FloorZ + H * 0.5f), FVector(4.f, Span, H), RGB(238, 224, 198));
+	Part(WallYRoot, CubeMesh, FVector(0, WallY + 2.f, FloorZ + H * 0.5f), FVector(Span, 4.f, H), RGB(228, 210, 180));
+	Part(WallXRoot, CubeMesh, FVector(WallX - 1.f, 0, FloorZ + 6.f), FVector(4.f, Span, 12.f), RGB(196, 154, 108));
+	Part(WallYRoot, CubeMesh, FVector(0, WallY - 1.f, FloorZ + 6.f), FVector(Span, 4.f, 12.f), RGB(196, 154, 108));
+	R = WallXRoot;
 	// Takvimin solunda pencere
 	const float WinY = -190.f;
 	const float WinZ = 110.f;
@@ -340,6 +343,7 @@ void ADBWorld::BuildCameras()
 	// Oyun: tahtaya köşeden, eşkenar dörtgen görünüş
 	const FRotator BoardRot(BoardCamPitch, BoardCamYaw, 0.f);
 	BoardCam = Make(BoardFocus - BoardRot.Vector() * BoardCamDistance, BoardRot, BoardCamFov);
+	ViewDist = ViewDistTarget = BoardCamDistance;
 
 	ApplyExposure(ExposureEV100);
 }
@@ -578,6 +582,33 @@ void ADBWorld::SpawnGrain(const FVector& At, float Up)
 	}
 }
 
+void ADBWorld::UpdateBoardCam(float Dt)
+{
+	if (!BoardCam)
+	{
+		return;
+	}
+	ViewYaw = FMath::FInterpTo(ViewYaw, ViewYawTarget, Dt, 7.f);
+	ViewDist = FMath::FInterpTo(ViewDist, ViewDistTarget, Dt, 8.f);
+	// Bakış noktası tahtanın ortasına göre döner: hangi açıdan bakılırsa bakılsın tahta ortada kalır
+	const FVector Focus = FVector(BoardFocus.X, BoardFocus.Y, 0.f).RotateAngleAxis(ViewYaw, FVector::UpVector) + FVector(0.f, 0.f, BoardFocus.Z);
+	const FRotator Rot(BoardCamPitch, BoardCamYaw + ViewYaw, 0.f);
+	const FVector CamLoc = Focus - Rot.Vector() * ViewDist;
+	BoardCam->SetActorLocationAndRotation(CamLoc, Rot);
+	// Kamera bir duvarın arkasına geçtiyse o duvarı (ve üstündekileri) gizle; yoksa yalnızca duvarın arkası görünüyordu
+	const bool bShowX = CamLoc.X < WallX - 2.f || FMath::IsNearlyZero(ViewYawTarget);
+	const bool bShowY = CamLoc.Y < WallY - 2.f || FMath::IsNearlyZero(ViewYawTarget);
+	if (WallXRoot && WallXRoot->IsVisible() != bShowX)
+	{
+		WallXRoot->SetVisibility(bShowX, true);
+		if (CalendarRoot) CalendarRoot->SetVisibility(bShowX, true);
+	}
+	if (WallYRoot && WallYRoot->IsVisible() != bShowY)
+	{
+		WallYRoot->SetVisibility(bShowY, true);
+	}
+}
+
 void ADBWorld::StartEvacuation(int32 FromBuilding, int32 ToBuilding)
 {
 	const FDBContent& C = FDBContent::Get();
@@ -723,6 +754,8 @@ void ADBWorld::Tick(float Dt)
 			ScanBeam->SetVisibility(false);
 		}
 	}
+
+	UpdateBoardCam(Dt);
 
 	// Sis bulutları: yavaş döner, salınır, nefes alır; hedef 0 olunca küçülüp kaybolur
 	const FVector BeamPos = SweepDir * ScanS;

@@ -40,6 +40,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "DB") float CalendarBlendSeconds = 0.9f;  // menü ↔ takvim yakın plan
 	UPROPERTY(EditAnywhere, Category = "DB") float ComicSeconds = 5.f;           // çizgi roman: sahne başına
 	UPROPERTY(EditAnywhere, Category = "DB") float MusicVolume = 0.55f;
+	UPROPERTY(EditAnywhere, Category = "DB") float BeltSeconds = 14.f;   // fabrika: çanta tepeden teslime (durmaz)
 	UPROPERTY(EditAnywhere, Category = "DB") float ScanSeconds = 2.4f;
 	UPROPERTY(EditAnywhere, Category = "DB") float QuakeDuration = 5.f;
 	UPROPERTY(EditAnywhere, Category = "DB") float TalkCharsPerSecond = 55.f;
@@ -80,6 +81,26 @@ public:
 	UPROPERTY() TObjectPtr<UDBMusicWave> Music;
 	UPROPERTY() TObjectPtr<UAudioComponent> MusicComp;
 	int32 ComicIndex = 0;
+
+	// --- Çanta fabrikası (Purble Place gibi; bant yukarıdan aşağı akar, durmaz) ---
+	static constexpr int32 NumStations = 4;    // 0 temel kit, 1..3 kişiye özel
+	static float StationCenter(int32 K) { return 0.14f + K * 0.21f; }
+	static float StationHalf() { return 0.085f; }
+	int32 OrderProblem = -1;     // hazırlanan sipariş (çanta isteyen sorun)
+	float BagT = 0.f;            // 0 tepe, 1 teslim
+	bool bBagOnBelt = false;
+	int32 BagKit = -1;
+	TArray<int32> BagPersonal;
+	float DeliverTime = -100.f;
+	bool bDeliverOk = false;
+	bool IsBeltRunning() const { return bPanelOpen && (Phase == EDBPhase::BagPrep || Phase == EDBPhase::Play) && OrderProblem >= 0 && bBagOnBelt; }
+	bool IsStationActive(int32 K) const { return IsBeltRunning() && FMath::Abs(BagT - StationCenter(K)) <= StationHalf(); }
+	TArray<int32> PendingOrders() const;
+	void StationClick(int32 K, int32 Button);
+	void SelectOrder(int32 Problem);
+	void CycleOrder(int32 Dir);
+	void ResetBag();
+	void SetBagT(float T) { BagT = T; }
 
 	// --- Sorgular ---
 	const FDBLine* CurrentLine() const;
@@ -148,6 +169,9 @@ private:
 	float TalkTime = 0.f;
 	TFunction<void()> TalkDone;
 	float AllSolvedAt = -1.f;
+	float NextBagAt = -1.f;
+	void TickBelt(float Dt);
+	void DeliverBag();
 	bool bPageFlipPending = false;  // takvim kamerasına varınca sayfa kalkacak
 	bool bReturnPending = false;    // sayfa inince menü kamerasına dönülecek
 	float MenuUIDelay = 0.f;

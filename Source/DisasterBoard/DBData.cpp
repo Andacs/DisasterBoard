@@ -23,7 +23,8 @@ namespace
 	const FLinearColor Slate = RGB(110, 120, 140);
 
 	enum EKit { IlkYardim, Deprem, Yangin };
-	enum EItem { Su, SargiBezi, YanginTupu, Fener, Duduk, Antiseptik, DumanMaskesi };
+	enum EItem { SargiBezi, Antiseptik, YaraBandi, Su, Fener, Duduk, YanginTupu, DumanMaskesi,
+		KalpIlaci, AstimSpreyi, Gozluk, BebekMamasi, BebekBezi, KediMamasi, Battaniye, Powerbank, Belgeler };
 	enum ETool { Rogar, Tahliye, YanginMuslugu, Guclendirme };
 	enum EBina { AyseEv, Okul, Siginak, YilmazEv, Apartman, Kitapci, Firin, Market, OgrenciEv, Park, SahilEv, AhsapEv };
 
@@ -31,23 +32,36 @@ namespace
 	{
 		FDBContent C;
 
-		// 17 Ekim (ekip): masada 7 eşya, 3 çanta; her çanta doğru bir 3'lü kombinasyon. Su ve el feneri iki çantaya girer.
-		C.Kits = {
-			{ TEXT("İlk Yardım Çantası"), TEXT("İlk Yardım"), RGB(214, 76, 66), TEXT("Yarayı temizle, mikrobu öldür, sar.") },
-			{ TEXT("Deprem Çantası"), TEXT("Deprem"), RGB(86, 132, 196), TEXT("Enkazda susuz kalma, karanlıkta gör, sesini duyur.") },
-			{ TEXT("Yangın Çantası"), TEXT("Yangın"), RGB(232, 136, 52), TEXT("Ateşi söndür, dumandan korun, karanlıkta yolu bul.") },
-		};
-		constexpr int32 IY = 1 << IlkYardim;
-		constexpr int32 DP = 1 << Deprem;
-		constexpr int32 YG = 1 << Yangin;
+		// 17 Ekim (ekip, Purble Place gibi fabrika): önce temel kit seçilir, içindekiler kendiliğinden eklenir;
+		// sonra bant aşağı inerken kişiye özel eşyalar eklenir, en altta teslim.
 		C.Items = {
-			{ TEXT("Su"), TEXT("SU"), Sky, IY | DP },
-			{ TEXT("Sargı Bezi"), TEXT("SB"), Cream, IY },
-			{ TEXT("Yangın Tüpü"), TEXT("YT"), RGB(214, 76, 66), YG },
-			{ TEXT("El Feneri"), TEXT("FN"), Mustard, DP | YG },
-			{ TEXT("Düdük"), TEXT("DÜ"), Teal, DP },
-			{ TEXT("Antiseptik"), TEXT("AN"), Lavender, IY },
-			{ TEXT("Duman Maskesi"), TEXT("DM"), Slate, YG },
+			{ TEXT("Sargı Bezi"), TEXT("SB"), Cream },
+			{ TEXT("Antiseptik"), TEXT("AN"), Lavender },
+			{ TEXT("Yara Bandı"), TEXT("YB"), Rose },
+			{ TEXT("Su"), TEXT("SU"), Sky },
+			{ TEXT("El Feneri"), TEXT("FN"), Mustard },
+			{ TEXT("Düdük"), TEXT("DÜ"), Teal },
+			{ TEXT("Yangın Tüpü"), TEXT("YT"), RGB(214, 76, 66) },
+			{ TEXT("Duman Maskesi"), TEXT("DM"), Slate },
+			{ TEXT("Kalp İlacı"), TEXT("Kİ"), RGB(220, 90, 110) },
+			{ TEXT("Astım Spreyi"), TEXT("AS"), RGB(120, 170, 220) },
+			{ TEXT("Gözlük"), TEXT("GÖ"), RGB(90, 90, 100) },
+			{ TEXT("Bebek Maması"), TEXT("BM"), RGB(236, 170, 190) },
+			{ TEXT("Bebek Bezi"), TEXT("BB"), RGB(200, 220, 236) },
+			{ TEXT("Kedi Maması"), TEXT("KM"), Kraft },
+			{ TEXT("Battaniye"), TEXT("BT"), Coral },
+			{ TEXT("Powerbank"), TEXT("PB"), RGB(80, 84, 92) },
+			{ TEXT("Önemli Belgeler"), TEXT("ÖB"), Card },
+		};
+		C.Kits = {
+			{ TEXT("İlk Yardım Çantası"), TEXT("İlk Yardım"), RGB(214, 76, 66), TEXT("sargı bezi, antiseptik, yara bandı"), { SargiBezi, Antiseptik, YaraBandi } },
+			{ TEXT("Deprem Çantası"), TEXT("Deprem"), RGB(86, 132, 196), TEXT("su, el feneri, düdük"), { Su, Fener, Duduk } },
+			{ TEXT("Yangın Çantası"), TEXT("Yangın"), RGB(232, 136, 52), TEXT("yangın tüpü, duman maskesi, el feneri"), { YanginTupu, DumanMaskesi, Fener } },
+		};
+		C.Stations = {
+			{ TEXT("SAĞLIK"), { KalpIlaci, AstimSpreyi, Gozluk } },
+			{ TEXT("BAKIM"), { BebekMamasi, BebekBezi, KediMamasi } },
+			{ TEXT("İHTİYAÇ"), { Battaniye, Powerbank, Belgeler } },
 		};
 
 		// Alt panel sırası çizimdeki gibi: rögar kapağı, tahliye, yangın musluğu, bina güçlendirme
@@ -82,32 +96,37 @@ namespace
 			  TEXT("Ayşe Teyze yalnız yaşıyor; evde hiç ilk yardım malzemesi yok."),
 			  TEXT("Ayşe Teyze yalnız yaşıyor ve sık sık küçük kazalar geçiriyor. Evde ilk yardım malzemesi yok."),
 			  -1, IlkYardim,
-			  TEXT("Her evde yarayı temizlemek için su, antiseptik ve sargı bezi bulunan bir ilk yardım çantası olmalı; yerini herkes bilmeli."),
-			  TEXT("Ayşe Teyze sık sık küçük yaralar alıyor. Evinde hangi çanta olmalı?") },
+			  TEXT("Her evde ilk yardım çantası olmalı. Düzenli ilaç kullananlar birkaç günlük ilacını, gözlük kullananlar yedek gözlüğünü çantaya koymalı."),
+			  TEXT("Ayşe Teyze sık sık küçük yaralar alıyor. Evinde hangi çanta olmalı?"),
+			  { KalpIlaci, Gozluk } },
 			{ Okul, TEXT("İlk yardım"),
 			  TEXT("Okulun revirindeki ilk yardım çantası boş."),
 			  TEXT("Okulda yüzlerce öğrenci var ama revirdeki ilk yardım çantası bomboş."),
 			  -1, IlkYardim,
-			  TEXT("Okul ve iş yerlerinde ilk yardım çantası kolay ulaşılan bir yerde durmalı, malzemeleri düzenli yenilenmeli."),
-			  TEXT("Revirdeki çanta bomboş. Yaralanan bir öğrenciye ne lazım?") },
+			  TEXT("Okulda ilk yardım çantası kolay ulaşılan yerde durmalı; astımlı öğrencilerin spreyi her zaman yakında olmalı."),
+			  TEXT("Revirdeki çanta bomboş. Yaralanan bir öğrenciye ne lazım?"),
+			  { AstimSpreyi } },
 			{ YilmazEv, TEXT("Deprem"),
 			  TEXT("Yılmazların deprem anında alacakları bir çantası yok."),
 			  TEXT("Yılmaz ailesi depreme hiç hazırlık yapmamış; kapının yanında hazır bir çantaları yok."),
 			  -1, Deprem,
-			  TEXT("Deprem çantasında su, el feneri ve düdük olmalı; enkaz altında düdük sesini duyurmanın en az yorucu yoludur. Çanta kapının yakınında durmalı."),
-			  TEXT("Sarsıntıda kapıdan çıkarken kapacakları bir çantaları yok.") },
+			  TEXT("Deprem çantasında su, el feneri ve düdük olmalı; bebekli aileler mama ve bez eklemeli. Çanta kapının yakınında durmalı."),
+			  TEXT("Sarsıntıda kapıdan çıkarken kapacakları bir çantaları yok."),
+			  { BebekMamasi, BebekBezi } },
 			{ OgrenciEv, TEXT("Deprem"),
 			  TEXT("Öğrenci evinde depremden sonrası için hiçbir hazırlık yok."),
 			  TEXT("Öğrenciler depremden sonraki ilk saatlerde ne yiyip içeceklerini hiç düşünmemiş."),
 			  -1, Deprem,
-			  TEXT("Deprem çantası evdeki kişi sayısına göre hazırlanmalı; su ve yiyeceklerin tarihleri yılda bir kontrol edilmeli."),
-			  TEXT("Depremden sonraki ilk saatlerde ne yiyip içecekler?") },
+			  TEXT("Deprem çantasına dolu bir powerbank koy; evcil hayvanını unutma, onun için de mama bulundur."),
+			  TEXT("Depremden sonraki ilk saatlerde ne yiyip içecekler?"),
+			  { Powerbank, KediMamasi } },
 			{ Firin, TEXT("Yangın"),
 			  TEXT("Fırında sürekli ateş yanıyor ama yangın malzemesi yok."),
 			  TEXT("Fırında sabahtan akşama ateş yanıyor; bir yangın çıkarsa müdahale edecek hiçbir şey yok."),
 			  -1, Yangin,
-			  TEXT("Ateşle çalışılan yerlerde yangın tüpü, duman maskesi ve el feneri hazır olmalı; dumanda eğilerek ilerle."),
-			  TEXT("Sürekli ateş yanıyor ama yangına karşı hiçbir şey yok.") },
+			  TEXT("Ateşle çalışılan yerde yangın tüpü ve duman maskesi hazır olmalı; önemli belgelerin kopyaları çantada dursun. Dumanda eğilerek ilerle."),
+			  TEXT("Sürekli ateş yanıyor ama yangına karşı hiçbir şey yok."),
+			  { Belgeler, Battaniye } },
 			{ Apartman, TEXT("Deprem"),
 			  TEXT("Eski apartmanın kolonlarında çatlaklar var."),
 			  TEXT("Eski apartmanın kolonlarında çatlaklar var. Bina deprem yönetmeliğinden önce yapılmış."),
@@ -155,22 +174,23 @@ namespace
 		C.AfterScan = {
 			{ S::A, TEXT("İşaretli yerlerin yanında ne istedikleri yazıyor.") },
 		};
-		// 1 çanta türleri, 2 eşyalar, 3 hazırla, 4 kapat
+		// HUD hedefleri: 1 sipariş kartı, 2 temel kit, 3 kişiye özel istasyonlar, 4 teslim, 5 kapat
 		C.BagIntroB = {
-			{ S::B, TEXT("Ben Asil. Çantaları bu masada hazırlıyoruz.") },
-			{ S::B, TEXT("Üç çeşit çanta var. Önce hangisini yapacağını seç.") },
-			{ S::B, TEXT("Sonra doğru 3 eşyayı seç. Bazı eşyalar iki çantaya da girer.") },
-			{ S::B, TEXT("Kombinasyon doğruysa çanta hazırlanır.") },
+			{ S::B, TEXT("Ben Asil. Burası çanta fabrikası; bant yukarıdan aşağı akar, durmaz!") },
+			{ S::B, TEXT("Üstteki kartta hazırlanacak çanta ve tarifi yazıyor.") },
+			{ S::B, TEXT("Çanta gelince önce temel kiti seç: içindekiler kendiliğinden eklenir.") },
+			{ S::B, TEXT("Sonra çanta önlerinden geçerken kişiye özel eşyaları ekle.") },
+			{ S::B, TEXT("En alta inince teslim edilir. Yanlışsa çanta baştan gelir.") },
 			{ S::B, TEXT("Bitince masayı kapat.") },
 		};
-		// 1 önlemler, 2 bütçe, 3 sırt çantası, 4 çekmece
+		// HUD hedefleri: 1 önlemler, 2 bütçe, 3 önlemler, 4 çekmece
 		C.PanelIntroC = {
 			{ S::C, TEXT("Ben Yiğit. Şehir önlemleri bende.") },
 			{ S::C, TEXT("Sel, tsunami, yangın ve deprem için önlemler burada.") },
-			{ S::C, TEXT("Önlemler bütçeden düşer; doğru çanta göndermek bütçe kazandırır.") },
-			{ S::C, TEXT("Çantaların burada. Seç, sonra isteği olan yere tıkla.") },
-			{ S::C, TEXT("Yeni çanta için çekmeceyi çek.") },
-			{ S::C, TEXT("Hepsi yeşil olunca kasaba hazır!") },
+			{ S::C, TEXT("Önlemler bütçeden düşer; teslim ettiğin her çanta bütçe kazandırır.") },
+			{ S::C, TEXT("Önlemi seç, sonra isteği olan yere tıkla.") },
+			{ S::C, TEXT("Çanta isteyen bir yere tıkla ya da çekmeceyi çek: fabrika açılır.") },
+			{ S::C, TEXT("Hepsi yeşil olunca kasaba hazır! Tekerlek yakınlaştırır, Q/E ya da sağ tıkla sürükle döndürür.") },
 		};
 
 		C.Comic = {

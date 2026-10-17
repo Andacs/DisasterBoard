@@ -241,9 +241,9 @@ void ADBHUD::KitBadge(int32 Kit, const FBox2D& R, float Px)
 FBox2D ADBHUD::PanelRect() const
 {
 	// Çekmece sağ ortada; açılınca sola kayar (çizim 5)
-	const float PW = 700.f * S;
+	const float PW = 720.f * S;
 	const float X = W - 24.f * S - PW + (1.f - PanelSlide) * (PW + 30.f * S);
-	return Rect(X, H * 0.42f - 260.f * S, PW, 520.f * S);
+	return Rect(X, 20.f * S, PW, H - 216.f * S);
 }
 
 FBox2D ADBHUD::DrawerHandleRect() const
@@ -252,7 +252,7 @@ FBox2D ADBHUD::DrawerHandleRect() const
 	return Rect(P.Min.X - 46.f * S, P.GetCenter().Y - 100.f * S, 48.f * S, 200.f * S);
 }
 
-FBox2D ADBHUD::BottomBarRect() const { return Rect(W * 0.5f - 380.f * S, H - 182.f * S, 760.f * S, 164.f * S); }
+FBox2D ADBHUD::BottomBarRect() const { return Rect(W * 0.5f - 270.f * S, H - 182.f * S, 540.f * S, 164.f * S); }
 FBox2D ADBHUD::ScannerRect() const { return Rect(178.f * S, H - 200.f * S, 84.f * S, 150.f * S); }
 FBox2D ADBHUD::MoneyRect() const { return Rect(W * 0.5f - 140.f * S, 16.f * S, 280.f * S, 58.f * S); }
 
@@ -332,6 +332,10 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 		else if (Id == TEXT("PanelClose")) GM->ClosePanel();
 		else if (Id == TEXT("Drawer")) GM->TogglePanel();
 		else if (Id == TEXT("Kit")) GM->SetDraftKit(Ix);
+		else if (Id == TEXT("Station")) GM->StationClick(Ix / 10, Ix % 10);
+		else if (Id == TEXT("OrderPrev")) GM->CycleOrder(-1);
+		else if (Id == TEXT("OrderNext")) GM->CycleOrder(1);
+		else if (Id == TEXT("BeltReset")) GM->ResetBag();
 		else if (Id == TEXT("Item")) GM->AddItem(Ix);
 		else if (Id == TEXT("Draft")) GM->RemoveDraftAt(Ix);
 		else if (Id == TEXT("Pack")) GM->PackBag();
@@ -768,47 +772,6 @@ void ADBHUD::DrawBottomBar()
 		}
 	}
 
-	// Sırt çantası: hazırlanan çantalar
-	const float BX = X + 4.f * 122.f * S + 14.f * S;
-	Txt(TEXT("Sırt çantası"), BX, BR.Min.Y + 10.f * S, 19.f * S, DarkK);
-	const FBox2D Pack = Rect(BX, Y - 2.f * S, 200.f * S, 116.f * S);
-	TgBackpack = Pack;
-	if (GM->IsTalking(C.PanelIntroC, 3))
-	{
-		Glow(Pack);
-	}
-	Frame(Rect(BX + 128.f * S, Y - 20.f * S, 52.f * S, 22.f * S), Ink, 5.f * S);
-	Card(Pack, U(206, 116, 88), Ink, 5.f);
-	for (int32 b = 0; b < GM->MaxBags && b < 4; ++b)
-	{
-		const FBox2D R = Rect(BX + 12.f * S + (b % 2) * 92.f * S, Y + 6.f * S + (b / 2) * 54.f * S, 84.f * S, 48.f * S);
-		if (!GM->Bags.IsValidIndex(b))
-		{
-			Box(R, U(255, 255, 255, 50));
-			Frame(R, U(110, 60, 40, 140), 2.f * S);
-			continue;
-		}
-		const FDBBag& Bag = GM->Bags[b];
-		if (Bag.bUsed)
-		{
-			Box(R, U(44, 34, 30));
-			continue;
-		}
-		const bool bSel = GM->SelBag == b;
-		const bool bHov = bPlay && Hover(R);
-		const FBox2D RR = (bSel || bHov) ? R.ShiftBy(FVector2D(0.f, -3.f * S)) : R;
-		Box(RR, bSel ? U(255, 248, 220) : Paper);
-		KitBadge(Bag.Kit, Rect(RR.Min.X, RR.Min.Y, RR.GetSize().X, 20.f * S), 13.f * S);
-		for (int32 k = 0; k < Bag.Items.Num(); ++k)
-		{
-			ItemIcon(Bag.Items[k], FVector2D(RR.Min.X + 13.f * S + k * 19.5f * S, RR.Min.Y + 34.f * S), 8.f * S);
-		}
-		Frame(RR, bSel ? Teal : Ink, bSel ? 4.f * S : 2.f * S);
-		if (bPlay)
-		{
-			Hit(TEXT("Bag"), b, RR);
-		}
-	}
 }
 
 void ADBHUD::DrawDrawerHandle()
@@ -839,108 +802,182 @@ void ADBHUD::DrawDrawerHandle()
 	}
 }
 
+void ADBHUD::DrawBagIcon(const FVector2D& C, float Sc, int32 Kit, const TArray<int32>& Personal)
+{
+	// Sırt çantası: kit seçilince kit renginde; içindekiler küçük daireler (üstte temel kit, altta kişiye özel)
+	const FDBContent& Ct = FDBContent::Get();
+	const FLinearColor Body = Kit >= 0 ? Ct.Kits[Kit].Color : U(196, 154, 108);
+	Frame(Rect(C.X - 18.f * Sc, C.Y - 54.f * Sc, 36.f * Sc, 16.f * Sc), Ink, 4.f * Sc);
+	Card(Rect(C.X - 42.f * Sc, C.Y - 42.f * Sc, 84.f * Sc, 86.f * Sc), Body, Ink, 4.f);
+	Box(Rect(C.X - 30.f * Sc, C.Y + 2.f * Sc, 60.f * Sc, 34.f * Sc), U(255, 255, 255, 70));
+	if (Kit >= 0)
+	{
+		const TArray<int32>& D = Ct.Kits[Kit].Defaults;
+		for (int32 i = 0; i < D.Num(); ++i)
+		{
+			ItemIcon(D[i], FVector2D(C.X + (i - (D.Num() - 1) * 0.5f) * 24.f * Sc, C.Y - 20.f * Sc), 10.f * Sc);
+		}
+	}
+	for (int32 i = 0; i < Personal.Num(); ++i)
+	{
+		ItemIcon(Personal[i], FVector2D(C.X + (i - (Personal.Num() - 1) * 0.5f) * 24.f * Sc, C.Y + 19.f * Sc), 10.f * Sc);
+	}
+}
+
 void ADBHUD::DrawPanel()
 {
 	const FDBContent& C = FDBContent::Get();
 	const FBox2D P = PanelRect();
-	Card(P, U(244, 230, 204), DarkK, 10.f);
+	Card(P, U(232, 226, 236), DarkK, 10.f);
 	Blockers.Add(P);
 	const bool bEdit = GM->CanEditBags() && PanelSlide > 0.97f;
 	const float X0 = P.Min.X + 24.f * S;
 	const float Y0 = P.Min.Y;
 
-	Txt(TEXT("Hazırlık Masası"), X0, Y0 + 16.f * S, 34.f * S, Ink);
-	const FBox2D XR = Rect(P.Max.X - 68.f * S, Y0 + 14.f * S, 50.f * S, 50.f * S);
+	Txt(TEXT("Çanta Fabrikası"), X0, Y0 + 14.f * S, 32.f * S, Ink);
+	const FBox2D XR = Rect(P.Max.X - 66.f * S, Y0 + 12.f * S, 48.f * S, 48.f * S);
 	TgClose = XR;
-	if (GM->IsTalking(C.BagIntroB, 4))
+	if (GM->IsTalking(C.BagIntroB, 5))
 	{
 		Glow(XR);
 	}
 	Button(TEXT("PanelClose"), -1, XR, TEXT("X"), 26.f * S, Coral, Ink, Paper, bEdit);
-	Txt(TEXT("Çantanın türünü seç, doğru 3 eşyayı bul."), X0, Y0 + 62.f * S, 17.f * S, DarkK);
 
-	// Çanta türü sekmeleri
-	const float TabY = Y0 + 92.f * S;
-	TgTabs = Rect(X0, TabY, 3.f * 208.f * S + 2.f * 14.f * S, 44.f * S);
+	// Bant: sağda, yukarıdan aşağı (Purble Place'teki gibi ama dikey ve durmaz)
+	const float BeltL = P.Max.X - 154.f * S;
+	const float BeltW = 110.f * S;
+	const float BeltTop = Y0 + 236.f * S;
+	const float BeltBot = P.Max.Y - 96.f * S;
+	const float BeltLen = BeltBot - BeltTop;
+	const float BeltCX = BeltL + BeltW * 0.5f;
+	Box(Rect(BeltL - 8.f * S, BeltTop - 20.f * S, BeltW + 16.f * S, BeltLen + 40.f * S), U(120, 124, 132));
+	Box(Rect(BeltL, BeltTop - 12.f * S, BeltW, BeltLen + 24.f * S), U(70, 72, 80));
+	const float Slat = 28.f * S;
+	const float Run = GM->IsBeltRunning() ? FMath::Fmod(GM->Now * BeltLen / FMath::Max(1.f, GM->BeltSeconds), Slat) : 0.f;
+	for (float Yy = BeltTop - 12.f * S + Run; Yy < BeltBot + 12.f * S; Yy += Slat)
+	{
+		Box(Rect(BeltL + 4.f * S, Yy, BeltW - 8.f * S, 3.f * S), U(96, 98, 108));
+	}
+	Disc(FVector2D(BeltCX, BeltTop - 14.f * S), 9.f * S, U(170, 172, 180));
+	Disc(FVector2D(BeltCX, BeltBot + 14.f * S), 9.f * S, U(170, 172, 180));
+
+	// Sipariş kartı: hazırlanacak çantanın resmi ve tarifi (en üstte)
+	const int32 Ord = GM->OrderProblem;
+	const FBox2D Card0 = Rect(X0, Y0 + 62.f * S, 450.f * S, 156.f * S);
+	TgOrder = Card0;
 	if (GM->IsTalking(C.BagIntroB, 1))
 	{
-		Glow(TgTabs);
+		Glow(Card0);
 	}
-	for (int32 k = 0; k < C.Kits.Num() && k < 3; ++k)
+	Box(Card0.ShiftBy(FVector2D(4.f, 6.f) * S), ShadowC);
+	Box(Card0, NoteY);
+	Frame(Card0, Ink, 2.f * S);
+	const TArray<int32> Pending = GM->PendingOrders();
+	if (Ord >= 0)
 	{
-		const FBox2D R = Rect(X0 + k * 222.f * S, TabY, 208.f * S, 44.f * S);
-		const bool bSel = GM->DraftKit == k;
-		Button(TEXT("Kit"), k, R, C.Kits[k].Short, 19.f * S, bSel ? C.Kits[k].Color : CardC, bSel ? Ink : DarkK, bSel ? Paper : Ink, bEdit);
-	}
-
-	// Seçili çantanın ipucu (kombinasyonu söylemez)
-	const FDBKitDef& HintKit = C.Kits[FMath::Clamp(GM->DraftKit, 0, C.Kits.Num() - 1)];
-	Txt(HintKit.Hint, X0, TabY + 52.f * S, 17.f * S, HintKit.Color);
-
-	// Eşyalar 4×2 (7 eşya)
-	const float GY = Y0 + 176.f * S;
-	TgItems = Rect(X0, GY, 4.f * 150.f * S + 3.f * 12.f * S, 2.f * 92.f * S + 8.f * S);
-	if (GM->IsTalking(C.BagIntroB, 2))
-	{
-		Glow(TgItems);
-	}
-	for (int32 i = 0; i < C.Items.Num() && i < 8; ++i)
-	{
-		const FBox2D R = Rect(X0 + (i % 4) * 162.f * S, GY + (i / 4) * 100.f * S, 150.f * S, 92.f * S);
-		const bool bIn = GM->Draft.Contains(i);
-		const bool bHov = bEdit && Hover(R);
-		const FBox2D RR = bHov ? R.ShiftBy(FVector2D(0.f, -4.f * S)) : R;
-		Card(RR, bIn ? U(226, 240, 214) : Paper, bIn ? Green : DarkK, bHov ? 7.f : 4.f);
-		ItemIcon(i, FVector2D(RR.GetCenter().X, RR.Min.Y + 34.f * S), 22.f * S);
-		Txt(C.Items[i].Name, RR.GetCenter().X, RR.Min.Y + 62.f * S, 16.f * S, Ink, 1);
-		if (bIn)
+		const FDBProblemDef& Pr = C.Problems[Ord];
+		const int32 Num = Pending.IndexOfByKey(Ord) + 1;
+		Txt(FString::Printf(TEXT("SİPARİŞ %d / %d"), FMath::Max(1, Num), Pending.Num()), Card0.Min.X + 14.f * S, Card0.Min.Y + 10.f * S, 15.f * S, DarkK);
+		Txt(C.Buildings[Pr.Building].Name, Card0.Min.X + 14.f * S, Card0.Min.Y + 30.f * S, 24.f * S, Ink);
+		// 1. temel kit
+		Txt(TEXT("1. Temel kit:"), Card0.Min.X + 14.f * S, Card0.Min.Y + 68.f * S, 17.f * S, Ink);
+		const FDBKitDef& K = C.Kits[Pr.Kit];
+		const float KW = Measure(K.Name, 16.f * S).X + 16.f * S;
+		Box(Rect(Card0.Min.X + 124.f * S, Card0.Min.Y + 66.f * S, KW, 24.f * S), K.Color);
+		Txt(K.Name, Card0.Min.X + 132.f * S, Card0.Min.Y + 69.f * S, 16.f * S, Paper);
+		// 2. kişiye özel
+		Txt(TEXT("2. Kişiye özel:"), Card0.Min.X + 14.f * S, Card0.Min.Y + 104.f * S, 17.f * S, Ink);
+		float IX = Card0.Min.X + 140.f * S;
+		for (int32 It : Pr.Personal)
 		{
-			TickMark(FVector2D(RR.Max.X - 18.f * S, RR.Min.Y + 18.f * S), 20.f * S, Green);
+			ItemIcon(It, FVector2D(IX + 12.f * S, Card0.Min.Y + 114.f * S), 11.f * S);
+			Txt(C.Items[It].Name, IX + 28.f * S, Card0.Min.Y + 105.f * S, 15.f * S, Ink);
+			IX += Measure(C.Items[It].Name, 15.f * S).X + 46.f * S;
 		}
-		if (bEdit)
-		{
-			Hit(TEXT("Item"), i, RR);
-		}
+		// Çantanın resmi: olması gereken hâli
+		DrawBagIcon(FVector2D(Card0.Max.X - 54.f * S, Card0.Min.Y + 62.f * S), 0.62f * S, Pr.Kit, Pr.Personal);
+		Button(TEXT("OrderPrev"), -1, Rect(Card0.Max.X + 10.f * S, Card0.Min.Y + 20.f * S, 44.f * S, 44.f * S), TEXT("<"), 22.f * S, CardC, DarkK, Ink, bEdit && Pending.Num() > 1);
+		Button(TEXT("OrderNext"), -1, Rect(Card0.Max.X + 10.f * S, Card0.Min.Y + 76.f * S, 44.f * S, 44.f * S), TEXT(">"), 22.f * S, CardC, DarkK, Ink, bEdit && Pending.Num() > 1);
+	}
+	else
+	{
+		Txt(TEXT("Bütün çanta siparişleri tamam!"), Card0.Min.X + 14.f * S, Card0.Min.Y + 60.f * S, 22.f * S, Green);
 	}
 
-	// Hazırlanan çanta
-	const float BY = GY + 2.f * 100.f * S + 4.f * S;
-	const FDBKitDef& Kit = C.Kits[FMath::Clamp(GM->DraftKit, 0, C.Kits.Num() - 1)];
-	Txt(FString::Printf(TEXT("%s (%d/%d)"), *Kit.Name, GM->Draft.Num(), GM->BagCapacity), X0, BY, 20.f * S, Ink);
-	for (int32 k = 0; k < GM->BagCapacity && k < 4; ++k)
+	// İstasyonlar: 0 temel kit, 1..3 kişiye özel (bant önlerinden geçerken tıkla)
+	TgStations = FBox2D(ForceInit);
+	for (int32 K = 0; K < ADBGameMode::NumStations && K <= C.Stations.Num(); ++K)
 	{
-		const FBox2D R = Rect(X0 + k * 96.f * S, BY + 30.f * S, 86.f * S, 86.f * S);
-		if (GM->Draft.IsValidIndex(k))
+		const float Yc = BeltTop + ADBGameMode::StationCenter(K) * BeltLen;
+		const FBox2D Row = Rect(X0, Yc - 50.f * S, 500.f * S, 100.f * S);
+		const bool bActive = GM->IsStationActive(K);
+		if (K == 0) TgKitStation = Row; else TgStations += Row;
+		Box(Row, bActive ? U(255, 246, 214) : U(214, 208, 220));
+		Frame(Row, bActive ? U(236, 170, 40) : DarkK, (bActive ? 4.f : 2.f) * S);
+		// Boru: istasyondan banda
+		Box(Rect(Row.Max.X, Yc - 6.f * S, BeltL - Row.Max.X, 12.f * S), bActive ? U(236, 170, 40) : U(150, 150, 160));
+		Txt(K == 0 ? TEXT("TEMEL KİT") : C.Stations[K - 1].Name, Row.Min.X + 10.f * S, Row.Min.Y + 6.f * S, 14.f * S, DarkK);
+		for (int32 B = 0; B < 3; ++B)
 		{
-			const bool bHov = bEdit && Hover(R);
-			Card(R, Paper, bHov ? Coral : DarkK, 3.f);
-			ItemIcon(GM->Draft[k], FVector2D(R.GetCenter().X, R.Min.Y + 32.f * S), 20.f * S);
-			Txt(C.Items[GM->Draft[k]].Name, R.GetCenter().X, R.Min.Y + 60.f * S, 13.f * S, Ink, 1);
-			if (bHov)
+			const FBox2D Bt = Rect(Row.Min.X + 10.f * S + B * 162.f * S, Row.Min.Y + 26.f * S, 152.f * S, 66.f * S);
+			const bool bHov = bActive && Hover(Bt);
+			const FBox2D BR = bHov ? Bt.ShiftBy(FVector2D(0.f, -3.f * S)) : Bt;
+			if (K == 0)
 			{
-				Cross(FVector2D(R.Max.X - 14.f * S, R.Min.Y + 14.f * S), 16.f * S, Coral);
+				const FDBKitDef& Kd = C.Kits[B];
+				const bool bSel = GM->bBagOnBelt && GM->BagKit == B;
+				Card(BR, Kd.Color, bSel ? Ink : DarkK, bHov ? 6.f : 3.f);
+				if (bSel) Frame(BR.ExpandBy(3.f * S), Ink, 3.f * S);
+				Txt(Kd.Short, BR.GetCenter().X, BR.Min.Y + 8.f * S, 19.f * S, Paper, 1);
+				for (int32 i = 0; i < Kd.Defaults.Num(); ++i)
+				{
+					ItemIcon(Kd.Defaults[i], FVector2D(BR.GetCenter().X + (i - 1) * 26.f * S, BR.Min.Y + 46.f * S), 10.f * S);
+				}
 			}
-			if (bEdit)
+			else
 			{
-				Hit(TEXT("Draft"), k, R);
+				const int32 It = C.Stations[K - 1].Items[B];
+				const bool bIn = GM->bBagOnBelt && GM->BagPersonal.Contains(It);
+				Card(BR, bIn ? U(226, 240, 214) : Paper, bIn ? Green : DarkK, bHov ? 6.f : 3.f);
+				ItemIcon(It, FVector2D(BR.Min.X + 30.f * S, BR.GetCenter().Y), 18.f * S);
+				Para(C.Items[It].Name, BR.Min.X + 56.f * S, BR.Min.Y + 12.f * S, 16.f * S, 92.f * S, Ink, 1.1f);
+			}
+			if (!bActive)
+			{
+				Box(BR, U(214, 208, 220, 110));
+			}
+			else if (bEdit)
+			{
+				Hit(TEXT("Station"), K * 10 + B, BR);
 			}
 		}
-		else
-		{
-			Box(R, WithA(Kit.Color, 0.18f));
-			Frame(R, WithA(Kit.Color, 0.7f), 2.f * S);
-		}
 	}
-	const FBox2D PackR = Rect(X0 + 3.f * 96.f * S + 24.f * S, BY + 30.f * S, 300.f * S, 50.f * S);
-	TgPack = PackR;
-	if (GM->IsTalking(C.BagIntroB, 3))
-	{
-		Glow(PackR);
-	}
-	Button(TEXT("Pack"), -1, PackR, TEXT("Çantayı Hazırla"), 22.f * S, Green, Ink, Paper, bEdit && GM->Draft.Num() > 0);
-	Button(TEXT("Clear"), -1, Rect(PackR.Min.X, BY + 86.f * S, 300.f * S, 30.f * S), TEXT("Boşalt"), 16.f * S,
-		CardC, DarkK, Ink, bEdit && GM->Draft.Num() > 0);
+	if (GM->IsTalking(C.BagIntroB, 2)) Glow(TgKitStation);
+	if (GM->IsTalking(C.BagIntroB, 3) && TgStations.bIsValid) Glow(TgStations);
 
+	// Teslim: bandın dibi
+	const FBox2D Del = Rect(BeltL - 14.f * S, BeltBot + 26.f * S, BeltW + 28.f * S, 52.f * S);
+	TgDeliver = Del;
+	if (GM->IsTalking(C.BagIntroB, 4)) Glow(Del);
+	Card(Del, U(244, 230, 204), Ink, 4.f);
+	Txt(TEXT("TESLİM"), Del.GetCenter().X, Del.Min.Y + 14.f * S, 20.f * S, Ink, 1);
+	Button(TEXT("BeltReset"), -1, Rect(X0, P.Max.Y - 64.f * S, 160.f * S, 44.f * S), TEXT("Baştan"), 19.f * S, CardC, DarkK, Ink, bEdit && GM->bBagOnBelt);
+	Txt(TEXT("Bant durmaz: çanta önünden geçerken tıkla."), X0 + 176.f * S, P.Max.Y - 52.f * S, 16.f * S, DarkK);
+
+	// Çanta bantta
+	if (GM->bBagOnBelt)
+	{
+		DrawBagIcon(FVector2D(BeltCX, BeltTop + GM->BagT * BeltLen), S, GM->BagKit, GM->BagPersonal);
+	}
+	// Teslim sonucu: kısa yeşil tik / kırmızı çarpı
+	const float Age = GM->Now - GM->DeliverTime;
+	if (Age >= 0.f && Age < 1.3f)
+	{
+		const FVector2D Cc = Del.GetCenter() - FVector2D(0.f, 70.f * S);
+		const float A = FMath::Clamp(1.3f - Age, 0.f, 1.f);
+		Disc(Cc, 34.f * S, GM->bDeliverOk ? U(226, 244, 220) : U(250, 222, 212));
+		if (GM->bDeliverOk) TickMark(Cc, 44.f * S * A + 10.f * S, Green); else Cross(Cc, 40.f * S * A + 10.f * S, Red);
+	}
 }
 
 // ---------------------------------------------------------------- konuşma, bildirim, ipucu
@@ -1181,13 +1218,14 @@ bool ADBHUD::GuideTarget(int32 Who, FVector2D& Out) const
 			const int32 T0 = GM->CurrentTask();
 			return T0 >= 0 && PlayerOwner->ProjectWorldLocationToScreen(GM->World->MarkerAnchor(C.Problems[T0].Building), Out);
 		}
-		if (GM->IsTalking(C.BagIntroB, 1)) return Center(TgTabs);
-		if (GM->IsTalking(C.BagIntroB, 2)) return Center(TgItems);
-		if (GM->IsTalking(C.BagIntroB, 3)) return Center(TgPack);
-		if (GM->IsTalking(C.BagIntroB, 4)) return Center(TgClose);
+		if (GM->IsTalking(C.BagIntroB, 1)) return Center(TgOrder);
+		if (GM->IsTalking(C.BagIntroB, 2)) return Center(TgKitStation);
+		if (GM->IsTalking(C.BagIntroB, 3)) return Center(TgStations);
+		if (GM->IsTalking(C.BagIntroB, 4)) return Center(TgDeliver);
+		if (GM->IsTalking(C.BagIntroB, 5)) return Center(TgClose);
 		if (GM->IsTalking(C.PanelIntroC, 1)) return Center(TgTools);
 		if (GM->IsTalking(C.PanelIntroC, 2)) return Center(TgMoney);
-		if (GM->IsTalking(C.PanelIntroC, 3)) return Center(TgBackpack);
+		if (GM->IsTalking(C.PanelIntroC, 3)) return Center(TgTools);
 		if (GM->IsTalking(C.PanelIntroC, 4)) return Center(TgDrawer);
 		return false;
 	}

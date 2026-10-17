@@ -30,7 +30,15 @@ struct FDBKitDef
 	FString Name;          // "Deprem Çantası"
 	FString Short;         // sekme ve sırt çantası etiketi
 	FLinearColor Color;
-	FString Hint;          // masada sekmenin altında: kombinasyona ipucu
+	FString Hint;          // fabrikada kit düğmesinin altında
+	TArray<int32> Defaults; // temel kit: seçilince kendiliğinden eklenen eşyalar
+};
+
+// Çanta fabrikasında kişiye özel eşya istasyonu (bant yukarıdan aşağı geçer)
+struct FDBStation
+{
+	FString Name;
+	TArray<int32> Items;   // en fazla 3 düğme
 };
 
 struct FDBItemDef
@@ -71,7 +79,8 @@ struct FDBProblemDef
 	int32 Tool = -1;       // >= 0: bu şehir önlemi gerekir
 	int32 Kit = -1;        // >= 0: bu türde, eşyaları tam bir çanta gerekir
 	FString Lesson;        // sonuç kartında: doğrusu ne
-	FString Hint;          // görev listesinde: cevabı söylemeden yönlendiren ipucu
+	FString Hint;          // (eski görev listesi) cevabı söylemeden yönlendiren ipucu
+	TArray<int32> Personal; // çanta siparişi: temel kitin üstüne kişiye özel eşyalar
 };
 
 struct FDBLine
@@ -85,6 +94,7 @@ struct FDBContent
 	TArray<FDBKitDef> Kits;
 	TArray<FDBItemDef> Items;
 	TArray<FDBToolDef> Tools;
+	TArray<FDBStation> Stations;  // kişiye özel istasyonlar (temel kit istasyonu en üstte, ayrı)
 	TArray<FDBBuildingDef> Buildings;
 	TArray<FDBProblemDef> Problems;
 	int32 ShelterBuilding = -1;

@@ -206,8 +206,24 @@ sırt çantası.
 - **Deniz:** dalga kaldı; altına mavi taban kondu ve deniz tahtanın kenarına kadar uzanıyor, kum şeridi yok
   (dalgada kahverengi görünüyordu).
 
+**17 Ekim ~07.30, Andaç'ın kararları (uygulandı, ekranda görüldü) — hazırlık masasının yerine geçer:**
+- **Çanta Fabrikası** (Purble Place'teki pasta fabrikası gibi; dikey, **durmaz**): sağdaki çekmece. Üstte
+  **sipariş kartı** (bina, çantanın resmi, tarif: 1. temel kit, 2. kişiye özel eşyalar). Bant yukarıdan aşağı
+  `BeltSeconds` 14 sn'de iner. İstasyonlar yukarıdan aşağı: **Temel kit** (İlk Yardım / Deprem / Yangın;
+  seçilince varsayılanları kendiliğinden eklenir: sargı bezi+antiseptik+yara bandı / su+el feneri+düdük /
+  yangın tüpü+duman maskesi+el feneri), **Sağlık** (kalp ilacı, astım spreyi, gözlük), **Bakım** (bebek maması,
+  bebek bezi, kedi maması), **İhtiyaç** (battaniye, powerbank, önemli belgeler). İstasyon yalnızca çanta
+  önündeyken tıklanır. En altta otomatik **teslim**: doğruysa istek tamam +30 TL, yanlışsa hata + "Eksik / Fazla"
+  ve çanta baştan gelir. Sipariş arası `<` `>`; çanta isteyen binaya tıklamak fabrikayı o siparişle açar.
+  "Baştan" çantayı tepeye alır. Sırt çantası ve eski 7 eşya / kombinasyon mekaniği kalktı.
+- 5 sipariş: Ayşe (İY + kalp ilacı, gözlük), Okul (İY + astım spreyi), Yılmaz (Deprem + bebek maması, bez),
+  Öğrenci (Deprem + powerbank, kedi maması), Fırın (Yangın + belgeler, battaniye). `DBData.cpp`.
+- **Kamera:** tekerlek yakınlaştırır (190–520 cm), Q/E 90° döndürür, sağ tıkla sürükle serbest döndürür
+  (sürüklemeden bırakılan sağ tık eskisi gibi "geri"). Kamera bir duvarın arkasına geçince o duvar (ve takvim)
+  gizlenir: ilk denemede ekranda yalnızca duvarın gölgedeki arkası görünüyordu.
+
 **Test:** `UnrealEditor.exe <tam yol>\DisasterBoard.uproject /Game/DisasterBoard/Maps/L_Ana -game -windowed
--ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~125 sn oynar, 30 görüntü (çizgi roman ve rehber karakterler dahil), 9/9 hazırlayıp sonuç kartına varır. `-DBGainTest` ile sayfa parlaklığını 5 değerde çeker
+-ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~110 sn oynar, 18 görüntü; fabrikada 5 sipariş (1 bilerek yanlış), kamera döndürme, 9/9 → sonuç (90 TL, 2 hata). `-DBGainTest` ile sayfa parlaklığını 5 değerde çeker
 `Saved/Screenshots/WindowsEditor/DB_*.png`, kendisi kapanır. Test tıklama işlevlerini doğrudan çağırıyor.
 
 **Derlendi, ekranda görülmedi:** gerçek fareyle tıklama/hover (imleç, tooltip), Ayarlar'daki tam ekran ve

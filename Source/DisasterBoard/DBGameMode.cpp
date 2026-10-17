@@ -108,6 +108,7 @@ void ADBGameMode::Tick(float Dt)
 	{
 		Music->SetIntensity(Solved.Num() > 0 ? (float)NumSolved() / Solved.Num() : 0.f);
 	}
+	TickBelt(Dt);
 
 	switch (Phase)
 	{
@@ -425,6 +426,147 @@ void ADBGameMode::OpenPanel()
 	}
 }
 
+// ---------------------------------------------------------------- çanta fabrikası
+
+TArray<int32> ADBGameMode::PendingOrders() const
+{
+	TArray<int32> Out;
+	const FDBContent& C = FDBContent::Get();
+	for (int32 p = 0; p < C.Problems.Num(); ++p)
+	{
+		if (C.Problems[p].Kit >= 0 && Revealed[p] && !Solved[p])
+		{
+			Out.Add(p);
+		}
+	}
+	return Out;
+}
+
+void ADBGameMode::ResetBag()
+{
+	bBagOnBelt = true;
+	BagT = 0.f;
+	BagKit = -1;
+	BagPersonal.Reset();
+}
+
+void ADBGameMode::SelectOrder(int32 Problem)
+{
+	if (!PendingOrders().Contains(Problem) || Problem == OrderProblem)
+	{
+		return;
+	}
+	OrderProblem = Problem;
+	bBagOnBelt = false;
+	NextBagAt = Now + 0.3f;
+}
+
+void ADBGameMode::CycleOrder(int32 Dir)
+{
+	const TArray<int32> P = PendingOrders();
+	if (P.Num() == 0)
+	{
+		return;
+	}
+	const int32 I = P.IndexOfByKey(OrderProblem);
+	SelectOrder(P[((I < 0 ? 0 : I + Dir) % P.Num() + P.Num()) % P.Num()]);
+}
+
+void ADBGameMode::TickBelt(float Dt)
+{
+	if (!bPanelOpen)
+	{
+		return;   // masa kapalıyken bant bekler
+	}
+	// Sipariş masa açılır açılmaz seçilir (Asil anlatırken kart boş kalmasın)
+	if (OrderProblem < 0 || Solved[OrderProblem])
+	{
+		const TArray<int32> P = PendingOrders();
+		OrderProblem = P.Num() ? P[0] : -1;
+		bBagOnBelt = false;
+		NextBagAt = FMath::Max(NextBagAt, Now + 0.3f);
+	}
+	if (Phase != EDBPhase::BagPrep && Phase != EDBPhase::Play)
+	{
+		return;   // konuşurken bant akmaz
+	}
+	if (OrderProblem < 0)
+	{
+		return;
+	}
+	if (!bBagOnBelt && Now >= NextBagAt)
+	{
+		ResetBag();
+	}
+	if (IsBeltRunning())
+	{
+		BagT += Dt / FMath::Max(1.f, BeltSeconds);
+		if (BagT >= 1.f)
+		{
+			DeliverBag();
+		}
+	}
+}
+
+void ADBGameMode::StationClick(int32 K, int32 Button)
+{
+	const FDBContent& C = FDBContent::Get();
+	if (!IsStationActive(K))
+	{
+		return;   // çanta bu istasyonun önünde değil
+	}
+	if (K == 0)
+	{
+		if (C.Kits.IsValidIndex(Button))
+		{
+			BagKit = Button;   // temel kit: içindekiler kendiliğinden eklenir (çizimde gösterilir)
+		}
+		return;
+	}
+	const FDBStation& St = C.Stations[K - 1];
+	if (St.Items.IsValidIndex(Button))
+	{
+		BagPersonal.AddUnique(St.Items[Button]);
+	}
+}
+
+void ADBGameMode::DeliverBag()
+{
+	const FDBContent& C = FDBContent::Get();
+	const FDBProblemDef& Pr = C.Problems[OrderProblem];
+	const FString& Name = C.Buildings[Pr.Building].Name;
+	TArray<FString> Missing, Extra;
+	for (int32 It : Pr.Personal)
+	{
+		if (!BagPersonal.Contains(It)) Missing.Add(C.Items[It].Name);
+	}
+	for (int32 It : BagPersonal)
+	{
+		if (!Pr.Personal.Contains(It)) Extra.Add(C.Items[It].Name);
+	}
+	bBagOnBelt = false;
+	DeliverTime = Now;
+	NextBagAt = Now + 1.3f;
+	if (BagKit == Pr.Kit && Missing.Num() == 0 && Extra.Num() == 0)
+	{
+		bDeliverOk = true;
+		Money += C.KitReward;
+		ShowToast(FString::Printf(TEXT("%s teslim edildi: %s aldı (+%d TL)."), *C.Kits[Pr.Kit].Name, *Name, C.KitReward), false, Pr.Building);
+		const int32 P = OrderProblem;
+		OrderProblem = -1;
+		Solve(P, Pr.Building);
+		return;
+	}
+	bDeliverOk = false;
+	++Mistakes;
+	FString Why;
+	if (BagKit < 0) Why = TEXT("Temel kit seçilmedi.");
+	else if (BagKit != Pr.Kit) Why = FString::Printf(TEXT("%s istiyordu, bu %s."), *C.Kits[Pr.Kit].Name, *C.Kits[BagKit].Name);
+	if (Missing.Num()) Why += FString::Printf(TEXT(" Eksik: %s."), *FString::Join(Missing, TEXT(", ")));
+	if (Extra.Num()) Why += FString::Printf(TEXT(" Fazla: %s."), *FString::Join(Extra, TEXT(", ")));
+	ShowToast(FString::Printf(TEXT("%s için çanta yanlış.%s Çanta baştan geliyor."), *Name, *Why), true, Pr.Building);
+}
+
 void ADBGameMode::ClosePanel()
 {
 	if (!bPanelOpen || (Phase != EDBPhase::BagPrep && Phase != EDBPhase::Play))
@@ -646,6 +788,12 @@ void ADBGameMode::ClickBuilding(int32 Building)
 
 	if (SelTool < 0 && SelBag < 0)
 	{
+		if (Prob.Kit >= 0)
+		{
+			SelectOrder(P);
+			bPanelOpen = true;
+			return;
+		}
 		ShowToast(Prob.Note, false, Building);
 		return;
 	}

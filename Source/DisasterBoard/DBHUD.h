@@ -55,7 +55,9 @@ private:
 	// Rehber karakterin gösterdiği yerler (her karede çizilirken güncellenir)
 	FBox2D TgScanner = FBox2D(ForceInit), TgTasks = FBox2D(ForceInit), TgTabs = FBox2D(ForceInit), TgItems = FBox2D(ForceInit),
 		TgPack = FBox2D(ForceInit), TgClose = FBox2D(ForceInit), TgTools = FBox2D(ForceInit), TgMoney = FBox2D(ForceInit),
-		TgBackpack = FBox2D(ForceInit), TgDrawer = FBox2D(ForceInit);
+		TgBackpack = FBox2D(ForceInit), TgDrawer = FBox2D(ForceInit),
+		TgOrder = FBox2D(ForceInit), TgKitStation = FBox2D(ForceInit), TgStations = FBox2D(ForceInit), TgDeliver = FBox2D(ForceInit);
+	void DrawBagIcon(const FVector2D& C, float Sc, int32 Kit, const TArray<int32>& Personal);
 	UPROPERTY() TMap<FString, TObjectPtr<UTexture2D>> PngCache;
 	UTexture2D* LoadPng(const FString& Rel);
 	void DrawTex(UTexture2D* T, const FBox2D& R, float RotDeg, const FVector2D& Pivot);

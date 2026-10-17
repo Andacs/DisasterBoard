@@ -60,6 +60,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float BoardCamPitch = -50.f;
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float BoardCamYaw = 45.f;
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float BoardCamFov = 50.f;
+	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float MinZoomDistance = 190.f;  // tekerlekle yakınlaşma sınırı
+	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float MaxZoomDistance = 520.f;
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float ExposureEV100 = 1.9f;
 	UPROPERTY(EditAnywhere, Category = "DB|Işık") FRotator SunRotation = FRotator(-52.f, 32.f, 0.f);
 
@@ -94,6 +96,15 @@ public:
 	void ClearHaze(int32 Building);
 	void ApplyExposure(float EV100);
 
+	// Oyuncu tahtayı döndürür (Q/E 90°, sağ tıkla sürükle) ve yakınlaştırır (tekerlek); yumuşak geçiş
+	void RotateBoardView(float Deg) { ViewYawTarget += Deg; }
+	void ZoomBoardView(float DeltaCm) { ViewDistTarget = FMath::Clamp(ViewDistTarget + DeltaCm, MinZoomDistance, MaxZoomDistance); }
+	float ViewYaw = 0.f;
+	float ViewYawTarget = 0.f;
+	float ViewDist = 330.f;
+	float ViewDistTarget = 330.f;
+	void UpdateBoardCam(float Dt);
+
 private:
 	UPROPERTY() TObjectPtr<UStaticMesh> CubeMesh;
 	UPROPERTY() TObjectPtr<UStaticMesh> CylinderMesh;
@@ -104,6 +115,8 @@ private:
 	UPROPERTY() TObjectPtr<USceneComponent> BoardRoot;
 	UPROPERTY() TArray<TObjectPtr<USceneComponent>> BuildingRoots;
 	UPROPERTY() TObjectPtr<USceneComponent> CalendarRoot;
+	UPROPERTY() TObjectPtr<USceneComponent> WallXRoot;
+	UPROPERTY() TObjectPtr<USceneComponent> WallYRoot;
 	UPROPERTY() TObjectPtr<USceneComponent> PageHinge;
 	UPROPERTY() TObjectPtr<UStaticMeshComponent> ScanBeam;
 	UPROPERTY() TObjectPtr<UStaticMesh> PlaneMesh;
