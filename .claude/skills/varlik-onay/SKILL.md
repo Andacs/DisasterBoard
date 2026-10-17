@@ -14,6 +14,8 @@ Her şeyi `Tools/varlik_kontrol.py` yapar; elle dosya kopyalama, ölçü hesapla
 
 ## İlk sefer: kurulum kontrolü
 
+Yiğit'in okuduğu adımlar: `Docs/YIGIT_KURULUM.md`. "kurulumu kontrol et" derse aşağıdakileri sırayla doğrula ve eksikleri söyle.
+
 1. Repo güncel mi: `git pull` (sorun çıkarsa dur, Yiğit'e söyle).
 2. Python ve Pillow: `python -c "import PIL"`; yoksa `python -m pip install pillow`.
 3. Blender (3D kontrolü için): `C:\Program Files\Blender Foundation\Blender*\blender.exe` var mı. Başka yerdeyse
