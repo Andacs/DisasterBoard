@@ -26,21 +26,40 @@ namespace
 	// DBData'daki 5×5 arsa sırası → 13 karoluk tahtada 2×2 bloğun ilk karosu (aralarda bir karo sokak)
 	const int32 LotOrigin[5] = { 0, 3, 6, 9, 11 };
 
-	// Ekipten gelen, varlik_kontrol.py ile onaylanıp Content/DisasterBoard/Meshes'e alınmış bina modelleri
-	// (bina adı → SM_ adı). Listede yoksa ya da paket yoksa bina eskisi gibi koddan kutularla kurulur.
+	// Ekipten gelen, varlik_kontrol.py ile onaylanıp Content/DisasterBoard/Meshes'e alınmış model (SM_ adı).
+	// Paket yoksa nullptr: çağıran eskisi gibi koddan kutularla kurar.
+	UStaticMesh* TeamMesh(const FString& SmName)
+	{
+		const FString Path = FString::Printf(TEXT("/Game/DisasterBoard/Meshes/%s.%s"), *SmName, *SmName);
+		return LoadObject<UStaticMesh>(nullptr, *Path, nullptr, LOAD_NoWarn | LOAD_Quiet);
+	}
+
+	// Bina adı (DBData) → SM_ adı. Listede yoksa bina koddan kurulur.
 	UStaticMesh* TeamBuildingMesh(const FString& BuildingName)
 	{
 		static const TMap<FString, FString> Names = {
 			{ TEXT("Okul"), TEXT("SM_Bina_Okul") },
+			{ TEXT("Ayşe Teyze'nin evi"), TEXT("SM_Bina_AyseTeyze") },
 		};
 		const FString* N = Names.Find(BuildingName);
-		if (!N)
-		{
-			return nullptr;
-		}
-		const FString Path = FString::Printf(TEXT("/Game/DisasterBoard/Meshes/%s.%s"), **N, **N);
-		return LoadObject<UStaticMesh>(nullptr, *Path, nullptr, LOAD_NoWarn | LOAD_Quiet);
+		return N ? TeamMesh(*N) : nullptr;
 	}
+}
+
+UStaticMeshComponent* ADBWorld::TeamPart(USceneComponent* Parent, UStaticMesh* Mesh, const FVector& Loc, float Scale)
+{
+	// Model kendi malzemesiyle (palet dokusu), gerçek ölçüsünde; çarpışma gereken yerde ayrı görünmez kutu kullanılır
+	UStaticMeshComponent* C = NewObject<UStaticMeshComponent>(this);
+	C->SetMobility(EComponentMobility::Movable);
+	C->SetStaticMesh(Mesh);
+	C->SetupAttachment(Parent);
+	C->SetRelativeLocation(Loc);
+	C->SetRelativeScale3D(FVector(Scale));
+	C->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	C->RegisterComponent();
+	const FBox Box = Mesh->GetBoundingBox();
+	UE_LOG(LogDBWorld, Log, TEXT("DB_MODEL %s (%.1f x %.1f x %.1f cm)"), *Mesh->GetName(), Box.GetSize().X, Box.GetSize().Y, Box.GetSize().Z);
+	return C;
 }
 
 ADBWorld::ADBWorld()
@@ -172,8 +191,16 @@ void ADBWorld::BuildBoard()
 
 	// Tahta (blend: Cube.002): taban, pahlı kenar, oluklu düzlük
 	const float Plateau = GridN * CellCm;
-	Part(B, CubeMesh, FVector(0, 0, 3.6f), FVector(BoardCm, BoardCm, 10.2f), RGB(176, 132, 90), FRotator::ZeroRotator, true);
-	Part(B, CubeMesh, FVector(0, 0, 10.35f), FVector(BoardCm - 10.f, BoardCm - 10.f, 3.3f), RGB(196, 154, 108), FRotator::ZeroRotator, true);
+	UStaticMeshComponent* BoardBase = Part(B, CubeMesh, FVector(0, 0, 3.6f), FVector(BoardCm, BoardCm, 10.2f), RGB(176, 132, 90), FRotator::ZeroRotator, true);
+	UStaticMeshComponent* BoardBevel = Part(B, CubeMesh, FVector(0, 0, 10.35f), FVector(BoardCm - 10.f, BoardCm - 10.f, 3.3f), RGB(196, 154, 108), FRotator::ZeroRotator, true);
+	if (UStaticMesh* M = TeamMesh(TEXT("SM_Tahta")))
+	{
+		// Ekip modeli: 128 × 128, tabanı masada (Z = 0), üstü 12 cm'de oluklu düzlüğün altında biter. Karolar,
+		// deniz ve yollar koddan kalır. Eski kutular çarpışma için durur, görünmez.
+		TeamPart(B, M, FVector::ZeroVector);
+		BoardBase->SetHiddenInGame(true);
+		BoardBevel->SetHiddenInGame(true);
+	}
 	Part(B, CubeMesh, FVector(0, 0, 12.5f), FVector(Plateau + 2.f, Plateau + 2.f, 1.f), RGB(150, 112, 78), FRotator::ZeroRotator, true);
 	const float TileH = BoardTopZ - 13.f;
 	for (int32 X = 0; X < GridN; ++X)
@@ -318,21 +345,13 @@ void ADBWorld::BuildBuilding(int32 Index)
 	{
 		// Ekipten gelen onaylı model: gerçek ölçüsünde (cm, şablon 14,6 × 14,6) ve kendi tabanı var, plaka ve yer
 		// tutucu kutular kurulmaz. Kök BuildingScale ile küçüldüğü için model 1 / BuildingScale ile büyütülür.
-		UStaticMeshComponent* C = NewObject<UStaticMeshComponent>(this);
-		C->SetMobility(EComponentMobility::Movable);
-		C->SetStaticMesh(M);
-		C->SetupAttachment(Root);
-		C->SetRelativeScale3D(FVector(1.f / BuildingScale));
-		C->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		C->RegisterComponent();
+		TeamPart(Root, M, FVector::ZeroVector, 1.f / BuildingScale);
 		// Tıklama için görünmez kutu: imleç izi binaya bağlı bileşeni arar
 		const FBox Box = M->GetBoundingBox();
 		const FVector SizeDesign = Box.GetSize() / BuildingScale;
 		UStaticMeshComponent* HitBox = Part(Root, CubeMesh, Box.GetCenter() / BuildingScale, SizeDesign, FLinearColor::White, FRotator::ZeroRotator, true);
 		HitBox->SetHiddenInGame(true);
 		BuildingHeights.Add(SizeDesign.Z);
-		UE_LOG(LogDBWorld, Log, TEXT("DB_MODEL %s <- %s (%.1f x %.1f x %.1f cm)"), *D.Name, *M->GetName(),
-			Box.GetSize().X, Box.GetSize().Y, Box.GetSize().Z);
 		return;
 	}
 
@@ -398,7 +417,16 @@ void ADBWorld::BuildCalendar()
 	USceneComponent* R = CalendarRoot;
 
 	const FLinearColor Paper = RGB(248, 240, 224);
-	Part(R, CubeMesh, FVector(0, -1.f, 0), FVector(W + 8.f, 2.f, H + 10.f), RGB(150, 108, 72));
+	if (UStaticMesh* M = TeamMesh(TEXT("SM_Takvim")))
+	{
+		// Ekip modeli: delikli arka levha, 96,5 × 2 × 74,3 (= W + 8, H + 10); pivot taban ortası, ÖN -Y odaya.
+		// Sayfalar, yazılar ve spiral eskisi gibi koddan.
+		TeamPart(R, M, FVector(0, -1.f, -(H + 10.f) * 0.5f));
+	}
+	else
+	{
+		Part(R, CubeMesh, FVector(0, -1.f, 0), FVector(W + 8.f, 2.f, H + 10.f), RGB(150, 108, 72));
+	}
 	// Alttaki sayfa (Ayarlar / Emeği Geçenler buraya yazılır)
 	Part(R, CubeMesh, FVector(0, -2.5f, 0), FVector(W, 0.6f, H), Paper);
 	const FVector2D TexSize = PageTextureSize();
