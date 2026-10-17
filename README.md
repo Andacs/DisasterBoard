@@ -35,7 +35,7 @@ Her satır: ad · üretici/sağlayıcı · bağlantı · lisans (gerçek koşull
 
 | Kategori | Durum | Kaynak · sağlayıcı · lisans · kullanım |
 |---|---|---|
-| Görsel | [Kullanıldı / Kullanılmadı] | [Unreal Engine temel şekilleri (`/Engine/BasicShapes`) · Epic Games · [Unreal Engine EULA](https://www.unrealengine.com/eula) · ...] |
+| Görsel | Kullanıldı | Unreal Engine temel şekilleri (`/Engine/BasicShapes`) · Epic Games · [Unreal Engine EULA](https://www.unrealengine.com/eula) · oda, masa, tahta, binalar ve takvim koddan bu şekillerle kurulur (`Source/DisasterBoard/DBWorld.cpp`). **Low Poly Building** · A.S.D. ([arvindsudarshan53](https://sketchfab.com/arvindsudarshan53)), Sketchfab · [model sayfası](https://sketchfab.com/3d-models/low-poly-building-f0722265cf8d4a41ba78ab1587d18ac8) · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) · tahtadaki kasaba binası modeli; değişiklik: ölçek, pivot ve yön oyunun bina şablonuna göre ayarlandı. |
 | Ses | Kullanılmadı | Hazır ses ya da müzik yok. Müzik ve ses efektleri oyun içinde koddan üretiliyor (`Source/DisasterBoard/DBMusic.cpp`, `DBSfx.cpp`); bkz. yapay zekâ beyanı. |
 | Kod | Kullanıldı | **Unreal Engine 5.8** · Epic Games · [Unreal Engine EULA](https://www.unrealengine.com/eula) · oyun motoru. Derleme, paketleme, trailer ve teslim betikleri (`Build/`, `Tools/`) takımın jam öncesi hazırladığı genel araçlardır (madde 3.1); oyuna girmez. |
 | Metin | Kullanıldı | **Claude (Anthropic)** · oyun içi konuşmaların, sorun notlarının ve sonuç ekranındaki hazırlık bilgilerinin ilk taslağı · `Source/DisasterBoard/DBData.cpp` |
