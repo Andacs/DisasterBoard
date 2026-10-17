@@ -24,6 +24,8 @@ public:
 	bool HandleClick(const FVector2D& P);
 	// Varlık testi: oyunun istediği her görsel ve durumu ("OK 128x128 aday", "YOK", "HATA")
 	FString PngReport() const;
+	// Geri bildirim: tıklanan yerde halka + kıvılcımlar (her tıklamada PlayerController çağırır)
+	void AddClickFx(const FVector2D& P);
 	bool IsOverButton(const FVector2D& P) const;
 	bool IsOverUI(const FVector2D& P) const;
 
@@ -61,6 +63,14 @@ private:
 		TgOrder = FBox2D(ForceInit), TgKitStation = FBox2D(ForceInit), TgStations = FBox2D(ForceInit), TgDeliver = FBox2D(ForceInit);
 	void DrawBagIcon(const FVector2D& C, float Sc, int32 Kit, const TArray<int32>& Personal);
 	void DrawNpc();
+	// Fare izi, tıklama patlaması, takvime yaklaşırken rüzgar çizgileri
+	struct FClickFx { FVector2D P; float T; };
+	TArray<FClickFx> ClickFxs;
+	struct FTrail { FVector2D P; float T; };
+	TArray<FTrail> Trail;
+	float FxNow = 0.f;
+	void DrawCursorFx();
+	void DrawWind();
 	void DrawMini();
 	void DrawNutGame(const FBox2D& R);
 	void DrawManholeGame(const FBox2D& R);

@@ -356,12 +356,14 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 	}
 	if (GM->Phase == EDBPhase::Talk)
 	{
+		GM->PlaySfx(EDBSfx::Click, 0.55f, 0.f, 1.15f);
 		GM->AdvanceTalk();
 		return true;
 	}
 
 	auto Dispatch = [this](FName Id, int32 Ix)
 	{
+		GM->PlaySfx(EDBSfx::Click, 0.9f, 0.f, FMath::FRandRange(0.94f, 1.06f));
 		if (Id == TEXT("Play")) GM->ClickPlay();
 		else if (Id == TEXT("Settings")) GM->OpenMenuPage(EDBMenuPage::Settings);
 		else if (Id == TEXT("Credits")) GM->OpenMenuPage(EDBMenuPage::Credits);
@@ -419,6 +421,7 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 	}
 	if (GM->Phase == EDBPhase::Comic)
 	{
+		GM->PlaySfx(EDBSfx::Page, 0.8f);
 		GM->NextComic();
 		return true;
 	}
@@ -453,6 +456,7 @@ void ADBHUD::DrawHUD()
 		FontBaseH = FMath::Max(1.f, YL);
 	}
 
+	FxNow = GetWorld()->GetRealTimeSeconds();
 	switch (GM->Phase)
 	{
 	case EDBPhase::Menu:
@@ -462,11 +466,16 @@ void ADBHUD::DrawHUD()
 		{
 			Disc(DebugDot, 7.f * S, Red);
 		}
+		DrawWind();
+		DrawCursorFx();
 		return;
 	case EDBPhase::Comic:
 		DrawComic();
+		DrawCursorFx();
 		return;
 	case EDBPhase::ToBoard:
+		DrawWind();
+		DrawCursorFx();
 		return;
 	default:
 		break;
@@ -533,6 +542,7 @@ void ADBHUD::DrawHUD()
 	{
 		DrawResult();
 	}
+	DrawCursorFx();
 }
 
 // ---------------------------------------------------------------- takvim sayfaları (dokuya çizilir)
@@ -1952,4 +1962,104 @@ void ADBHUD::DrawManholeGame(const FBox2D& R)
 	Frame(Bar, DarkK, 2.f * S);
 	FString Sec = FString::Printf(TEXT("Yeşilde: %.1f / %.0f sn"), GM->MiniProgress, Total).Replace(TEXT("."), TEXT(","));
 	Txt(Sec, Bar.GetCenter().X, Bar.Max.Y + 6.f * S, 18.f * S, Ink, 1);
+}
+
+// ---------------------------------------------------------------- geri bildirim: fare izi, tıklama, rüzgar
+
+void ADBHUD::AddClickFx(const FVector2D& P)
+{
+	ClickFxs.Add({ P, FxNow });
+}
+
+void ADBHUD::DrawCursorFx()
+{
+	const float Now = FxNow;
+	// Fare izi: son 0,3 sn'deki konumlar, sona doğru incelip söner
+	if (Trail.Num() == 0 || FVector2D::Distance(Trail.Last().P, Mouse) > 3.f)
+	{
+		Trail.Add({ Mouse, Now });
+	}
+	Trail.RemoveAll([Now](const FTrail& T) { return Now - T.T > 0.3f; });
+	for (int32 i = 1; i < Trail.Num(); ++i)
+	{
+		const float K = 1.f - (Now - Trail[i].T) / 0.3f;
+		const float Wd = (1.5f + 4.5f * K) * S;
+		Line(Trail[i - 1].P, Trail[i].P, Wd + 2.f * S, U(58, 42, 30, uint8(70 * K)));
+		Line(Trail[i - 1].P, Trail[i].P, Wd, U(255, 214, 90, uint8(200 * K)));
+	}
+	// Tıklama: büyüyen halka + dışa saçılan kıvılcımlar (0,4 sn)
+	ClickFxs.RemoveAll([Now](const FClickFx& C) { return Now - C.T > 0.4f; });
+	for (const FClickFx& C : ClickFxs)
+	{
+		const float A = (Now - C.T) / 0.4f;
+		const float E = 1.f - FMath::Square(1.f - A);   // hızlı başlar, yavaşlar
+		const float R = (6.f + 30.f * E) * S;
+		const int32 N = 28;
+		for (int32 k = 0; k < N; ++k)
+		{
+			const float A0 = k * 2.f * PI / N;
+			const float A1 = (k + 1) * 2.f * PI / N;
+			const FVector2D P0 = C.P + FVector2D(FMath::Cos(A0), FMath::Sin(A0)) * R;
+			const FVector2D P1 = C.P + FVector2D(FMath::Cos(A1), FMath::Sin(A1)) * R;
+			Line(P0, P1, 4.f * S, U(58, 42, 30, uint8(110 * (1.f - A))));
+			Line(P0, P1, 2.5f * S, U(255, 214, 90, uint8(240 * (1.f - A))));
+		}
+		for (int32 k = 0; k < 7; ++k)
+		{
+			const float Ang = k * 2.f * PI / 7.f + C.T * 3.f;
+			const FVector2D D(FMath::Cos(Ang), FMath::Sin(Ang));
+			Disc(C.P + D * (R + 8.f * S * E), (3.5f - 2.5f * A) * S, U(226, 118, 94, uint8(230 * (1.f - A))), 8);
+		}
+	}
+}
+
+void ADBHUD::DrawWind()
+{
+	// Kamera takvime yaklaşırken (Ayarlar / Emeği Geçenler) soldan sağa geçen ince rüzgar çizgileri ve kâğıt kırıntıları
+	const float Age = GM->Now - GM->WindTime;
+	const float Life = 1.7f;
+	if (Age < 0.f || Age > Life)
+	{
+		return;
+	}
+	const float Fade = FMath::Sin(PI * Age / Life);
+	FRandomStream R(1234);
+	for (int32 i = 0; i < 14; ++i)
+	{
+		const float Y0 = H * R.FRandRange(0.08f, 0.92f);
+		const float Len = R.FRandRange(160.f, 320.f) * S;
+		const float Speed = R.FRandRange(0.9f, 1.4f) * (W + Len) / Life;
+		const float Delay = R.FRandRange(0.f, 0.5f);
+		const float Head = -Len + Speed * FMath::Max(0.f, Age - Delay);
+		const float Amp = R.FRandRange(4.f, 12.f) * S;
+		const float Ph = R.FRandRange(0.f, 6.f);
+		const int32 Seg = 10;
+		FVector2D Prev;
+		for (int32 k = 0; k <= Seg; ++k)
+		{
+			const float X = Head - Len * k / Seg;
+			const FVector2D P(X, Y0 + FMath::Sin(X * 0.012f / S + Ph + Age * 3.f) * Amp);
+			if (k > 0)
+			{
+				const float Tail = 1.f - (float)k / Seg;
+				Line(Prev, P, (1.f + 2.f * Tail) * S, U(255, 255, 255, uint8(150 * Fade * Tail)));
+			}
+			Prev = P;
+		}
+	}
+	// Kâğıt kırıntıları: dönerek savrulur
+	for (int32 i = 0; i < 9; ++i)
+	{
+		const float Y0 = H * R.FRandRange(0.15f, 0.85f);
+		const float Speed = R.FRandRange(0.7f, 1.1f) * (W + 100.f * S) / Life;
+		const float X = -40.f * S + Speed * Age;
+		const float Y = Y0 + FMath::Sin(Age * R.FRandRange(3.f, 6.f) + i) * 30.f * S - Age * 20.f * S;
+		const float Rot = Age * R.FRandRange(4.f, 9.f) + i;
+		const FVector2D C(X, Y);
+		const FVector2D Ax(FMath::Cos(Rot) * 7.f * S, FMath::Sin(Rot) * 7.f * S);
+		const FVector2D Ay(-FMath::Sin(Rot) * 4.f * S, FMath::Cos(Rot) * 4.f * S * FMath::Abs(FMath::Cos(Age * 7.f + i)));
+		const FLinearColor Pc = U(250, 243, 228, uint8(230 * Fade));
+		Tri(C - Ax - Ay, C + Ax - Ay, C + Ax + Ay, Pc);
+		Tri(C - Ax - Ay, C + Ax + Ay, C - Ax + Ay, Pc);
+	}
 }

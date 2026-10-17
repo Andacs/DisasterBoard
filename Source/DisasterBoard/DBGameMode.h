@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "DBTypes.h"
+#include "DBSfx.h"
 #include "DBGameMode.generated.h"
 
 class ADBWorld;
@@ -39,7 +40,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "DB") float CameraBlendSeconds = 2.2f;
 	UPROPERTY(EditAnywhere, Category = "DB") float CalendarBlendSeconds = 0.9f;  // menü ↔ takvim yakın plan
 	UPROPERTY(EditAnywhere, Category = "DB") float ComicSeconds = 5.f;           // çizgi roman: sahne başına
-	UPROPERTY(EditAnywhere, Category = "DB") float MusicVolume = 0.55f;
+	UPROPERTY(EditAnywhere, Category = "DB") float MusicVolume = 1.8f;   // kayıtla ölçüldü: 0,55'te menüde -31,6 dBFS (duyulmuyordu), 1,8'de ~-21
 	UPROPERTY(EditAnywhere, Category = "DB") float BeltSeconds = 14.f;   // fabrika: çanta tepeden teslime (durmaz)
 	UPROPERTY(EditAnywhere, Category = "DB") float ScanSeconds = 2.4f;
 	UPROPERTY(EditAnywhere, Category = "DB") float QuakeDuration = 5.f;
@@ -80,6 +81,12 @@ public:
 	UPROPERTY() TObjectPtr<ADBWorld> World;
 	UPROPERTY() TObjectPtr<UDBMusicWave> Music;
 	UPROPERTY() TObjectPtr<UAudioComponent> MusicComp;
+	// Ses efektleri (koddan sentez, DBSfx): tık, rüzgar, sayfa, tahta, su, doğru / yanlış
+	UPROPERTY() TObjectPtr<UDBSfxWave> Sfx;
+	UPROPERTY() TObjectPtr<UAudioComponent> SfxComp;
+	UPROPERTY(EditAnywhere, Category = "DB") float SfxVolume = 1.8f;
+	void PlaySfx(EDBSfx Id, float Volume = 1.f, float Pan = 0.f, float Pitch = 1.f, float PanTo = -2.f);
+	float WindTime = -100.f;     // HUD: takvime yaklaşırken yandan rüzgar çizgileri
 	int32 ComicIndex = 0;
 
 	// --- Çanta fabrikası (Purble Place gibi; bant yukarıdan aşağı akar, durmaz) ---

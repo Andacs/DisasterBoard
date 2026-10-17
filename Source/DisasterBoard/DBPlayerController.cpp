@@ -14,6 +14,8 @@
 #include "Misc/CommandLine.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Parse.h"
+#include "AudioMixerBlueprintLibrary.h"
+#include "HAL/PlatformTime.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDBInput, Log, All);
 
@@ -41,6 +43,11 @@ void ADBPlayerController::BeginPlay()
 		Sub->AddMappingContext(Mapping, 0);
 	}
 	// Paketlenmiş oyunda konsol olmayabilir: görsel testi komut satırından başlar
+	if (FParse::Param(FCommandLine::Get(), TEXT("DBSesTest")))
+	{
+		FTimerHandle Start;
+		GetWorldTimerManager().SetTimer(Start, FTimerDelegate::CreateUObject(this, &ADBPlayerController::DBSesTest), 1.f, false);
+	}
 	if (FParse::Param(FCommandLine::Get(), TEXT("DBVarlikTest")))
 	{
 		FTimerHandle Start;
@@ -137,6 +144,7 @@ void ADBPlayerController::OnClick()
 	}
 	float MX = 0.f, MY = 0.f;
 	GetMousePosition(MX, MY);
+	H->AddClickFx(FVector2D(MX, MY));   // her tıklamada halka + kıvılcım
 	if (G->Mini != EDBMini::None)
 	{
 		bMiniMouse = !H->HandleClick(FVector2D(MX, MY));   // Vazgeç değilse basılı tutma başlar
@@ -148,10 +156,12 @@ void ADBPlayerController::OnClick()
 	}
 	if (HoveredBuilding >= 0)
 	{
+		G->PlaySfx(EDBSfx::Click, 0.75f, 0.f, FMath::FRandRange(0.8f, 0.9f));
 		G->ClickBuilding(HoveredBuilding);
 	}
 	else if (bHoveredCell)
 	{
+		G->PlaySfx(EDBSfx::Click, 0.6f, 0.f, 0.8f);
 		G->ClickCell(HoveredCell);
 	}
 	else
@@ -489,6 +499,130 @@ void ADBPlayerController::DBVarlikTest()
 	Add([] { FGenericPlatformMisc::RequestExit(false); });
 
 	GetWorldTimerManager().SetTimer(TestTimer, this, &ADBPlayerController::RunTestStep, 1.1f, true, 1.f);
+}
+
+void ADBPlayerController::SesOlay(const FString& Ad)
+{
+	SesOlaylar.Add(FString::Printf(TEXT("%.3f\t%s"), FPlatformTime::Seconds() - SesT0, *Ad));
+}
+
+void ADBPlayerController::DBSesTest()
+{
+	ADBGameMode* G = GM();
+	if (!G)
+	{
+		return;
+	}
+	TestSteps.Reset();
+	TestStep = 0;
+	SesOlaylar.Reset();
+	auto Add = [this](TFunction<void()> F) { TestSteps.Add(MoveTemp(F)); };
+	auto SShot = [this](const TCHAR* Name, float Delay)
+	{
+		const FString N = FString::Printf(TEXT("S_%s.png"), Name);
+		FTimerHandle Hh;
+		GetWorldTimerManager().SetTimer(Hh, FTimerDelegate::CreateLambda([N] { FScreenshotRequest::RequestScreenshot(N, true, false); }), Delay, false);
+	};
+	auto Center = [this]()
+	{
+		int32 SX = 1600, SY = 900;
+		GetViewportSize(SX, SY);
+		return FVector2D(SX * 0.5f, SY * 0.5f);
+	};
+	// 0: kayıt başlar, hikâye geçilir → menü (müzik)
+	Add([this]
+	{
+		UAudioMixerBlueprintLibrary::StartRecordingOutput(this, 40.f);
+		SesT0 = FPlatformTime::Seconds();
+		SesOlay(TEXT("kayit_basladi"));
+		GM()->SkipComic();
+		SesOlay(TEXT("menu_muzik"));
+	});
+	Add([] {});
+	Add([] {});
+	Add([] {});
+	// 4: Ayarlar: tık + yandan rüzgar (sayfa 0,9 sn sonra kalkar)
+	Add([this, SShot, Center]
+	{
+		GetHUD<ADBHUD>()->AddClickFx(Center());
+		GM()->PlaySfx(EDBSfx::Click, 0.9f);
+		SesOlay(TEXT("tik"));
+		GM()->OpenMenuPage(EDBMenuPage::Settings);
+		SesOlay(TEXT("ruzgar"));
+		SShot(TEXT("1_takvime_ruzgar"), 0.5f);
+	});
+	Add([] {});
+	Add([] {});
+	// 7: Geri: sayfa iner
+	Add([this] { GM()->CloseMenuPage(); SesOlay(TEXT("sayfa_kapat")); });
+	Add([] {});
+	Add([] {});
+	// 10: Oyna
+	Add([this] { GM()->PlaySfx(EDBSfx::Click, 0.9f); GM()->ClickPlay(); SesOlay(TEXT("oyna")); });
+	Add([] {});
+	Add([] {});
+	// 13-15: konuşmayı tıklayarak geç (her tıklama tık sesi)
+	for (int32 i = 0; i < 3; ++i)
+	{
+		Add([this, Center]
+		{
+			ADBHUD* H = GetHUD<ADBHUD>();
+			H->HandleClick(Center());
+			H->HandleClick(Center());
+			SesOlay(TEXT("konusma_tik"));
+		});
+	}
+	// 16: tahta dönüşü: kalkış sesi, havada su sıçraması, iniş
+	Add([this, SShot]
+	{
+		GM()->TurnBoard(1);
+		SesOlay(TEXT("donus"));
+		SShot(TEXT("2_donus_havada"), 0.62f);
+		SShot(TEXT("3_donus_indi"), 1.55f);
+	});
+	Add([] {});
+	Add([] {});
+	// 19: fare izi ve tıklama halkası
+	Add([this, SShot]
+	{
+		CursorT = 0.f;
+		GetWorldTimerManager().SetTimer(CursorTimer, FTimerDelegate::CreateLambda([this]
+		{
+			CursorT += 0.016f;
+			int32 SX = 1600, SY = 900;
+			GetViewportSize(SX, SY);
+			SetMouseLocation(FMath::RoundToInt(SX * (0.35f + 0.25f * FMath::Cos(CursorT * 5.f))), FMath::RoundToInt(SY * (0.5f + 0.2f * FMath::Sin(CursorT * 7.f))));
+			if (CursorT > 1.2f)
+			{
+				GetWorldTimerManager().ClearTimer(CursorTimer);
+			}
+		}), 0.016f, true);
+		FTimerHandle Cl;
+		GetWorldTimerManager().SetTimer(Cl, FTimerDelegate::CreateLambda([this]
+		{
+			float MX = 0.f, MY = 0.f;
+			GetMousePosition(MX, MY);
+			GetHUD<ADBHUD>()->AddClickFx(FVector2D(MX, MY));
+		}), 0.5f, false);
+		SShot(TEXT("4_fare_izi_tiklama"), 0.62f);
+		SesOlay(TEXT("fare_izi"));
+	});
+	Add([] {});
+	// 21: doğru, 22: yanlış
+	Add([this] { GM()->PlaySfx(EDBSfx::Good); SesOlay(TEXT("dogru")); });
+	Add([this] { GM()->PlaySfx(EDBSfx::Bad); SesOlay(TEXT("yanlis")); });
+	Add([] {});
+	Add([this]
+	{
+		SesOlay(TEXT("kayit_bitti"));
+		UAudioMixerBlueprintLibrary::StopRecordingOutput(this, EAudioRecordingExportType::WavFile, TEXT("DB_ses"), FPaths::ProjectSavedDir());
+		FFileHelper::SaveStringToFile(FString::Join(SesOlaylar, TEXT("\n")) + TEXT("\n"), *(FPaths::ProjectSavedDir() / TEXT("DB_ses_olaylar.txt")),
+			FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+		UE_LOG(LogDBInput, Log, TEXT("DB_SES kayit bitti"));
+	});
+	Add([] {});
+	Add([] { FGenericPlatformMisc::RequestExit(false); });
+	GetWorldTimerManager().SetTimer(TestTimer, this, &ADBPlayerController::RunTestStep, 1.f, true, 0.5f);
 }
 
 void ADBPlayerController::RunTestStep()

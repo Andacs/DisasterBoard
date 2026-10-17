@@ -44,6 +44,9 @@ void ADBGameMode::StartPlay()
 	// Müzik: koddan üretilir, ilerledikçe hızlanır
 	Music = NewObject<UDBMusicWave>(this);
 	MusicComp = UGameplayStatics::SpawnSound2D(this, Music, MusicVolume);
+	Sfx = NewObject<UDBSfxWave>(this);
+	SfxComp = UGameplayStatics::SpawnSound2D(this, Sfx, SfxVolume);
+	World->SfxWave = Sfx;
 
 	if (bSkipTutorial)
 	{
@@ -125,6 +128,7 @@ void ADBGameMode::Tick(float Dt)
 		{
 			bPageFlipPending = false;
 			World->FlipPage(true);
+			PlaySfx(EDBSfx::Page, 1.f);
 		}
 		else if (bReturnPending && !World->IsPageFlipping())
 		{
@@ -218,9 +222,18 @@ void ADBGameMode::ClickPlay()
 	BeginBoardTransition();
 }
 
+void ADBGameMode::PlaySfx(EDBSfx Id, float Volume, float Pan, float Pitch, float PanTo)
+{
+	if (Sfx)
+	{
+		Sfx->Play(Id, Volume, Pan, Pitch, PanTo);
+	}
+}
+
 void ADBGameMode::BeginBoardTransition()
 {
 	SetPhase(EDBPhase::ToBoard);
+	PlaySfx(EDBSfx::Wind, 0.9f, 0.6f, 0.9f, -0.6f);   // kamera masaya inerken hafif esinti
 	if (APlayerController* P = PC())
 	{
 		P->SetViewTargetWithBlend(World->BoardCam, CameraBlendSeconds, VTBlend_EaseInOut, 2.2f);
@@ -286,6 +299,10 @@ void ADBGameMode::OpenMenuPage(EDBMenuPage Page)
 	MenuPage = Page;
 	SetPhase(EDBPhase::MenuPage);
 	bPageFlipPending = true;
+	// Kamera takvime yaklaşırken yandan rüzgar: ses soldan sağa geçer, sayfa dalgalanır, ekranda rüzgar çizgileri
+	PlaySfx(EDBSfx::Wind, 1.f, -0.9f, 1.f, 0.8f);
+	WindTime = Now;
+	World->Gust(1.f);
 	if (APlayerController* P = PC())
 	{
 		P->SetViewTargetWithBlend(World->CalendarCam, CalendarBlendSeconds, VTBlend_EaseInOut, 2.f);
@@ -299,6 +316,8 @@ void ADBGameMode::CloseMenuPage()
 		return;
 	}
 	World->FlipPage(false);
+	PlaySfx(EDBSfx::Page, 0.9f, 0.f, 0.92f);
+	World->Gust(0.4f);
 	bReturnPending = true;
 }
 
@@ -576,6 +595,10 @@ void ADBGameMode::MiniSay(const FString& Text, bool bBad)
 {
 	MiniMsg = Text;
 	MiniMsgTime = Now;
+	if (bBad)
+	{
+		PlaySfx(EDBSfx::Bad, 0.8f);
+	}
 	bMiniMsgBad = bBad;
 }
 
@@ -629,6 +652,7 @@ void ADBGameMode::TickMini(float Dt)
 				if (FMath::Abs(MiniPos - MiniZone) <= MiniZoneHalf)
 				{
 					MiniWinAt = Now;
+					PlaySfx(EDBSfx::Land, 0.5f, 0.f, 2.2f);   // somun "tık" diye oturur
 					MiniSay(TEXT("Tık! Somun tam yerine oturdu."), false);
 				}
 				else if (MiniPos < MiniZone)
@@ -669,6 +693,7 @@ void ADBGameMode::TickMini(float Dt)
 	{
 		MiniProgress = ManholeHoldSeconds;
 		MiniWinAt = Now;
+		PlaySfx(EDBSfx::Land, 0.6f, 0.f, 1.6f);   // kapak yerine oturur
 		MiniSay(TEXT("Kapak yerine oturdu!"), false);
 	}
 }
@@ -1019,6 +1044,10 @@ void ADBGameMode::ShowToast(const FString& Text, bool bBad, int32 Building)
 	Toast = Text;
 	ToastTime = Now;
 	bToastBad = bBad;
+	if (bBad)
+	{
+		PlaySfx(EDBSfx::Bad, 0.7f);
+	}
 	ToastBuilding = Building;
 }
 
@@ -1126,6 +1155,7 @@ void ADBGameMode::ClickBuilding(int32 Building)
 void ADBGameMode::Solve(int32 Problem, int32 Building)
 {
 	Solved[Problem] = true;
+	PlaySfx(EDBSfx::Good, 1.f);
 	SolveTime[Problem] = Now;
 	SelTool = -1;
 	World->PopBuilding(Building);

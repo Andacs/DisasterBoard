@@ -290,6 +290,21 @@ Asil konuşurken duruş. Test turu 13 kare (B duruş, C gösterme eklendi).
 Gösterme pozunda kolun ötesinde fırçadan kalmış tek bir nokta vardı; kesimi büyütüp karakteri küçültüyordu.
 Kesim artık ayrı küçük lekeleri saymıyor (`govde_kutusu`, 8 px ızgarada bağlantılı parçalar).
 
+**17 Ekim ~15.00: geri bildirim (Andaç: kullanıcı geri bildirimi güçlensin). DBSesTest ile ölçüldü, ekranda görüldü:**
+- **Ses efektleri** koddan sentez (`DBSfx`, stereo karıştırıcı, müzikle aynı yol): tık (her düğme, konuşma, bina/ızgara
+  tıklaması), rüzgar (takvime yaklaşırken soldan sağa, masaya inerken hafif), sayfa, tahta kalkış (gıcırtı + uğultu) /
+  iniş (tok vuruş), su sıçraması, doğru (çan: her çözülen istek), yanlış (vızıltı: her kötü bildirim, mini oyun hatası).
+- **Müzik duyulmuyordu:** oyunun çıkışı kaydedilip ölçüldü (`-DBSesTest` → `Saved/DB_ses.wav` + `DB_ses_olaylar.txt`,
+  `UAudioMixerBlueprintLibrary::StartRecordingOutput`): `MusicVolume` 0,55'te menüde -31,6 dBFS RMS (motor ~11 dB daha
+  kısıyor). Şimdi `MusicVolume` 1,8 → -21 dBFS; `SfxVolume` 1,8, efekt tepeleri -3…-7 dBFS, kırpma yok. **Kulakla
+  dinlenmedi**, yalnız ölçüldü.
+- **Takvim sayfası** hep hafif nefes alır, rüzgarda (`ADBWorld::Gust`) alt kenarı duvardan kalkıp çırpınır; kamera
+  yaklaşırken ekranda soldan sağa rüzgar çizgileri ve kâğıt kırıntıları (`ADBHUD::DrawWind`).
+- **Fare izi** (son 0,3 sn, sarı) ve **tıklama halkası + kıvılcım** her ekranda (`ADBHUD::DrawCursorFx`).
+- **Tahta dönerken** deniz kenarından damlalar savrulur, tahtaya düşen emilir, masaya düşen küçük ıslaklık bırakır
+  (5 sn'de kurur). Binalar (kasabalılarla) ve ağaçlar yay-sönümle sallanır: dönüşte yatar, inişte yaylanır, durgunken
+  hafif esinti (`ADBWorld::TickFeedbackFx`; ağaçlar artık kendi kökünde).
+
 **17 Ekim ~08.40: modelci/tasarımcı şablonları** `Docs/Sablonlar/` (OKU_BENI.md = iş listesi + ölçüler + dışa
 aktarma ayarları). 21 3D hitbox kutusu (`.blend` + tek tek FBX, pivot taban ortası, ÖN -Y, 1 birim = 1 cm; geri
 içe alınıp ölçüldü) ve 40 2D PNG şablonu (tam piksel, adı yazılı). Tek kaynak `Tools/sablon_listesi.py`;

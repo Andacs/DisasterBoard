@@ -13,6 +13,7 @@ class UMaterialInterface;
 class UTextureRenderTarget2D;
 class UTexture2D;
 class UMaterialInstanceDynamic;
+class UDBSfxWave;
 
 // Odanın tamamı koddan: zemin, iki duvar, kaide, tahta, binalar, duvardaki takvim, üç kamera.
 // Seviye dosyasında yalnızca ışık var; modelciden mesh gelince ilgili parça burada değiştirilir.
@@ -111,6 +112,8 @@ public:
 
 	// Oyuncu tahtayı döndürür: alttaki oklar / Q-E → tahta masadan kalkar, 90° döner, yerine iner (kamera sabit)
 	void TurnBoard(int32 Dir);
+	UPROPERTY() TObjectPtr<UDBSfxWave> SfxWave;      // GameMode verir: tahta sesleri
+	void Gust(float Strength) { GustAmp = FMath::Max(GustAmp, Strength); }   // takvim sayfasına rüzgar
 	bool IsBoardTurning() const { return TurnT >= 0.f; }
 	// Yakınlaştırma (tekerlek); yumuşak geçiş
 	void RotateBoardView(float Deg) { ViewYawTarget += Deg; }
@@ -156,6 +159,43 @@ private:
 	float TurnTo = 0.f;
 	float TurnT = -1.f;
 	int32 TurnQueued = 0;
+	// Geri bildirim (17 Ekim): takvim sayfası dalgalanır; tahta dönerken denizden masaya su sıçrar, üstündekiler sallanır
+	float GustAmp = 0.f;
+	float FlutterT = 0.f;
+	struct FDrop
+	{
+		FVector P;
+		FVector V;
+		bool bOn = false;
+	};
+	TArray<FDrop> Drops;
+	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> DropComps;
+	struct FTablePuddle
+	{
+		float T = -1.f;
+		float Size = 3.f;
+	};
+	TArray<FTablePuddle> TablePuddles;
+	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> TablePuddleComps;
+	float DropSpawn = 0.f;
+	int32 DropsLanded = 0;
+	bool bSplashPlayed = false;
+	struct FSway
+	{
+		TObjectPtr<USceneComponent> Root;
+		FVector2D Axis = FVector2D(1.f, 0.f);   // tahtada merkezden dışarı: üst kısım bunun dik yönünde sallanır
+		float Radius = 0.f;
+		float Theta = 0.f;                       // derece
+		float Omega = 0.f;
+		float Gain = 1.f;
+		float Phase = 0.f;
+	};
+	TArray<FSway> Sways;
+	UPROPERTY() TArray<TObjectPtr<USceneComponent>> TreeRoots;
+	float PrevYaw = 0.f;
+	void BuildFeedbackFx();
+	void TickFeedbackFx(float Dt, float YawVel);
+	void SpawnDrop();
 	float SeaStartY() const { return -GridN * CellCm * 0.5f + (GridN - 2) * CellCm; }   // yerel Y: deniz buradan başlar
 	UPROPERTY() TArray<TObjectPtr<USceneComponent>> CarRoots;
 	struct FCar

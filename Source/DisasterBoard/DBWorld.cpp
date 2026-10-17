@@ -1,5 +1,6 @@
 #include "DBWorld.h"
 #include "DBTypes.h"
+#include "DBSfx.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -106,6 +107,7 @@ void ADBWorld::Build()
 	BuildFx();
 	BuildCars();
 	BuildHydrant();
+	BuildFeedbackFx();
 
 	for (TActorIterator<ADirectionalLight> It(GetWorld()); It; ++It)
 	{
@@ -232,8 +234,11 @@ void ADBWorld::BuildBoard()
 
 void ADBWorld::BuildTree(USceneComponent* Parent, const FVector& Loc, float Scale)
 {
-	Part(Parent, CylinderMesh, Loc + FVector(0, 0, 3.f * Scale), FVector(2.4f, 2.4f, 6.f) * Scale, RGB(140, 100, 66));
-	Part(Parent, SphereMesh, Loc + FVector(0, 0, 10.f * Scale), FVector(11.f, 11.f, 10.f) * Scale, RGB(120, 170, 100));
+	// Kendi kökü var: tahta dönerken ve hafif esintide sallanır (TickFeedbackFx)
+	USceneComponent* T = Node(Parent, Loc);
+	Part(T, CylinderMesh, FVector(0, 0, 3.f * Scale), FVector(2.4f, 2.4f, 6.f) * Scale, RGB(140, 100, 66));
+	Part(T, SphereMesh, FVector(0, 0, 10.f * Scale), FVector(11.f, 11.f, 10.f) * Scale, RGB(120, 170, 100));
+	TreeRoots.Add(T);
 }
 
 void ADBWorld::BuildBuilding(int32 Index)
@@ -773,6 +778,11 @@ void ADBWorld::TurnBoard(int32 Dir)
 	TurnFrom = BoardYaw;
 	TurnTo = BoardYaw + 90.f * FMath::Sign(Dir);
 	TurnT = 0.f;
+	bSplashPlayed = false;
+	if (SfxWave)
+	{
+		SfxWave->Play(EDBSfx::Lift, 0.8f, 0.f, FMath::FRandRange(0.95f, 1.05f));
+	}
 }
 
 void ADBWorld::RepairHydrant()
@@ -945,10 +955,16 @@ void ADBWorld::Tick(float Dt)
 	Super::Tick(Dt);
 
 	// Takvim sayfası
-	if (PageHinge && !FMath::IsNearlyEqual(PageAngle, PageTarget, 0.01f))
+	if (PageHinge)
 	{
 		PageAngle = FMath::FInterpConstantTo(PageAngle, PageTarget, Dt, PageFlipDegPerSec);
-		PageHinge->SetRelativeRotation(FRotator(0.f, 0.f, PageSign * PageAngle));
+		// Sayfa hep hafifçe nefes alır; rüzgarda (Gust) alt kenarı duvardan kalkıp çırpınır. Hep duvardan dışarı:
+		// içeri dönse sayfa duvara gömülürdü.
+		FlutterT += Dt;
+		GustAmp = FMath::FInterpTo(GustAmp, 0.f, Dt, 0.9f);
+		const float Calm = 0.6f * (0.5f + 0.5f * FMath::Sin(FlutterT * 1.3f));
+		const float Wind = GustAmp * 9.f * (0.55f + 0.45f * FMath::Sin(FlutterT * 11.f + FMath::Sin(FlutterT * 3.7f) * 2.f));
+		PageHinge->SetRelativeRotation(FRotator(0.f, 0.f, PageSign * (PageAngle + Calm + Wind)));
 	}
 
 	// Tarama
@@ -1090,11 +1106,35 @@ void ADBWorld::Tick(float Dt)
 		const float Spin = FMath::SmoothStep(0.18f, 0.82f, A);
 		BoardYaw = FMath::Lerp(TurnFrom, TurnTo, Spin);
 		BoardRoot->SetRelativeLocationAndRotation(FVector(0.f, 0.f, TurnLiftCm * Up), FRotator(0.f, BoardYaw, 0.f));
+		// Havadayken denizden su taşar (dönüşün ortası)
+		if (A > 0.3f && A < 0.78f)
+		{
+			DropSpawn += Dt * 70.f;
+			while (DropSpawn >= 1.f)
+			{
+				DropSpawn -= 1.f;
+				SpawnDrop();
+			}
+			if (!bSplashPlayed && SfxWave)
+			{
+				SfxWave->Play(EDBSfx::Splash, 0.7f, 0.25f);
+				bSplashPlayed = true;
+			}
+		}
 		if (A >= 1.f)
 		{
 			BoardYaw = FRotator::NormalizeAxis(TurnTo);
 			BoardRoot->SetRelativeLocationAndRotation(FVector::ZeroVector, FRotator(0.f, BoardYaw, 0.f));
 			TurnT = -1.f;
+			// İniş: tok ses, tahtadakiler sarsılıp yaylanır
+			if (SfxWave)
+			{
+				SfxWave->Play(EDBSfx::Land, 0.85f);
+			}
+			for (FSway& W : Sways)
+			{
+				W.Omega += FMath::FRandRange(-1.f, 1.f) * 70.f * W.Gain;
+			}
 			if (TurnQueued != 0)
 			{
 				const int32 Q = TurnQueued;
@@ -1102,6 +1142,13 @@ void ADBWorld::Tick(float Dt)
 				TurnBoard(Q);
 			}
 		}
+	}
+
+	{
+		float D = BoardYaw - PrevYaw;
+		D = FRotator::NormalizeAxis(D);
+		PrevYaw = BoardYaw;
+		TickFeedbackFx(Dt, Dt > 0.f ? D / Dt : 0.f);
 	}
 
 	// Kasabalılar hafifçe sallanır
@@ -1197,5 +1244,149 @@ void ADBWorld::Tick(float Dt)
 				}
 			}
 		}
+	}
+}
+
+// ---------------------------------------------------------------- geri bildirim: su sıçraması, sallanma
+
+void ADBWorld::BuildFeedbackFx()
+{
+	// Damlalar dünyada (tahtaya bağlı değil): tahtadan kopup masaya düşer
+	for (int32 i = 0; i < 48; ++i)
+	{
+		UStaticMeshComponent* C = Part(RootComponent, SphereMesh, FVector::ZeroVector, FVector(1.7f), RGB(110, 170, 222));
+		C->SetVisibility(false);
+		DropComps.Add(C);
+		Drops.AddDefaulted();
+	}
+	// Masaya düşen damlanın bıraktığı küçük ıslaklık: büyür, sonra kurur
+	for (int32 i = 0; i < 14; ++i)
+	{
+		UStaticMeshComponent* C = Part(RootComponent, CylinderMesh, FVector::ZeroVector, FVector(3.f, 3.f, 0.08f), RGB(122, 156, 186));
+		C->SetVisibility(false);
+		TablePuddleComps.Add(C);
+		TablePuddles.AddDefaulted();
+	}
+	// Sallananlar: binalar (kasabalılar kökleriyle birlikte) ve ağaçlar
+	const FTransform BT = BoardRoot->GetComponentTransform();
+	auto Add = [this, &BT](USceneComponent* R, float Gain)
+	{
+		FSway W;
+		W.Root = R;
+		const FVector L = BT.InverseTransformPosition(R->GetComponentLocation());
+		const FVector2D P(L.X, L.Y);
+		W.Radius = P.Size();
+		W.Axis = W.Radius > 1.f ? P / W.Radius : FVector2D(1.f, 0.f);
+		W.Gain = Gain;
+		W.Phase = FMath::FRandRange(0.f, 2.f * PI);
+		Sways.Add(W);
+	};
+	for (USceneComponent* R : BuildingRoots)
+	{
+		Add(R, 1.f);
+	}
+	for (USceneComponent* R : TreeRoots)
+	{
+		Add(R, 1.6f);
+	}
+}
+
+void ADBWorld::SpawnDrop()
+{
+	const int32 Ix = Drops.IndexOfByPredicate([](const FDrop& D) { return !D.bOn; });
+	if (Ix == INDEX_NONE || !BoardRoot)
+	{
+		return;
+	}
+	// Denizin dış kenarından (tahtanın içinde) çıkar; dönüşün savurmasıyla dışarı ve biraz yukarı
+	const float Half = GridN * CellCm * 0.5f;
+	const FVector Local(FMath::FRandRange(-Half + 4.f, Half - 4.f), FMath::FRandRange(Half - 5.f, Half - 0.5f), BoardTopZ + 0.5f);
+	const FTransform T = BoardRoot->GetComponentTransform();
+	const FVector P = T.TransformPosition(Local);
+	const FVector Out = T.TransformVector(FVector(0.f, 1.f, 0.f)).GetSafeNormal();
+	const float W = FMath::DegreesToRadians((TurnTo - TurnFrom) / FMath::Max(0.2f, TurnSeconds)) * 1.6f;
+	const FVector Tangent(-P.Y * W, P.X * W, 0.f);
+	FDrop& D = Drops[Ix];
+	D.bOn = true;
+	D.P = P;
+	D.V = Out * FMath::FRandRange(30.f, 75.f) + Tangent * FMath::FRandRange(0.2f, 0.45f) + FVector(0.f, 0.f, FMath::FRandRange(15.f, 45.f));
+	DropComps[Ix]->SetWorldLocation(P);
+	DropComps[Ix]->SetVisibility(true);
+}
+
+void ADBWorld::TickFeedbackFx(float Dt, float YawVel)
+{
+	if (Dt <= 0.f)
+	{
+		return;
+	}
+	// Damlalar: yerçekimi; tahtanın üstüne düşen emilir, masaya düşen ıslaklık bırakır
+	const float Half = BoardCm * 0.5f;
+	for (int32 i = 0; i < Drops.Num(); ++i)
+	{
+		FDrop& D = Drops[i];
+		if (!D.bOn)
+		{
+			continue;
+		}
+		D.V.Z -= 520.f * Dt;
+		D.P += D.V * Dt;
+		const FVector L = BoardRoot->GetComponentTransform().InverseTransformPosition(D.P);
+		const bool bOverBoard = FMath::Abs(L.X) < Half && FMath::Abs(L.Y) < Half;
+		const float Floor = bOverBoard ? BoardRoot->GetComponentLocation().Z + BoardTopZ - 1.f : 0.05f;
+		if (D.P.Z <= Floor)
+		{
+			D.bOn = false;
+			DropComps[i]->SetVisibility(false);
+			if (!bOverBoard && (++DropsLanded % 3) == 0)
+			{
+				const int32 Pi = TablePuddles.IndexOfByPredicate([](const FTablePuddle& Pd) { return Pd.T < 0.f; });
+				if (Pi != INDEX_NONE)
+				{
+					TablePuddles[Pi].T = 0.f;
+					TablePuddles[Pi].Size = FMath::FRandRange(2.5f, 5.5f);
+					TablePuddleComps[Pi]->SetWorldLocation(FVector(D.P.X, D.P.Y, 0.04f));
+					TablePuddleComps[Pi]->SetVisibility(true);
+				}
+			}
+			continue;
+		}
+		DropComps[i]->SetWorldLocation(D.P);
+	}
+	// Islaklık: 0,25 sn'de yayılır, 5 sn'de kurur (sıfıra ölçeklenmez, küçülünce gizlenir)
+	for (int32 i = 0; i < TablePuddles.Num(); ++i)
+	{
+		FTablePuddle& Pd = TablePuddles[i];
+		if (Pd.T < 0.f)
+		{
+			continue;
+		}
+		Pd.T += Dt;
+		const float Grow = FMath::Clamp(Pd.T / 0.25f, 0.f, 1.f);
+		const float Dry = 1.f - FMath::Clamp((Pd.T - 2.f) / 3.f, 0.f, 1.f);
+		const float Sz = Pd.Size * FMath::Max(Grow, 0.15f) * FMath::Max(Dry, 0.05f);
+		if (Dry <= 0.05f)
+		{
+			Pd.T = -1.f;
+			TablePuddleComps[i]->SetVisibility(false);
+			continue;
+		}
+		TablePuddleComps[i]->SetRelativeScale3D(FVector(Sz / 100.f, Sz * 0.8f / 100.f, 0.08f / 100.f));
+	}
+	// Sallanma: yay-sönüm. Dönüşte merkezkaç yönüne yatar, inince yaylanır; durgunken hafif esinti.
+	const float Lean = FMath::Clamp(-YawVel * 0.03f, -7.f, 7.f);
+	for (FSway& W : Sways)
+	{
+		if (!W.Root)
+		{
+			continue;
+		}
+		const float Target = Lean * W.Gain * FMath::Clamp(W.Radius / 45.f, 0.3f, 1.2f)
+			+ 0.45f * W.Gain * FMath::Sin(FlutterT * 1.4f + W.Phase);
+		W.Omega += (140.f * (Target - W.Theta) - 6.5f * W.Omega) * Dt;
+		W.Theta += W.Omega * Dt;
+		W.Theta = FMath::Clamp(W.Theta, -12.f, 12.f);
+		// Merkezden dışarı eksen etrafında döner: tepe teğet yönde (dönüş yönünde) yatar
+		W.Root->SetRelativeRotation(FQuat(FVector(W.Axis.X, W.Axis.Y, 0.f), FMath::DegreesToRadians(W.Theta)));
 	}
 }
