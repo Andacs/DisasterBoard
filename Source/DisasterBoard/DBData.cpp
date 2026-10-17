@@ -23,7 +23,7 @@ namespace
 	const FLinearColor Slate = RGB(110, 120, 140);
 
 	enum EKit { IlkYardim, Deprem, Yangin };
-	enum EItem { Su, SargiBezi, YanginTupu, Duduk, YaraBandi, DumanMaskesi, Konserve, Antiseptik, YanginOrtusu, Fener, Makas, Eldiven };
+	enum EItem { Su, SargiBezi, YanginTupu, Fener, Duduk, Antiseptik, DumanMaskesi };
 	enum ETool { Rogar, Tahliye, YanginMuslugu, Guclendirme };
 	enum EBina { AyseEv, Okul, Siginak, YilmazEv, Apartman, Kitapci, Firin, Market, OgrenciEv, Park, SahilEv, AhsapEv };
 
@@ -31,26 +31,23 @@ namespace
 	{
 		FDBContent C;
 
+		// 17 Ekim (ekip): masada 7 eşya, 3 çanta; her çanta doğru bir 3'lü kombinasyon. Su ve el feneri iki çantaya girer.
 		C.Kits = {
-			{ TEXT("İlk Yardım Çantası"), TEXT("İlk Yardım"), RGB(214, 76, 66) },
-			{ TEXT("Deprem Çantası"), TEXT("Deprem"), RGB(86, 132, 196) },
-			{ TEXT("Yangın Çantası"), TEXT("Yangın"), RGB(232, 136, 52) },
+			{ TEXT("İlk Yardım Çantası"), TEXT("İlk Yardım"), RGB(214, 76, 66), TEXT("Yarayı temizle, mikrobu öldür, sar.") },
+			{ TEXT("Deprem Çantası"), TEXT("Deprem"), RGB(86, 132, 196), TEXT("Enkazda susuz kalma, karanlıkta gör, sesini duyur.") },
+			{ TEXT("Yangın Çantası"), TEXT("Yangın"), RGB(232, 136, 52), TEXT("Ateşi söndür, dumandan korun, karanlıkta yolu bul.") },
 		};
-
-		// Sıra karışık: hangi eşyanın hangi çantaya ait olduğunu oyuncu bulur. Her çantaya tam 4 eşya.
+		constexpr int32 IY = 1 << IlkYardim;
+		constexpr int32 DP = 1 << Deprem;
+		constexpr int32 YG = 1 << Yangin;
 		C.Items = {
-			{ TEXT("Su"), TEXT("SU"), Sky, Deprem },
-			{ TEXT("Sargı Bezi"), TEXT("SB"), Cream, IlkYardim },
-			{ TEXT("Yangın Tüpü"), TEXT("YT"), RGB(214, 76, 66), Yangin },
-			{ TEXT("Düdük"), TEXT("DÜ"), Teal, Deprem },
-			{ TEXT("Yara Bandı"), TEXT("YB"), Rose, IlkYardim },
-			{ TEXT("Duman Maskesi"), TEXT("DM"), Slate, Yangin },
-			{ TEXT("Konserve"), TEXT("KN"), Coral, Deprem },
-			{ TEXT("Antiseptik"), TEXT("AN"), Lavender, IlkYardim },
-			{ TEXT("Yangın Örtüsü"), TEXT("YÖ"), Brick, Yangin },
-			{ TEXT("El Feneri"), TEXT("FN"), Mustard, Deprem },
-			{ TEXT("Makas"), TEXT("MK"), RGB(150, 150, 156), IlkYardim },
-			{ TEXT("Eldiven"), TEXT("EL"), Kraft, Yangin },
+			{ TEXT("Su"), TEXT("SU"), Sky, IY | DP },
+			{ TEXT("Sargı Bezi"), TEXT("SB"), Cream, IY },
+			{ TEXT("Yangın Tüpü"), TEXT("YT"), RGB(214, 76, 66), YG },
+			{ TEXT("El Feneri"), TEXT("FN"), Mustard, DP | YG },
+			{ TEXT("Düdük"), TEXT("DÜ"), Teal, DP },
+			{ TEXT("Antiseptik"), TEXT("AN"), Lavender, IY },
+			{ TEXT("Duman Maskesi"), TEXT("DM"), Slate, YG },
 		};
 
 		// Alt panel sırası çizimdeki gibi: rögar kapağı, tahliye, yangın musluğu, bina güçlendirme
@@ -85,7 +82,7 @@ namespace
 			  TEXT("Ayşe Teyze yalnız yaşıyor; evde hiç ilk yardım malzemesi yok."),
 			  TEXT("Ayşe Teyze yalnız yaşıyor ve sık sık küçük kazalar geçiriyor. Evde ilk yardım malzemesi yok."),
 			  -1, IlkYardim,
-			  TEXT("Her evde sargı bezi, yara bandı, antiseptik ve makas bulunan bir ilk yardım çantası olmalı; yerini herkes bilmeli."),
+			  TEXT("Her evde yarayı temizlemek için su, antiseptik ve sargı bezi bulunan bir ilk yardım çantası olmalı; yerini herkes bilmeli."),
 			  TEXT("Ayşe Teyze sık sık küçük yaralar alıyor. Evinde hangi çanta olmalı?") },
 			{ Okul, TEXT("İlk yardım"),
 			  TEXT("Okulun revirindeki ilk yardım çantası boş."),
@@ -97,7 +94,7 @@ namespace
 			  TEXT("Yılmazların deprem anında alacakları bir çantası yok."),
 			  TEXT("Yılmaz ailesi depreme hiç hazırlık yapmamış; kapının yanında hazır bir çantaları yok."),
 			  -1, Deprem,
-			  TEXT("Deprem çantasında su, bozulmayan yiyecek, el feneri ve düdük olmalı; çanta kapının yakınında durmalı."),
+			  TEXT("Deprem çantasında su, el feneri ve düdük olmalı; enkaz altında düdük sesini duyurmanın en az yorucu yoludur. Çanta kapının yakınında durmalı."),
 			  TEXT("Sarsıntıda kapıdan çıkarken kapacakları bir çantaları yok.") },
 			{ OgrenciEv, TEXT("Deprem"),
 			  TEXT("Öğrenci evinde depremden sonrası için hiçbir hazırlık yok."),
@@ -109,7 +106,7 @@ namespace
 			  TEXT("Fırında sürekli ateş yanıyor ama yangın malzemesi yok."),
 			  TEXT("Fırında sabahtan akşama ateş yanıyor; bir yangın çıkarsa müdahale edecek hiçbir şey yok."),
 			  -1, Yangin,
-			  TEXT("Ateşle çalışılan yerlerde yangın tüpü, yangın örtüsü, duman maskesi ve ısıya dayanıklı eldiven hazır olmalı."),
+			  TEXT("Ateşle çalışılan yerlerde yangın tüpü, duman maskesi ve el feneri hazır olmalı; dumanda eğilerek ilerle."),
 			  TEXT("Sürekli ateş yanıyor ama yangına karşı hiçbir şey yok.") },
 			{ Apartman, TEXT("Deprem"),
 			  TEXT("Eski apartmanın kolonlarında çatlaklar var."),
@@ -137,14 +134,14 @@ namespace
 			  TEXT("Deniz çok yakın. Dev dalga gelirse insanlar nereye gitmeli?") },
 		};
 
-		// Ekip notu (17 Ekim): A = Mert, B = Asil, C = Andaç; 5. kişi oyuncu
+		// Ekip notu (17 Ekim): yalnızca Mert, Asil ve Yiğit konuşur (A, B, C); 5. kişi oyuncu
 		C.SpeakerName[0] = TEXT("Mert");
 		C.SpeakerRole[0] = TEXT("Tarayıcı");
 		C.SpeakerColor[0] = Mustard;
 		C.SpeakerName[1] = TEXT("Asil");
 		C.SpeakerRole[1] = TEXT("Hazırlık masası");
 		C.SpeakerColor[1] = Teal;
-		C.SpeakerName[2] = TEXT("Andaç");
+		C.SpeakerName[2] = TEXT("Yiğit");
 		C.SpeakerRole[2] = TEXT("Şehir önlemleri");
 		C.SpeakerColor[2] = Coral;
 
@@ -152,27 +149,26 @@ namespace
 		using S = EDBSpeaker;
 		C.IntroA = {
 			{ S::A, TEXT("Ben Mert! Bu masa oyununda kasabayı afetlere hazırlayacağız.") },
-			{ S::A, TEXT("Önce sorunları bulalım: depreme, sele, yangına, tsunamiye hazır olmayan yerler var.") },
+			{ S::A, TEXT("Önce sorunları bulalım.") },
 			{ S::A, TEXT("Şu tarayıcıya bas!") },
 		};
 		C.AfterScan = {
-			{ S::A, TEXT("İşaretli yerlerin bir eksiği var. Görevler sol üstte, sırayla.") },
+			{ S::A, TEXT("İşaretli yerlerin yanında ne istedikleri yazıyor.") },
 		};
-		// 1 görevler, 2 çanta türleri, 3 eşyalar, 4 hazırla, 5 kapat
+		// 1 çanta türleri, 2 eşyalar, 3 hazırla, 4 kapat
 		C.BagIntroB = {
 			{ S::B, TEXT("Ben Asil. Çantaları bu masada hazırlıyoruz.") },
-			{ S::B, TEXT("Hangi çanta lazım? Görevdeki ipucuna bak.") },
-			{ S::B, TEXT("Önce çantanın türünü seç.") },
-			{ S::B, TEXT("Sonra o çantaya ait 4 eşyayı bul.") },
-			{ S::B, TEXT("Hazır olunca buraya bas.") },
+			{ S::B, TEXT("Üç çeşit çanta var. Önce hangisini yapacağını seç.") },
+			{ S::B, TEXT("Sonra doğru 3 eşyayı seç. Bazı eşyalar iki çantaya da girer.") },
+			{ S::B, TEXT("Kombinasyon doğruysa çanta hazırlanır.") },
 			{ S::B, TEXT("Bitince masayı kapat.") },
 		};
 		// 1 önlemler, 2 bütçe, 3 sırt çantası, 4 çekmece
 		C.PanelIntroC = {
-			{ S::C, TEXT("Ben Andaç. Şehirdeki riskleri ben gösteriyorum.") },
-			{ S::C, TEXT("Bunlar şehir önlemleri: sel, tsunami, yangın ve deprem için.") },
-			{ S::C, TEXT("Önlemlerin bedeli bütçeden düşer; doğru çanta göndermek bütçe kazandırır.") },
-			{ S::C, TEXT("Hazırladığın çantalar burada. Seç, sonra işaretli yere tıkla.") },
+			{ S::C, TEXT("Ben Yiğit. Şehir önlemleri bende.") },
+			{ S::C, TEXT("Sel, tsunami, yangın ve deprem için önlemler burada.") },
+			{ S::C, TEXT("Önlemler bütçeden düşer; doğru çanta göndermek bütçe kazandırır.") },
+			{ S::C, TEXT("Çantaların burada. Seç, sonra isteği olan yere tıkla.") },
 			{ S::C, TEXT("Yeni çanta için çekmeceyi çek.") },
 			{ S::C, TEXT("Hepsi yeşil olunca kasaba hazır!") },
 		};

@@ -24,6 +24,7 @@ void ADBGameMode::InitGame(const FString& MapName, const FString& Options, FStri
 	Super::InitGame(MapName, Options, ErrorMessage);
 	// "Tekrar oyna" haritayı ?Direkt=1 ile açar: menü ve eğitim konuşmaları atlanır
 	bSkipTutorial = UGameplayStatics::HasOption(Options, TEXT("Direkt"));
+	bSkipIntro = UGameplayStatics::HasOption(Options, TEXT("Menu"));
 }
 
 void ADBGameMode::StartPlay()
@@ -58,7 +59,16 @@ void ADBGameMode::StartPlay()
 		{
 			P->SetViewTarget(World->MenuCam);
 		}
-		SetPhase(EDBPhase::Menu);
+		// Hikâye en başta, menüden önce (ekip, 17 Ekim)
+		if (!bSkipIntro && C.Comic.Num() > 0)
+		{
+			ComicIndex = 0;
+			SetPhase(EDBPhase::Comic);
+		}
+		else
+		{
+			SetPhase(EDBPhase::Menu);
+		}
 	}
 	UE_LOG(LogDB, Log, TEXT("DB_START direkt=%d sorun=%d"), bSkipTutorial ? 1 : 0, C.Problems.Num());
 }
@@ -86,7 +96,7 @@ void ADBGameMode::Tick(float Dt)
 	{
 		if (APlayerController* P = PC())
 		{
-			AActor* Want = (Phase == EDBPhase::Menu) ? World->MenuCam.Get() : World->BoardCam.Get();
+			AActor* Want = (Phase == EDBPhase::Menu || Phase == EDBPhase::Comic) ? World->MenuCam.Get() : World->BoardCam.Get();
 			if (P->GetViewTarget() != Want)
 			{
 				P->SetViewTarget(Want);
@@ -203,13 +213,6 @@ void ADBGameMode::ClickPlay()
 	{
 		return;
 	}
-	// Önce çizgi roman: beş arkadaş masa oyununu buluyor
-	if (FDBContent::Get().Comic.Num() > 0)
-	{
-		ComicIndex = 0;
-		SetPhase(EDBPhase::Comic);
-		return;
-	}
 	BeginBoardTransition();
 }
 
@@ -230,7 +233,8 @@ void ADBGameMode::NextComic()
 	}
 	if (++ComicIndex >= FDBContent::Get().Comic.Num())
 	{
-		BeginBoardTransition();
+		MenuUIDelay = 0.f;
+		SetPhase(EDBPhase::Menu);
 		return;
 	}
 	SetPhase(EDBPhase::Comic);
@@ -240,7 +244,8 @@ void ADBGameMode::SkipComic()
 {
 	if (Phase == EDBPhase::Comic)
 	{
-		BeginBoardTransition();
+		MenuUIDelay = 0.f;
+		SetPhase(EDBPhase::Menu);
 	}
 }
 
@@ -492,6 +497,39 @@ void ADBGameMode::PackBag()
 		ShowToast(TEXT("Çanta boş. Önce eşyalara tıkla."), true);
 		return;
 	}
+	// Kombinasyon kontrolü: seçilen türün tam 3 eşyası olmalı (ekip: "doğru kombinasyonu yapıp devam etmek")
+	const FDBContent& C = FDBContent::Get();
+	const TArray<int32> Need = C.KitItems(DraftKit);
+	TArray<FString> Wrong, Missing;
+	for (int32 It : Draft)
+	{
+		if (!Need.Contains(It))
+		{
+			Wrong.Add(C.Items[It].Name);
+		}
+	}
+	for (int32 It : Need)
+	{
+		if (!Draft.Contains(It))
+		{
+			Missing.Add(C.Items[It].Name);
+		}
+	}
+	if (Wrong.Num() > 0 || Missing.Num() > 0)
+	{
+		++Mistakes;
+		FString Why = FString::Printf(TEXT("%s böyle olmaz."), *C.Kits[DraftKit].Name);
+		if (Wrong.Num() > 0)
+		{
+			Why += FString::Printf(TEXT(" Girmez: %s."), *FString::Join(Wrong, TEXT(", ")));
+		}
+		if (Missing.Num() > 0)
+		{
+			Why += Wrong.Num() > 0 ? FString(TEXT(" Bir eşya daha gerekiyor.")) : FString::Printf(TEXT(" %d eşya eksik."), Missing.Num());
+		}
+		ShowToast(Why, true);
+		return;
+	}
 	int32 Slot = Bags.IndexOfByPredicate([](const FDBBag& B) { return B.bUsed; });
 	if (Slot == INDEX_NONE)
 	{
@@ -705,7 +743,7 @@ void ADBGameMode::BeginQuake()
 
 void ADBGameMode::Restart(bool bDirect)
 {
-	UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)), true, bDirect ? TEXT("Direkt=1") : TEXT(""));
+	UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)), true, bDirect ? TEXT("Direkt=1") : TEXT("Menu=1"));
 }
 
 void ADBGameMode::Back()

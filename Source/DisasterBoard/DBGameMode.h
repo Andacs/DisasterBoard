@@ -34,7 +34,7 @@ public:
 	// --- Ayarlar ---
 	UPROPERTY(EditAnywhere, Category = "DB") bool bQuakeAtEnd = false;    // 17 Ekim: oyunda deprem sahnesi ve süre yok
 	UPROPERTY(EditAnywhere, Category = "DB") float QuakeSeconds = 150.f;  // yalnızca bQuakeAtEnd açıksa
-	UPROPERTY(EditAnywhere, Category = "DB") int32 BagCapacity = 4;
+	UPROPERTY(EditAnywhere, Category = "DB") int32 BagCapacity = 3;   // her çanta 3'lü kombinasyon
 	UPROPERTY(EditAnywhere, Category = "DB") int32 MaxBags = 4;
 	UPROPERTY(EditAnywhere, Category = "DB") float CameraBlendSeconds = 2.2f;
 	UPROPERTY(EditAnywhere, Category = "DB") float CalendarBlendSeconds = 0.9f;  // menü ↔ takvim yakın plan
@@ -53,6 +53,7 @@ public:
 	bool bPanelOpen = false;
 	bool bPlayStarted = false;
 	bool bSkipTutorial = false;
+	bool bSkipIntro = false;   // "Menü"ye dönüşte hikâye tekrar oynamaz
 
 	TArray<bool> Revealed;
 	TArray<bool> Solved;
@@ -93,7 +94,7 @@ public:
 	// Menü yazıları yalnızca kamera durup sayfa yerine oturunca çizilir
 	bool IsMenuReady() const { return Phase == EDBPhase::Menu && PhaseTime >= MenuUIDelay; }
 	bool IsMenuPageReady() const;
-	bool IsBoardPhase() const { return Phase != EDBPhase::Menu && Phase != EDBPhase::MenuPage; }
+	bool IsBoardPhase() const { return Phase != EDBPhase::Menu && Phase != EDBPhase::MenuPage && Phase != EDBPhase::Comic; }
 	bool IsTimerVisible() const { return bPlayStarted && (Phase == EDBPhase::Play || Phase == EDBPhase::Quake); }
 	FString MissingItemsText(int32 Kit, const TArray<int32>& BagItems) const;
 

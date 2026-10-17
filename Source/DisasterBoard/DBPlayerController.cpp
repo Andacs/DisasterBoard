@@ -204,30 +204,23 @@ void ADBPlayerController::DBTest()
 		GetWorldTimerManager().SetTimer(TestTimer, this, &ADBPlayerController::RunTestStep, 0.6f, true, 2.f);
 		return;
 	}
+	// Oyun hikâyeyle açılır (menüden önce)
+	Add([this] { Shot(TEXT("00a_hikaye_1")); });
+	Add([this] { GM()->NextComic(); });
+	Add([this] { Shot(TEXT("00b_hikaye_2")); });
+	Add([this] { GM()->NextComic(); });
+	Add([this] { Shot(TEXT("00c_hikaye_3")); });
+	Add([this] { GM()->NextComic(); });
+	Add([this] { Shot(TEXT("00d_hikaye_4")); });
+	Add([this] { GM()->NextComic(); });
 	Add([this] { Shot(TEXT("01_menu")); });
-	// Sayfa dokusu ↔ fare eşlemesi: "Oyna"nın hesaplanan ekran yerine kırmızı nokta (görüntüde düğmenin üstünde olmalı)
-	Add([this] { FVector2D P; if (ADBHUD* Hd = GetHUD<ADBHUD>(); Hd && Hd->PageButtonScreenPos(TEXT("Play"), true, P)) { Hd->DebugDot = P; UE_LOG(LogDBInput, Log, TEXT("DB_TEST oyna=%.0f,%.0f"), P.X, P.Y); } });
-	Add([this] { Shot(TEXT("01b_oyna_noktasi")); if (ADBHUD* Hd = GetHUD<ADBHUD>()) { Hd->DebugDot = FVector2D(-1.f, -1.f); } GM()->OpenMenuPage(EDBMenuPage::Credits); });
-	Add([this] { Shot(TEXT("02a_takvime_yaklasiyor")); });
+	Add([this] { GM()->OpenMenuPage(EDBMenuPage::Credits); });
+	Add([] {});
 	Add([this] { Shot(TEXT("02_jenerik")); });
 	Add([this] { GM()->CloseMenuPage(); });
 	Add([] {});
 	Add([] {});
-	Add([this] { Shot(TEXT("02b_menuye_dondu")); GM()->OpenMenuPage(EDBMenuPage::Settings); });
-	Add([] {});
-	Add([this] { Shot(TEXT("03_ayarlar")); });
-	Add([this] { GM()->CloseMenuPage(); });
-	Add([] {});
-	Add([] {});
 	Add([this] { DBMusicWav(); GM()->ClickPlay(); });
-	Add([this] { Shot(TEXT("03c_cizgiroman_1")); });
-	Add([this] { GM()->NextComic(); });
-	Add([this] { Shot(TEXT("03d_cizgiroman_2")); });
-	Add([this] { GM()->NextComic(); });
-	Add([this] { Shot(TEXT("03e_cizgiroman_3")); });
-	Add([this] { GM()->NextComic(); });
-	Add([this] { Shot(TEXT("03f_cizgiroman_4")); });
-	Add([this] { GM()->NextComic(); });
 	Add([] {});
 	Add([this] { Shot(TEXT("04_A_konusuyor")); });
 	Talk(2);
@@ -237,19 +230,21 @@ void ADBPlayerController::DBTest()
 	Add([this] { GM()->StartScan(); });
 	Add([this] { Shot(TEXT("06_taraniyor")); });
 	Add([] {});
-	Add([this] { Shot(TEXT("07_tarama_bitti")); });
+	Add([this] { Shot(TEXT("07_istekler")); });
 	Talk(1);
 	Add([this] { Shot(TEXT("08_B_panel")); });
-	Talk(2);
+	Talk(1);
 	Add([this] { Shot(TEXT("08b_B_turleri_gosteriyor")); });
 	Talk(4);
-	// Eşyalar: İlk yardım 1,4,7,10 · Deprem 0,3,6,9 · Yangın 2,5,8,11
-	Add([this] { ADBGameMode* M = GM(); M->SetDraftKit(0); M->AddItem(1); M->AddItem(4); M->AddItem(7); M->AddItem(10); });
+	// Eşyalar: 0 Su, 1 Sargı Bezi, 2 Yangın Tüpü, 3 El Feneri, 4 Düdük, 5 Antiseptik, 6 Duman Maskesi
+	// İlk yardım = Su + Sargı Bezi + Antiseptik · Deprem = Su + El Feneri + Düdük · Yangın = Yangın Tüpü + El Feneri + Duman Maskesi
+	Add([this] { ADBGameMode* M = GM(); M->SetDraftKit(0); M->AddItem(1); M->AddItem(5); M->AddItem(0); });
 	Add([this] { Shot(TEXT("09_canta_dolu")); });
-	Add([this] { ADBGameMode* M = GM(); M->PackBag(); M->SetDraftKit(0); M->AddItem(1); M->AddItem(4); M->AddItem(7); M->AddItem(10); M->PackBag(); });
-	// Deprem çantası bilerek eksik (el feneri yok)
+	Add([this] { ADBGameMode* M = GM(); M->PackBag(); M->SetDraftKit(0); M->AddItem(1); M->AddItem(5); M->AddItem(0); M->PackBag(); });
+	// Bilerek yanlış: deprem çantasına duman maskesi
 	Add([this] { ADBGameMode* M = GM(); M->SetDraftKit(1); M->AddItem(0); M->AddItem(3); M->AddItem(6); M->PackBag(); });
-	Add([this] { ADBGameMode* M = GM(); M->SetDraftKit(2); M->AddItem(2); M->AddItem(5); M->AddItem(8); M->AddItem(11); M->PackBag(); });
+	Add([this] { Shot(TEXT("09b_yanlis_kombinasyon")); });
+	Add([this] { ADBGameMode* M = GM(); M->RemoveDraftAt(2); M->AddItem(4); M->PackBag(); M->SetDraftKit(2); M->AddItem(2); M->AddItem(3); M->AddItem(6); M->PackBag(); });
 	Add([this] { Shot(TEXT("10_cantalar_hazir")); });
 	Add([this] { GM()->ClosePanel(); });
 	Add([this] { Shot(TEXT("11_C_konusuyor")); });
@@ -258,21 +253,19 @@ void ADBPlayerController::DBTest()
 	Talk(5);
 	Add([this] { Shot(TEXT("12_oyun")); });
 	// Binalar: 0 Ayşe, 1 Okul, 3 Yılmaz, 4 Apartman, 6 Fırın, 7 Market, 8 Öğrenci, 10 Sahil, 11 Ahşap
-	Add([this] { ADBGameMode* M = GM(); M->SelectBag(0); M->ClickBuilding(0); M->SelectBag(1); M->ClickBuilding(1); M->SelectBag(3); M->ClickBuilding(6); });
+	Add([this] { ADBGameMode* M = GM(); M->SelectBag(0); M->ClickBuilding(0); M->SelectBag(1); M->ClickBuilding(1); M->SelectBag(2); M->ClickBuilding(3); M->SelectBag(3); M->ClickBuilding(6); });
 	Add([this] { Shot(TEXT("13_cantalar_gitti")); });
-	Add([this] { ADBGameMode* M = GM(); M->SelectBag(2); M->ClickBuilding(3); });
-	Add([this] { Shot(TEXT("14_eksik_canta")); });
 	Add([this] { ADBGameMode* M = GM(); M->SelectTool(1); M->ClickBuilding(4); });
 	Add([this] { Shot(TEXT("15_yanlis_onlem")); });
 	Add([this] { ADBGameMode* M = GM(); M->SelectTool(3); M->ClickBuilding(4); M->SelectTool(0); M->ClickBuilding(7); M->SelectTool(2); M->ClickBuilding(11); });
 	Add([this] { ADBGameMode* M = GM(); M->SelectTool(1); M->ClickBuilding(10); });
 	Add([this] { Shot(TEXT("16_tahliye")); });
 	Add([] {});
-	Add([] {});
-	Add([this] { Shot(TEXT("16b_siginakta")); GM()->TogglePanel(); });
-	Add([this] { ADBGameMode* M = GM(); M->SetDraftKit(1); M->AddItem(0); M->AddItem(3); M->AddItem(6); M->AddItem(9); M->PackBag(); M->SetDraftKit(1); M->AddItem(0); M->AddItem(3); M->AddItem(6); M->AddItem(9); });
-	Add([this] { Shot(TEXT("17_cekmece_acik")); GM()->PackBag(); GM()->TogglePanel(); });
-	Add([this] { Shot(TEXT("17b_cekmece_kapaniyor")); ADBGameMode* M = GM(); M->SelectBag(0); M->ClickBuilding(3); M->SelectBag(1); M->ClickBuilding(8); });
+	Add([this] { GM()->TogglePanel(); });
+	Add([this] { ADBGameMode* M = GM(); M->SetDraftKit(1); M->AddItem(0); M->AddItem(3); M->AddItem(4); });
+	Add([this] { Shot(TEXT("17_cekmece_acik")); GM()->PackBag(); });
+	Add([this] { GM()->TogglePanel(); });
+	Add([this] { ADBGameMode* M = GM(); M->SelectBag(0); M->ClickBuilding(8); });
 	Add([] {});
 	Add([this] { Shot(TEXT("18_sonuc")); });
 	Add([this] { UE_LOG(LogDBInput, Log, TEXT("DB_TEST DONE para=%d hata=%d"), GM()->Money, GM()->Mistakes); });

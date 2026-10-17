@@ -30,6 +30,7 @@ struct FDBKitDef
 	FString Name;          // "Deprem Çantası"
 	FString Short;         // sekme ve sırt çantası etiketi
 	FLinearColor Color;
+	FString Hint;          // masada sekmenin altında: kombinasyona ipucu
 };
 
 struct FDBItemDef
@@ -37,7 +38,7 @@ struct FDBItemDef
 	FString Name;
 	FString Icon;          // kartta büyük yazılan kısaltma (emoji yok: fontta olmayan glif oyunu dondurur)
 	FLinearColor Color;
-	int32 Kit = -1;        // hangi çantaya ait
+	int32 KitMask = 0;     // hangi çantalara girer (bit = çanta türü); bazı eşyalar birden fazla çantada
 };
 
 // Şehir önlemi: bedeli bütçeden düşer
@@ -109,7 +110,7 @@ struct FDBContent
 		TArray<int32> Out;
 		for (int32 i = 0; i < Items.Num(); ++i)
 		{
-			if (Items[i].Kit == Kit)
+			if (Items[i].KitMask & (1 << Kit))
 			{
 				Out.Add(i);
 			}

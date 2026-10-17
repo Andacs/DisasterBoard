@@ -193,6 +193,19 @@ sırt çantası.
 - **Bekleyen:** 3D eşya modelleri (masada ve grid kutularında gösterilecek): modelciden gelmeli; Yiğit'in
   çekim notu (yarım okundu).
 
+**17 Ekim ~06.00, Andaç'ın kararları (uygulandı, ekranda görüldü) — öncekilerin üstüne yazar:**
+- **Hikâye en başta, menüden önce** (oyun açılınca 4 sahne; bitince / "Geç" ile takvim menüsü). Oyna → doğrudan
+  tahtaya. "Menü" düğmesi `?Menu=1` ile açar, hikâye tekrar oynamaz.
+- **Görev listesi kaldırıldı.** Onun yerine **istekler net:** her riskli yerin işaretinin yanında ne istediği
+  yazar (çanta türü ya da önlem adı, kendi renginde).
+- **Yalnızca Mert, Asil, Yiğit konuşur** (A, B, C). Andaç konuşmaz.
+- **Hazırlık masası: 7 eşya, 3 çanta, her çanta doğru bir 3'lü kombinasyon:** İlk Yardım = Su + Sargı Bezi +
+  Antiseptik; Deprem = Su + El Feneri + Düdük; Yangın = Yangın Tüpü + El Feneri + Duman Maskesi (Su ve El Feneri
+  iki çantaya girer, `FDBItemDef::KitMask`). Sekmenin altında ipucu (`FDBKitDef::Hint`). "Çantayı Hazırla"
+  kombinasyonu kontrol eder: yanlışsa hata sayılır, yanlış eşyayı söyler, eksiğin adını söylemez.
+- **Deniz:** dalga kaldı; altına mavi taban kondu ve deniz tahtanın kenarına kadar uzanıyor, kum şeridi yok
+  (dalgada kahverengi görünüyordu).
+
 **Test:** `UnrealEditor.exe <tam yol>\DisasterBoard.uproject /Game/DisasterBoard/Maps/L_Ana -game -windowed
 -ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~125 sn oynar, 30 görüntü (çizgi roman ve rehber karakterler dahil), 9/9 hazırlayıp sonuç kartına varır. `-DBGainTest` ile sayfa parlaklığını 5 değerde çeker
 `Saved/Screenshots/WindowsEditor/DB_*.png`, kendisi kapanır. Test tıklama işlevlerini doğrudan çağırıyor.
@@ -202,8 +215,8 @@ grafik düğmeleri ← 2'yi geçerse yeni özellik durur
 
 **Bozuk:** —
 
-**Ekipten bekleyen kararlar:** A/B/C'nin adları (şimdilik Ayaz, Berna, Cem); portre görselleri; ikon görselleri
-(şimdilik harf kısaltmaları); bütçe dengesi.
+**Ekipten bekleyen:** karakter ve hikâye görselleri (`Content/Karakterler`, `Content/Cizgiroman`), ikon görselleri
+(şimdilik harf kısaltmaları), 3D eşya modelleri, bütçe dengesi.
 
 ---
 

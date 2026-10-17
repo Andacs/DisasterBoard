@@ -156,16 +156,21 @@ void ADBWorld::BuildBoard()
 			const FVector C(-Plateau * 0.5f + (X + 0.5f) * CellCm, -Plateau * 0.5f + (Y + 0.5f) * CellCm, 13.f + TileH * 0.5f);
 			if (Y >= GridN - 2)
 			{
-				// Sahil: son iki sıra deniz (dalgalanır), karolar arası boşluksuz
-				UStaticMeshComponent* Sea = Part(B, CubeMesh, C - FVector(0, 0, 0.3f), FVector(CellCm, CellCm, TileH),
+				// Sahil: son iki sıra deniz (dalgalanır). Altında mavi taban var: dalgada kahverengi görünmesin (ekip, 17 Ekim)
+				UStaticMeshComponent* Sea = Part(B, CubeMesh, C + FVector(0, 0, 0.6f), FVector(CellCm + 0.2f, CellCm + 0.2f, TileH),
 					bDark ? RGB(96, 160, 204) : RGB(110, 174, 214), FRotator::ZeroRotator, true);
 				SeaTiles.Add(Sea);
 				continue;
 			}
-			const bool bSand = Y == GridN - 3;
-			Part(B, CubeMesh, C, FVector(TileCm, TileCm, TileH),
-				bSand ? RGB(236, 214, 160) : (bDark ? RGB(226, 204, 164) : RGB(236, 218, 182)), FRotator::ZeroRotator, true);
+			Part(B, CubeMesh, C, FVector(TileCm, TileCm, TileH), bDark ? RGB(226, 204, 164) : RGB(236, 218, 182), FRotator::ZeroRotator, true);
 		}
+	}
+
+	// Deniz tabanı: deniz sıralarının altı ve o kenardaki çerçeve mavi; deniz tahtanın kenarına kadar uzanır
+	{
+		const float SeaY0 = -Plateau * 0.5f + (GridN - 2) * CellCm;
+		const float SeaY1 = BoardCm * 0.5f;
+		Part(B, CubeMesh, FVector(0.f, (SeaY0 + SeaY1) * 0.5f, 13.2f), FVector(BoardCm, SeaY1 - SeaY0, 1.6f), RGB(80, 140, 190), FRotator::ZeroRotator, true);
 	}
 
 	const FDBContent& Content = FDBContent::Get();
@@ -789,7 +794,7 @@ void ADBWorld::Tick(float Dt)
 	for (int32 i = 0; i < SeaTiles.Num(); ++i)
 	{
 		const FVector L = SeaTiles[i]->GetRelativeLocation();
-		SeaTiles[i]->SetRelativeLocation(FVector(L.X, L.Y, 12.9f + 0.35f * FMath::Sin(WaveT * 2.2f + L.X * 0.12f + L.Y * 0.05f)));
+		SeaTiles[i]->SetRelativeLocation(FVector(L.X, L.Y, 14.3f + 0.35f * FMath::Sin(WaveT * 2.2f + L.X * 0.12f + L.Y * 0.05f)));
 	}
 
 	// Tahliye: sakinler sırayla yola çıkar, sığınağın önünde toplanır
