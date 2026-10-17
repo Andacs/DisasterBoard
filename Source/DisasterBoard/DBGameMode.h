@@ -6,6 +6,8 @@
 #include "DBGameMode.generated.h"
 
 class ADBWorld;
+class UDBMusicWave;
+class UAudioComponent;
 class APlayerController;
 
 struct FDBBag
@@ -36,6 +38,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "DB") int32 MaxBags = 4;
 	UPROPERTY(EditAnywhere, Category = "DB") float CameraBlendSeconds = 2.2f;
 	UPROPERTY(EditAnywhere, Category = "DB") float CalendarBlendSeconds = 0.9f;  // menü ↔ takvim yakın plan
+	UPROPERTY(EditAnywhere, Category = "DB") float ComicSeconds = 5.f;           // çizgi roman: sahne başına
+	UPROPERTY(EditAnywhere, Category = "DB") float MusicVolume = 0.55f;
 	UPROPERTY(EditAnywhere, Category = "DB") float ScanSeconds = 2.4f;
 	UPROPERTY(EditAnywhere, Category = "DB") float QuakeDuration = 5.f;
 	UPROPERTY(EditAnywhere, Category = "DB") float TalkCharsPerSecond = 55.f;
@@ -72,6 +76,9 @@ public:
 	int32 Mistakes = 0;
 
 	UPROPERTY() TObjectPtr<ADBWorld> World;
+	UPROPERTY() TObjectPtr<UDBMusicWave> Music;
+	UPROPERTY() TObjectPtr<UAudioComponent> MusicComp;
+	int32 ComicIndex = 0;
 
 	// --- Sorgular ---
 	const FDBLine* CurrentLine() const;
@@ -80,6 +87,7 @@ public:
 	int32 VisibleChars() const;
 	int32 ProblemOfBuilding(int32 Building) const;
 	int32 NumSolved() const;
+	int32 CurrentTask() const;     // sıradaki görev: ilk çözülmemiş, bulunmuş sorun (yoksa -1)
 	int32 NumRevealed() const;
 	bool CanEditBags() const { return bPanelOpen && (Phase == EDBPhase::BagPrep || Phase == EDBPhase::Play); }
 	// Menü yazıları yalnızca kamera durup sayfa yerine oturunca çizilir
@@ -91,6 +99,10 @@ public:
 
 	// --- Eylemler ---
 	void ClickPlay();
+	void NextComic();
+	void SkipComic();
+	void ToggleMusic();
+	FString MusicLabel() const;
 	void OpenMenuPage(EDBMenuPage Page);
 	void CloseMenuPage();
 	void QuitGame();
@@ -122,6 +134,7 @@ public:
 
 private:
 	void SetPhase(EDBPhase NewPhase);
+	void BeginBoardTransition();
 	void StartTalk(const TArray<FDBLine>& Lines, TFunction<void()> OnDone);
 	void ShowToast(const FString& Text, bool bBad, int32 Building = -1);
 	void Penalty(const FString& Why, int32 Building);

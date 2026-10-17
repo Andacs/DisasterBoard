@@ -2,6 +2,8 @@
 #include "DBHUD.h"
 #include "DBPlayerController.h"
 #include "DBWorld.h"
+#include "DBMusic.h"
+#include "Components/AudioComponent.h"
 #include "Camera/CameraActor.h"
 #include "GameFramework/GameUserSettings.h"
 #include "Kismet/GameplayStatics.h"
@@ -37,6 +39,10 @@ void ADBGameMode::StartPlay()
 
 	World = GetWorld()->SpawnActor<ADBWorld>();
 	World->Build();
+
+	// Müzik: koddan üretilir, ilerledikçe hızlanır
+	Music = NewObject<UDBMusicWave>(this);
+	MusicComp = UGameplayStatics::SpawnSound2D(this, Music, MusicVolume);
 
 	if (bSkipTutorial)
 	{
@@ -88,8 +94,20 @@ void ADBGameMode::Tick(float Dt)
 		}
 	}
 
+	if (Music)
+	{
+		Music->SetIntensity(Solved.Num() > 0 ? (float)NumSolved() / Solved.Num() : 0.f);
+	}
+
 	switch (Phase)
 	{
+	case EDBPhase::Comic:
+		if (PhaseTime >= ComicSeconds)
+		{
+			NextComic();
+		}
+		break;
+
 	case EDBPhase::MenuPage:
 		if (bPageFlipPending && PhaseTime >= CalendarBlendSeconds)
 		{
@@ -124,6 +142,7 @@ void ADBGameMode::Tick(float Dt)
 			{
 				Revealed[p] = true;
 				RevealTime[p] = Now;
+				World->ShowHaze(C.Problems[p].Building, C.Problems[p].Hazard);
 			}
 		}
 		if (PhaseTime >= ScanSeconds + 0.6f)
@@ -135,6 +154,7 @@ void ADBGameMode::Tick(float Dt)
 				{
 					Revealed[p] = true;
 					RevealTime[p] = Now;
+					World->ShowHaze(C.Problems[p].Building, C.Problems[p].Hazard);
 				}
 			}
 			StartTalk(C.AfterScan, [this]
@@ -183,11 +203,70 @@ void ADBGameMode::ClickPlay()
 	{
 		return;
 	}
+	// Önce çizgi roman: beş arkadaş masa oyununu buluyor
+	if (FDBContent::Get().Comic.Num() > 0)
+	{
+		ComicIndex = 0;
+		SetPhase(EDBPhase::Comic);
+		return;
+	}
+	BeginBoardTransition();
+}
+
+void ADBGameMode::BeginBoardTransition()
+{
 	SetPhase(EDBPhase::ToBoard);
 	if (APlayerController* P = PC())
 	{
 		P->SetViewTargetWithBlend(World->BoardCam, CameraBlendSeconds, VTBlend_EaseInOut, 2.2f);
 	}
+}
+
+void ADBGameMode::NextComic()
+{
+	if (Phase != EDBPhase::Comic)
+	{
+		return;
+	}
+	if (++ComicIndex >= FDBContent::Get().Comic.Num())
+	{
+		BeginBoardTransition();
+		return;
+	}
+	SetPhase(EDBPhase::Comic);
+}
+
+void ADBGameMode::SkipComic()
+{
+	if (Phase == EDBPhase::Comic)
+	{
+		BeginBoardTransition();
+	}
+}
+
+void ADBGameMode::ToggleMusic()
+{
+	if (Music)
+	{
+		Music->SetMuted(!Music->IsMuted());
+	}
+}
+
+FString ADBGameMode::MusicLabel() const
+{
+	return (Music && Music->IsMuted()) ? TEXT("Kapalı") : TEXT("Açık");
+}
+
+int32 ADBGameMode::CurrentTask() const
+{
+	for (int32 p = 0; p < Solved.Num(); ++p)
+	{
+		if (Revealed[p] && !Solved[p])
+		{
+			return p;
+		}
+	}
+	return -1;
 }
 
 // Ayarlar / Emeği Geçenler: kamera takvime yaklaşır → sayfa kalkar. Geri: sayfa iner → kamera menü açısına döner.
@@ -590,6 +669,7 @@ void ADBGameMode::Solve(int32 Problem, int32 Building)
 	SolveTime[Problem] = Now;
 	SelTool = -1;
 	World->PopBuilding(Building);
+	World->ClearHaze(Building);
 	const FDBContent& C = FDBContent::Get();
 	if (C.Problems[Problem].Tool >= 0 && C.Problems[Problem].Tool == C.EvacuateTool)
 	{

@@ -36,7 +36,7 @@ Her satır: ad · üretici/sağlayıcı · bağlantı · lisans (gerçek koşull
 | Kategori | Durum | Kaynak · sağlayıcı · lisans · kullanım |
 |---|---|---|
 | Görsel | [Kullanıldı / Kullanılmadı] | [Unreal Engine temel şekilleri (`/Engine/BasicShapes`) · Epic Games · [Unreal Engine EULA](https://www.unrealengine.com/eula) · ...] |
-| Ses | [...] | [...] |
+| Ses | Kullanıldı | **Claude (Anthropic)** · müziği oyun içinde üreten kodun (sentezleyici, akor ve ezgi) yazımı; ses dosyası yok · `Source/DisasterBoard/DBMusic.cpp` |
 | Kod | Kullanıldı | **Unreal Engine 5.8** · Epic Games · [Unreal Engine EULA](https://www.unrealengine.com/eula) · oyun motoru. Derleme, paketleme, trailer ve teslim betikleri (`Build/`, `Tools/`) takımın jam öncesi hazırladığı genel araçlardır (madde 3.1); oyuna girmez. |
 | Metin | Kullanıldı | **Claude (Anthropic)** · oyun içi konuşmaların, sorun notlarının ve sonuç ekranındaki hazırlık bilgilerinin ilk taslağı · `Source/DisasterBoard/DBData.cpp` |
 | Diğer | [...] | [Yazı tipleri: ad · sağlayıcı · Google Fonts bağlantısı · SIL OFL 1.1 (lisans metni `Art/Fonts/*/OFL.txt`) · nerede kullanıldı. Roboto · Google · Apache 2.0 · motorla gelir, yedek yazı tipi.] |
@@ -52,7 +52,7 @@ Her satır: araç · amaç · oyundaki yeri. Çok küçük kullanım da yazılı
 |---|---|---|
 | Görsel | [...] | [...] |
 | Ses | [...] | [...] |
-| Kod | Kullanıldı | **Claude (Anthropic, Claude Code)** · oyun kodunun yazımı (C++: akış, arayüz, sahne kurulumu, otomatik test) · `Source/DisasterBoard/` |
+| Kod | Kullanıldı | **Claude (Anthropic, Claude Code)** · oyun kodunun yazımı (C++: akış, arayüz, sahne kurulumu, sis/kum efektleri, koddan müzik üreteci, otomatik test) · `Source/DisasterBoard/` |
 | Metin | [...] | [...] |
 | Diğer | [...] | [...] |
 

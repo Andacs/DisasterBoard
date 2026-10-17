@@ -7,6 +7,6 @@ public class DisasterBoard : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
 		// SlateCore: HUD'da fontu dosyadan kurmak icin (FFontData; JamKit 04 §5)
-		PrivateDependencyModuleNames.AddRange(new string[] { "SlateCore", "RenderCore" }); // RenderCore: GWhiteTexture (HUD üçgenleri)
+		PrivateDependencyModuleNames.AddRange(new string[] { "SlateCore", "RenderCore", "AudioExtensions" }); // RenderCore: GWhiteTexture (HUD üçgenleri); AudioExtensions: koddan üretilen müzik
 	}
 }

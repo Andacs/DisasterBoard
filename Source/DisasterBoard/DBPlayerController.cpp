@@ -2,6 +2,8 @@
 #include "DBGameMode.h"
 #include "DBHUD.h"
 #include "DBWorld.h"
+#include "DBMusic.h"
+#include "Misc/Paths.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputAction.h"
@@ -58,6 +60,7 @@ void ADBPlayerController::SetupInputComponent()
 	Bind(TEXT("IA_Click"), { EKeys::LeftMouseButton }, &ADBPlayerController::OnClick);
 	Bind(TEXT("IA_Back"), { EKeys::Escape, EKeys::RightMouseButton }, &ADBPlayerController::OnBack);
 	Bind(TEXT("IA_Restart"), { EKeys::F5 }, &ADBPlayerController::OnRestart);
+	Bind(TEXT("IA_Music"), { EKeys::M }, &ADBPlayerController::OnMusic);
 }
 
 void ADBPlayerController::PlayerTick(float DeltaTime)
@@ -146,6 +149,22 @@ void ADBPlayerController::DBQuake()
 	}
 }
 
+void ADBPlayerController::OnMusic()
+{
+	if (ADBGameMode* G = GM())
+	{
+		G->ToggleMusic();
+	}
+}
+
+void ADBPlayerController::DBMusicWav()
+{
+	const FString Path = FPaths::ProjectSavedDir() / TEXT("DB_muzik_test.wav");
+	FString Report;
+	const bool bOk = UDBMusicWave::WriteTestWav(Path, 40.f, &Report);
+	UE_LOG(LogDBInput, Log, TEXT("DB_MUSIC wav=%s ok=%d %s"), *Path, bOk ? 1 : 0, *Report);
+}
+
 void ADBPlayerController::DBPageGain(float Gain)
 {
 	if (ADBGameMode* G = GM(); G && G->World)
@@ -200,18 +219,30 @@ void ADBPlayerController::DBTest()
 	Add([this] { GM()->CloseMenuPage(); });
 	Add([] {});
 	Add([] {});
-	Add([this] { GM()->ClickPlay(); });
-	Add([this] { Shot(TEXT("03b_tahtaya_gidiyor")); });
+	Add([this] { DBMusicWav(); GM()->ClickPlay(); });
+	Add([this] { Shot(TEXT("03c_cizgiroman_1")); });
+	Add([this] { GM()->NextComic(); });
+	Add([this] { Shot(TEXT("03d_cizgiroman_2")); });
+	Add([this] { GM()->NextComic(); });
+	Add([this] { Shot(TEXT("03e_cizgiroman_3")); });
+	Add([this] { GM()->NextComic(); });
+	Add([this] { Shot(TEXT("03f_cizgiroman_4")); });
+	Add([this] { GM()->NextComic(); });
+	Add([] {});
 	Add([this] { Shot(TEXT("04_A_konusuyor")); });
-	Talk(3);
+	Talk(2);
+	Add([this] { Shot(TEXT("04b_A_tarayiciyi_gosteriyor")); });
+	Talk(1);
 	Add([this] { Shot(TEXT("05_tarayici_bekliyor")); });
 	Add([this] { GM()->StartScan(); });
 	Add([this] { Shot(TEXT("06_taraniyor")); });
 	Add([] {});
 	Add([this] { Shot(TEXT("07_tarama_bitti")); });
-	Talk(2);
+	Talk(1);
 	Add([this] { Shot(TEXT("08_B_panel")); });
-	Talk(6);
+	Talk(2);
+	Add([this] { Shot(TEXT("08b_B_turleri_gosteriyor")); });
+	Talk(4);
 	// Eşyalar: İlk yardım 1,4,7,10 · Deprem 0,3,6,9 · Yangın 2,5,8,11
 	Add([this] { ADBGameMode* M = GM(); M->SetDraftKit(0); M->AddItem(1); M->AddItem(4); M->AddItem(7); M->AddItem(10); });
 	Add([this] { Shot(TEXT("09_canta_dolu")); });
@@ -222,7 +253,9 @@ void ADBPlayerController::DBTest()
 	Add([this] { Shot(TEXT("10_cantalar_hazir")); });
 	Add([this] { GM()->ClosePanel(); });
 	Add([this] { Shot(TEXT("11_C_konusuyor")); });
-	Talk(6);
+	Talk(1);
+	Add([this] { Shot(TEXT("11b_C_onlemleri_gosteriyor")); });
+	Talk(5);
 	Add([this] { Shot(TEXT("12_oyun")); });
 	// Binalar: 0 Ayşe, 1 Okul, 3 Yılmaz, 4 Apartman, 6 Fırın, 7 Market, 8 Öğrenci, 10 Sahil, 11 Ahşap
 	Add([this] { ADBGameMode* M = GM(); M->SelectBag(0); M->ClickBuilding(0); M->SelectBag(1); M->ClickBuilding(1); M->SelectBag(3); M->ClickBuilding(6); });

@@ -10,6 +10,7 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Kismet/KismetRenderingLibrary.h"
+#include "Engine/Texture2D.h"
 #include "UObject/ConstructorHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDBWorld, Log, All);
@@ -36,6 +37,8 @@ ADBWorld::ADBWorld()
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> PlaneF(TEXT("/Engine/BasicShapes/Plane.Plane"));
 	// UWidgetComponent'in kullandığı ışıksız, iki yüzlü doku malzemesi; parametre "SlateUI"
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> PageMatF(TEXT("/Engine/EngineMaterials/Widget3DPassThrough_Opaque.Widget3DPassThrough_Opaque"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> PuffMatF(TEXT("/Engine/EngineMaterials/Widget3DPassThrough_Translucent.Widget3DPassThrough_Translucent"));
+	PuffMaterial = PuffMatF.Object;
 	PlaneMesh = PlaneF.Object;
 	PageMaterial = PageMatF.Object;
 	CubeMesh = CubeF.Object;
@@ -100,6 +103,7 @@ void ADBWorld::Build()
 	BuildBoard();
 	BuildCalendar();
 	BuildCameras();
+	BuildFx();
 
 	for (TActorIterator<ADirectionalLight> It(GetWorld()); It; ++It)
 	{
@@ -178,7 +182,7 @@ void ADBWorld::BuildBoard()
 	}
 
 	// Tarama çizgisi (yalnızca taramada görünür)
-	ScanBeam = Part(B, CubeMesh, FVector(0, 0, BoardTopZ + 1.f), FVector(100.f, 2.f, 1.5f), RGB(110, 235, 140), FRotator(0, -45.f, 0));
+	ScanBeam = Part(B, CubeMesh, FVector(0, 0, BoardTopZ + 1.f), FVector(100.f, 1.6f, 1.2f), RGB(222, 196, 140), FRotator(0, -45.f, 0));
 	ScanBeam->SetVisibility(false);
 
 	// Tahliye edilen sakinler (tsunami)
@@ -432,6 +436,143 @@ bool ADBWorld::PageUVToScreen(const APlayerController* PC, bool bTop, const FVec
 	return PC->ProjectWorldLocationToScreen(Wp, OutScreen);
 }
 
+// ---------------------------------------------------------------- atmosfer: sis ve kum
+
+namespace
+{
+	// Afet → sis rengi (dizin): 0 toz (deprem), 1 sis (sel), 2 duman (yangın), 3 deniz pusu (tsunami), 4 ılık (ilk yardım), 5 kum (tarama)
+	int32 TintForHazard(const FString& H)
+	{
+		if (H == TEXT("Deprem")) return 0;
+		if (H == TEXT("Sel")) return 1;
+		if (H == TEXT("Yangın")) return 2;
+		if (H == TEXT("Tsunami")) return 3;
+		return 4;
+	}
+}
+
+void ADBWorld::BuildFx()
+{
+	// Yumuşak bulut dokusu CPU'da üretilir (asset yok): ortası opak, kenarı sönen, hafif pürüzlü
+	// İlk denemede zemine çok yakın renk ve bina diplerinde kaldı (fark görüntüsünde zor seçildi): koyu, belirgin tonlar
+	const FColor Tints[] = { FColor(150, 128, 100), FColor(104, 146, 200), FColor(86, 80, 80), FColor(110, 176, 210), FColor(222, 140, 130), FColor(214, 186, 128) };
+	const int32 N = 64;
+	for (const FColor& T : Tints)
+	{
+		TArray<uint8> Px;
+		Px.SetNumUninitialized(N * N * 4);
+		for (int32 y = 0; y < N; ++y)
+		{
+			for (int32 x = 0; x < N; ++x)
+			{
+				const float Dx = (x + 0.5f) / N * 2.f - 1.f;
+				const float Dy = (y + 0.5f) / N * 2.f - 1.f;
+				const float R = FMath::Sqrt(Dx * Dx + Dy * Dy);
+				const float Noise = 0.85f + 0.15f * FMath::Sin(x * 0.7f + y * 0.37f) * FMath::Cos(y * 0.53f - x * 0.21f);
+				const float A = FMath::Clamp(FMath::Pow(FMath::Max(0.f, 1.f - R), 1.4f) * 0.9f * Noise, 0.f, 1.f);
+				uint8* P = &Px[(y * N + x) * 4];
+				P[0] = T.B; P[1] = T.G; P[2] = T.R; P[3] = (uint8)FMath::RoundToInt(A * 255.f);
+			}
+		}
+		UTexture2D* Tex = UTexture2D::CreateTransient(N, N, PF_B8G8R8A8, NAME_None, TConstArrayView64<uint8>(Px.GetData(), Px.Num()));
+		Tex->UpdateResource();
+		PuffTextures.Add(Tex);
+		UMaterialInstanceDynamic* Mid = UMaterialInstanceDynamic::Create(PuffMaterial, this);
+		Mid->SetTextureParameterValue(TEXT("SlateUI"), Tex);
+		PuffMids.Add(Mid);
+	}
+
+	// Tarama tozu: çizgiyle birlikte ilerleyen 6 bulut
+	for (int32 i = 0; i < 6; ++i)
+	{
+		MakePuff(-1, FVector::ZeroVector, 16.f, 5);
+	}
+	// Kum taneleri
+	for (int32 i = 0; i < 60; ++i)
+	{
+		const uint8 Shade = uint8(180 + (i * 37) % 50);
+		UStaticMeshComponent* G = Part(BoardRoot, CubeMesh, FVector::ZeroVector, FVector(0.9f), RGB(uint8(Shade + 20), Shade, uint8(Shade - 50)));
+		G->SetVisibility(false);
+		GrainComps.Add(G);
+		Grains.AddDefaulted();
+	}
+}
+
+int32 ADBWorld::MakePuff(int32 Building, const FVector& Base, float Size, int32 Tint)
+{
+	UStaticMeshComponent* C = NewObject<UStaticMeshComponent>(this);
+	C->SetMobility(EComponentMobility::Movable);
+	C->SetStaticMesh(PlaneMesh);
+	C->SetupAttachment(BoardRoot);
+	C->SetRelativeLocation(Base);
+	C->SetRelativeScale3D(FVector(0.01f));
+	C->SetMaterial(0, PuffMids[FMath::Clamp(Tint, 0, PuffMids.Num() - 1)]);
+	C->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	C->SetCastShadow(false);
+	C->SetVisibility(false);
+	C->RegisterComponent();
+	PuffComps.Add(C);
+	FPuff P;
+	P.Building = Building;
+	P.Base = Base;
+	P.Size = Size;
+	P.Phase = PuffComps.Num() * 1.7f;
+	return Puffs.Add(P);
+}
+
+void ADBWorld::ShowHaze(int32 Building, const FString& Hazard)
+{
+	if (!BuildingRoots.IsValidIndex(Building))
+	{
+		return;
+	}
+	const FVector C = BuildingRoots[Building]->GetRelativeLocation();
+	const int32 Tint = TintForHazard(Hazard);
+	for (int32 k = 0; k < 6; ++k)
+	{
+		const float Ang = k * 2.f * PI / 6.f + Building;
+		const FVector Base = C + FVector(FMath::Cos(Ang) * 10.f, FMath::Sin(Ang) * 10.f, 4.f + k * 2.4f);
+		const int32 Ix = MakePuff(Building, Base, 18.f + (k % 3) * 4.f, Tint);
+		Puffs[Ix].Target = 1.f;
+		PuffComps[Ix]->SetVisibility(true);
+	}
+}
+
+void ADBWorld::ClearHaze(int32 Building)
+{
+	for (FPuff& P : Puffs)
+	{
+		if (P.Building == Building)
+		{
+			P.Target = 0.f;
+		}
+	}
+	if (BuildingRoots.IsValidIndex(Building))
+	{
+		const FVector Top = BuildingRoots[Building]->GetRelativeLocation() + FVector(0, 0, 6.f);
+		for (int32 i = 0; i < 14; ++i)
+		{
+			SpawnGrain(Top + FVector(FMath::FRandRange(-6.f, 6.f), FMath::FRandRange(-6.f, 6.f), 0.f), FMath::FRandRange(30.f, 55.f));
+		}
+	}
+}
+
+void ADBWorld::SpawnGrain(const FVector& At, float Up)
+{
+	for (int32 i = 0; i < Grains.Num(); ++i)
+	{
+		if (!Grains[i].bOn)
+		{
+			Grains[i].bOn = true;
+			Grains[i].P = At;
+			Grains[i].V = FVector(FMath::FRandRange(-18.f, 18.f), FMath::FRandRange(-18.f, 18.f), Up);
+			GrainComps[i]->SetVisibility(true);
+			GrainComps[i]->SetRelativeLocation(At);
+			return;
+		}
+	}
+}
+
 void ADBWorld::StartEvacuation(int32 FromBuilding, int32 ToBuilding)
 {
 	const FDBContent& C = FDBContent::Get();
@@ -576,6 +717,71 @@ void ADBWorld::Tick(float Dt)
 		{
 			ScanBeam->SetVisibility(false);
 		}
+	}
+
+	// Sis bulutları: yavaş döner, salınır, nefes alır; hedef 0 olunca küçülüp kaybolur
+	const FVector BeamPos = SweepDir * ScanS;
+	for (int32 i = 0; i < Puffs.Num(); ++i)
+	{
+		FPuff& P = Puffs[i];
+		UStaticMeshComponent* C = PuffComps[i];
+		if (P.Building < 0)
+		{
+			// Tarama tozu çizgiyle ilerler
+			P.Target = bScanning ? 1.f : 0.f;
+			const FVector Across = FVector(1.f, -1.f, 0.f).GetSafeNormal();
+			const float Half = FMath::Max(4.f, HalfDiag() - FMath::Abs(ScanS));
+			P.Base = BeamPos + Across * ((i % 6) / 5.f * 2.f - 1.f) * Half * 0.9f + FVector(0, 0, BoardTopZ + 3.f + (i % 2) * 2.f);
+		}
+		P.Scale = FMath::FInterpTo(P.Scale, P.Target, Dt, P.Target > 0.f ? 2.f : 1.6f);
+		if (P.Target <= 0.f && P.Scale < 0.04f)
+		{
+			if (C->IsVisible())
+			{
+				C->SetVisibility(false);
+			}
+			continue;
+		}
+		if (!C->IsVisible())
+		{
+			C->SetVisibility(true);
+		}
+		const float T = WaveT + P.Phase;
+		const FVector Drift(FMath::Sin(T * 0.6f) * 2.2f, FMath::Cos(T * 0.47f) * 2.2f, FMath::Sin(T * 0.8f) * 0.8f);
+		C->SetRelativeLocation(P.Base + Drift);
+		C->SetRelativeRotation(FRotator(0.f, T * 14.f, 0.f));
+		const float S = FMath::Max(0.02f, P.Size / 100.f * P.Scale * (1.f + 0.08f * FMath::Sin(T * 1.3f)));
+		C->SetRelativeScale3D(FVector(S, S, 1.f));
+	}
+
+	// Kum: taramada çizgi boyunca savrulur, yere düşünce kaybolur
+	if (bScanning)
+	{
+		GrainSpawn += Dt * 70.f;
+		const FVector Across = FVector(1.f, -1.f, 0.f).GetSafeNormal();
+		const float Half = FMath::Max(4.f, HalfDiag() - FMath::Abs(ScanS));
+		while (GrainSpawn >= 1.f)
+		{
+			GrainSpawn -= 1.f;
+			SpawnGrain(BeamPos + Across * FMath::FRandRange(-Half, Half) + FVector(0, 0, BoardTopZ + 1.f), FMath::FRandRange(25.f, 50.f));
+		}
+	}
+	for (int32 i = 0; i < Grains.Num(); ++i)
+	{
+		FGrain& G = Grains[i];
+		if (!G.bOn)
+		{
+			continue;
+		}
+		G.V.Z -= 220.f * Dt;
+		G.P += G.V * Dt;
+		if (G.P.Z < BoardTopZ)
+		{
+			G.bOn = false;
+			GrainComps[i]->SetVisibility(false);
+			continue;
+		}
+		GrainComps[i]->SetRelativeLocation(G.P);
 	}
 
 	// Deniz dalgalanır

@@ -7,6 +7,7 @@
 class ADBGameMode;
 class UFont;
 class UTextureRenderTarget2D;
+class UTexture2D;
 struct FDBLine;
 
 // Bütün arayüz Canvas ile çiziliyor (asset yok). Ölçüler 1080p'ye göre yazılır, S ile ölçeklenir.
@@ -49,7 +50,20 @@ private:
 	UPROPERTY() TObjectPtr<UFont> Font;
 	float FontBaseH = 1.f;
 	float PanelSlide = 0.f;   // hazırlık masası çekmecesi: 0 kapalı (sağ kenarda kulp), 1 açık
-	float ColorGain = 1.f;    // sayfa dokusu ışıksız malzemede: sahneye uysun diye renk çarpanı
+	float ColorGain = 1.f;
+
+	// Rehber karakterin gösterdiği yerler (her karede çizilirken güncellenir)
+	FBox2D TgScanner = FBox2D(ForceInit), TgTasks = FBox2D(ForceInit), TgTabs = FBox2D(ForceInit), TgItems = FBox2D(ForceInit),
+		TgPack = FBox2D(ForceInit), TgClose = FBox2D(ForceInit), TgTools = FBox2D(ForceInit), TgMoney = FBox2D(ForceInit),
+		TgBackpack = FBox2D(ForceInit), TgDrawer = FBox2D(ForceInit);
+	UPROPERTY() TMap<FString, TObjectPtr<UTexture2D>> PngCache;
+	UTexture2D* LoadPng(const FString& Rel);
+	void DrawTex(UTexture2D* T, const FBox2D& R, float RotDeg, const FVector2D& Pivot);
+	bool GuideTarget(int32 Who, FVector2D& Out) const;
+	void DrawGuide(int32 Who, const FVector2D& Feet, float Height);
+	void DrawTasks();
+	void DrawComic();
+	void DrawMiniFriend(const FVector2D& Feet, float K, const FLinearColor& Shirt, float Bob);    // sayfa dokusu ışıksız malzemede: sahneye uysun diye renk çarpanı
 
 	// Çizim yardımcıları (piksel)
 	// Sayfa dokusu ışıksız malzemede: sahnedeki ışıklı kağıtla aynı parlaklıkta görünsün diye çarpan (ölçülerek ayarlandı)

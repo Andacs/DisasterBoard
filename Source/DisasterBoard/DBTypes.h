@@ -10,6 +10,7 @@ enum class EDBPhase : uint8
 	Menu,      // duvardaki takvimde ana menü
 	MenuPage,  // takvimde Ayarlar / Emeği Geçenler sayfası
 	ToBoard,   // kamera takvimden tahtaya dönüyor
+	Comic,     // giriş çizgi romanı (4 sahne × 5 sn, tıkla: sonraki)
 	Talk,      // A / B / C konuşuyor (tıkla: devam)
 	WaitScan,  // tarayıcıya basılmasını bekliyor
 	Scanning,  // tarama çizgisi tahtayı geçiyor
@@ -69,6 +70,7 @@ struct FDBProblemDef
 	int32 Tool = -1;       // >= 0: bu şehir önlemi gerekir
 	int32 Kit = -1;        // >= 0: bu türde, eşyaları tam bir çanta gerekir
 	FString Lesson;        // sonuç kartında: doğrusu ne
+	FString Hint;          // görev listesinde: cevabı söylemeden yönlendiren ipucu
 };
 
 struct FDBLine
@@ -100,6 +102,7 @@ struct FDBContent
 	FLinearColor SpeakerColor[3];
 
 	TArray<FString> Credits;
+	TArray<FString> Comic;        // giriş çizgi romanı: sahne başına bir cümle (görsel: Content/Cizgiroman/sahneN.png)
 
 	TArray<int32> KitItems(int32 Kit) const
 	{

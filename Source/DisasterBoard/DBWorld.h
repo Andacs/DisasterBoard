@@ -11,6 +11,8 @@ class UStaticMesh;
 class UStaticMeshComponent;
 class UMaterialInterface;
 class UTextureRenderTarget2D;
+class UTexture2D;
+class UMaterialInstanceDynamic;
 
 // Odanın tamamı koddan: zemin, iki duvar, kaide, tahta, binalar, duvardaki takvim, üç kamera.
 // Seviye dosyasında yalnızca ışık var; modelciden mesh gelince ilgili parça burada değiştirilir.
@@ -87,6 +89,9 @@ public:
 	void StartQuake(const TArray<bool>& SafeBuildings, float Seconds);
 	void PopBuilding(int32 Building);
 	void StartEvacuation(int32 FromBuilding, int32 ToBuilding);   // tsunami: sakinler sokaklardan sığınağa yürür
+	// Atmosfer: riskli binanın çevresinde afetine göre renkli sis; çözülünce dağılır, kum savrulur
+	void ShowHaze(int32 Building, const FString& Hazard);
+	void ClearHaze(int32 Building);
 	void ApplyExposure(float EV100);
 
 private:
@@ -107,6 +112,32 @@ private:
 	UPROPERTY() TObjectPtr<UStaticMeshComponent> UnderPagePlane;
 	UPROPERTY() TArray<TObjectPtr<USceneComponent>> Walkers;
 	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> SeaTiles;
+	UPROPERTY() TObjectPtr<UMaterialInterface> PuffMaterial;
+	UPROPERTY() TArray<TObjectPtr<UTexture2D>> PuffTextures;
+	UPROPERTY() TArray<TObjectPtr<UMaterialInstanceDynamic>> PuffMids;
+	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> PuffComps;
+	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> GrainComps;
+	struct FPuff
+	{
+		int32 Building = -1;    // -1: tarama tozu
+		FVector Base;
+		float Size = 10.f;
+		float Phase = 0.f;
+		float Scale = 0.f;
+		float Target = 0.f;
+	};
+	TArray<FPuff> Puffs;
+	struct FGrain
+	{
+		FVector P;
+		FVector V;
+		bool bOn = false;
+	};
+	TArray<FGrain> Grains;
+	float GrainSpawn = 0.f;
+	int32 MakePuff(int32 Building, const FVector& Base, float Size, int32 Tint);
+	void SpawnGrain(const FVector& At, float Up);
+	void BuildFx();
 	TArray<FVector> EvacPath;
 	float EvacT = -1.f;
 	float WaveT = 0.f;

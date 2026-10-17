@@ -170,8 +170,31 @@ sırt çantası.
   (yeşil kubbe) yürür (`ADBWorld::StartEvacuation`). Binalar 24'lük plakayla tam 2×2 karoya oturur (×0,608).
 - 12 bina, 9 sorun (`DBData.cpp`). C artık "afet koordinatörü".
 
+**17 Ekim ~05.30, ekip notları (oyun testi sonrası) uygulandı, ekranda görüldü:**
+- **Roller:** A = Mert (tarayıcı), B = Asil (hazırlık masası), C = Andaç (şehir önlemleri); 5. kişi oyuncu.
+  (Notta "Andre" yazıyordu, Andaç olarak okundu.) Konuşmalar kısaldı; neyi yapacağını karakterin eli gösterir.
+- **Rehber karakter** (`ADBHUD::DrawGuide`): portre yerine aynı yerde ayakta 2D figür, kolu omuzdan hedefe döner
+  ve sallanır (gösterme). Hedefler konuşma satırına bağlı (`GuideTarget`); oyunda Mert sıradaki görevin
+  binasını gösterir, elinden binaya kayan noktalı iz. Görsel: `Content/Karakterler/{A,B,C}_govde.png` +
+  `_kol.png` (BENIOKU.md); dosya yoksa çizilmiş yer tutucu.
+- **Sıralı görev listesi** sol üstte (`DrawTasks`): sıradaki görev kartı + cevabı söylemeyen ipucu
+  (`FDBProblemDef::Hint`) + "Bir çanta / şehir önlemi lazım"; bitenlerin üstü çizili. Not kağıdı ve "hazır
+  çantalar" panelden kalktı (panel 600). Sıradaki görevin işareti büyük ve sarı haleli.
+- **Çizgi roman girişi:** Oyna → 4 sahne × 5 sn (tıkla: sonraki, "Geç"), sonra kamera tahtaya.
+  Görsel: `Content/Cizgiroman/sahne1..4.png` (BENIOKU.md), yoksa çizilmiş yer tutucu. Metin `C.Comic`.
+- **Müzik** (`UDBMusicWave`): koddan üretilen piyano/müzik kutusu arpeji, Do–Lam–Fa–Sol. Tempo görev
+  ilerlemesiyle 72 → 112 BPM; ilerledikçe bas, melodi, pırıltı girer. Ölçüldü (`DBMusicWav`, 40 sn, yoğunluk
+  0→1): çeyreklerde 75 / 84 / 96 / 108 BPM, tepe −4…−6 dBFS, RMS ≈ −15 dBFS, kırpma yok. **Dinlenmedi.**
+  M ya da Ayarlar → Müzik aç/kapa.
+- **Atmosfer:** tarama artık kum rengi çizgi + savrulan kum taneleri + toz bulutu; bulunan her riskin
+  çevresinde afetine göre renkli sis (deprem toz, sel mavi pus, yangın duman, tsunami deniz pusu), çözülünce
+  dağılır ve kum savrulur. Bulut dokusu CPU'da üretiliyor, malzeme `Widget3DPassThrough_Translucent`.
+  İlk denemede sis zemin rengine çok yakındı; fark görüntüsüyle ölçülüp koyulaştırıldı.
+- **Bekleyen:** 3D eşya modelleri (masada ve grid kutularında gösterilecek): modelciden gelmeli; Yiğit'in
+  çekim notu (yarım okundu).
+
 **Test:** `UnrealEditor.exe <tam yol>\DisasterBoard.uproject /Game/DisasterBoard/Maps/L_Ana -game -windowed
--ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~110 sn oynar, 24 görüntü, 9/9 hazırlayıp sonuç kartına varır. `-DBGainTest` ile sayfa parlaklığını 5 değerde çeker
+-ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~125 sn oynar, 30 görüntü (çizgi roman ve rehber karakterler dahil), 9/9 hazırlayıp sonuç kartına varır. `-DBGainTest` ile sayfa parlaklığını 5 değerde çeker
 `Saved/Screenshots/WindowsEditor/DB_*.png`, kendisi kapanır. Test tıklama işlevlerini doğrudan çağırıyor.
 
 **Derlendi, ekranda görülmedi:** gerçek fareyle tıklama/hover (imleç, tooltip), Ayarlar'daki tam ekran ve
