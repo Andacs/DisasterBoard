@@ -2008,21 +2008,6 @@ void ADBWorld::BuildDesk()
 		D.BaseRot = Root->GetRelativeRotation();
 		Desks.Add(D);
 	};
-	// Kahve kupası (tahtanın solunda): gövde, kahve, kulp, buhar
-	{
-		USceneComponent* M = Node(R, FVector(78.f, -112.f, 0.f));
-		Part(M, CylinderMesh, FVector(0, 0, 5.f), FVector(9.f, 9.f, 10.f), RGB(232, 128, 104), FRotator::ZeroRotator, true);
-		Part(M, CylinderMesh, FVector(0, 0, 9.7f), FVector(7.8f, 7.8f, 0.8f), RGB(92, 58, 36), FRotator::ZeroRotator, true);
-		Part(M, CylinderMesh, FVector(0, 0, 3.f), FVector(9.3f, 9.3f, 1.2f), RGB(250, 243, 228), FRotator::ZeroRotator, true);
-		Part(M, CubeMesh, FVector(5.4f, 0, 7.6f), FVector(3.f, 1.6f, 1.4f), RGB(232, 128, 104), FRotator::ZeroRotator, true);
-		Part(M, CubeMesh, FVector(6.6f, 0, 5.2f), FVector(1.4f, 1.6f, 5.6f), RGB(232, 128, 104), FRotator::ZeroRotator, true);
-		Part(M, CubeMesh, FVector(5.4f, 0, 2.8f), FVector(3.f, 1.6f, 1.4f), RGB(232, 128, 104), FRotator::ZeroRotator, true);
-		for (int32 k = 0; k < 4; ++k)
-		{
-			Steam.Add(Part(M, SphereMesh, FVector(0, 0, 11.f), FVector(2.6f, 2.6f, 2.6f), RGB(250, 250, 250)));
-		}
-		Add(M, EDesk::Mug);
-	}
 	// İki zar: beyaz küp, koyu benekler (karşılıklı yüzler 7 eder)
 	auto Die = [this, R, &Add](const FVector& At, float Yaw)
 	{
@@ -2059,20 +2044,7 @@ void ADBWorld::BuildDesk()
 	};
 	Die(FVector(72.f, -88.f, 0.f), 18.f);
 	Die(FVector(84.f, -98.f, 0.f), -24.f);
-	// Lastik ördek (tahtanın sağında), kameraya bakar
-	{
-		USceneComponent* Dk = Node(R, FVector(-118.f, 30.f, 0.f));
-		Dk->SetRelativeRotation(FRotator(0.f, -125.f, 0.f));
-		Part(Dk, SphereMesh, FVector(0, 0, 3.6f), FVector(10.f, 8.f, 7.f), RGB(252, 214, 60), FRotator::ZeroRotator, true);
-		Part(Dk, SphereMesh, FVector(-4.2f, 0, 5.6f), FVector(3.f, 4.f, 3.6f), RGB(252, 214, 60), FRotator(20.f, 0.f, 0.f), true);   // kuyruk
-		Part(Dk, SphereMesh, FVector(3.f, 0, 8.6f), FVector(5.6f, 5.6f, 5.6f), RGB(252, 214, 60), FRotator::ZeroRotator, true);
-		Part(Dk, SphereMesh, FVector(6.1f, 0, 8.1f), FVector(3.2f, 2.6f, 1.2f), RGB(246, 140, 50), FRotator::ZeroRotator, true);
-		Part(Dk, SphereMesh, FVector(4.9f, 1.6f, 9.8f), FVector(0.9f, 0.9f, 0.9f), RGB(30, 30, 34));
-		Part(Dk, SphereMesh, FVector(4.9f, -1.6f, 9.8f), FVector(0.9f, 0.9f, 0.9f), RGB(30, 30, 34));
-		Part(Dk, SphereMesh, FVector(0.f, 3.4f, 4.6f), FVector(5.f, 1.4f, 3.f), RGB(240, 196, 46));   // kanat
-		Part(Dk, SphereMesh, FVector(0.f, -3.4f, 4.6f), FVector(5.f, 1.4f, 3.f), RGB(240, 196, 46));
-		Add(Dk, EDesk::Duck);
-	}
+	// Andaç (18 Ekim ~01.00): kahve kupası ve lastik ördek kaldırıldı; zarlar ve lamba kaldı
 	// Masa lambası (sağ arkada): taban, iki kol, başlık, ampul + nokta ışık (tıklayınca yanar)
 	{
 		USceneComponent* L = Node(R, FVector(-34.f, 86.f, 0.f));   // tahtanın arkası ile yan duvar (Y 100,7) arası
