@@ -9,6 +9,10 @@ Akış çizimleri: `Docs/Cizimler/akis_01..09.jpg`. Oda/masa/takvim taslağı: `
 
 48 saatlik game jam projesi. Unreal Engine 5.8, Windows PC. 4 kişilik ekip (FreakLabs), tek programcı Andaç.
 
+**Yiğit (ya da ekipten biri) bir .png / .fbx görsel/model dosyası attıysa:** `.claude/skills/varlik-onay/SKILL.md`
+adımlarını uygula (`Tools/varlik_kontrol.py`: kontrol → oyunda dene → `Art/Onayli/`; hepsi bitince `--teslim`).
+Bu iş için oyun koduna ve aşağıdaki geliştirme notlarına dokunma.
+
 ---
 
 ## Sert kurallar (onay almadan ihlal edilmeyecek)
@@ -257,11 +261,27 @@ sırt çantası.
   Fare sol tuşu ya da Boşluk. `ADBGameMode::TickMini`, çizim `ADBHUD::DrawMini`. Test bunları kendisi oynar
   (`bMiniAutoTest`): 10/10, 65 TL, 2 hata. **Gerçek fareyle oynanmadı.**
 
+**17 Ekim ~12.30: varlık onay akışı (Andaç: Yiğit modelci/tasarımcı dosyalarını kendi bilgisayarında oyunla test
+etsin, onaylananlar toplu gelsin).** Uçtan uca denendi (sahte dosyalarla, editörden `-game`):
+- `Tools/varlik_kontrol.py <dosya>`: ad listede mi (73 dosya: 41 2D, 32 3D; 12 kasabalı tek tek), 2D'de piksel ölçüsü,
+  şeffaflık, şablon kalıntısı (kırmızı çerçeve, dama zemin), ayak/omuz yeri; 3D'de (`varlik_3d_kontrol.py`, Blender)
+  kutuya sığma, 90° dönüklük, birim (m/cm), pivot, üçgen sayısı + önizleme resmi. 2D adaylar **oyunda denenir**:
+  test paketi (`Build/TestKiti/Windows/DisasterBoard.exe`, yoksa derlenmiş editör) `-DBVarlikTest -DBVarlik=<Art/_deneme>`
+  ile açılır, her görsel yuvasını gösteren 11 kare çeker (`V_*.png` → `Art/Onayli/_ekran/`), oyunun hangi PNG'yi
+  okuduğunu rapora yazar (`ADBHUD::PngStatus`). Onaylı → `Art/Onayli/{2D,3D}`, `durum.json`, `RAPOR.md`; red →
+  `Art/Reddedildi/` + `.neden.txt` (git'e girmez). `--durum`, `--geri <ad>`, `--teslim [--kismi]` (commit + pull
+  --rebase + push), `--aktar` (Andaç: onaylı 2D → `Content/`).
+- **İkonlar bağlandı:** eşya / önlem / kit ikonları, uyarı-tamam işaretleri, bütçe, tarayıcı, çanta (kit rengine
+  boyanır), logo dosya varsa çizilir, yoksa eski yer tutucu (`DBData` `Key` alanları = dosya adları). `Ikonlar`,
+  `Arayuz` pakete NonUFS girer.
+- Test paketi: `Build/test_paketi.bat` (Development, `Build/TestKiti`); ZIP'lenip Yiğit'e gider.
+- Şablonda arabanın ÖN'ü düzeltildi: araba kendi +X yönüne gider (burnu +X ucunda); önceden -Y yüzü işaretliydi.
+
 **17 Ekim ~08.40: modelci/tasarımcı şablonları** `Docs/Sablonlar/` (OKU_BENI.md = iş listesi + ölçüler + dışa
 aktarma ayarları). 21 3D hitbox kutusu (`.blend` + tek tek FBX, pivot taban ortası, ÖN -Y, 1 birim = 1 cm; geri
 içe alınıp ölçüldü) ve 40 2D PNG şablonu (tam piksel, adı yazılı). Tek kaynak `Tools/sablon_listesi.py`;
-üreticiler `sablon_3d_blender.py`, `sablon_2d.py`, `sablon_belge.py`. Teslim yeri: modeller `Art/Modeller/`,
-2D `Content/<yol>`. **Kod henüz `Ikonlar/` ve `Arayuz/` PNG'lerini yüklemiyor** (karakter ve çizgi roman yükleniyor).
+üreticiler `sablon_3d_blender.py`, `sablon_2d.py`, `sablon_belge.py`. Teslim: tasarımcı/modelci Yiğit'e gönderir,
+Yiğit onay akışından geçirir (12.30 notu). Şablonlar artık 41 2D (5. önlem ikonu eklendi).
 
 **Test:** `UnrealEditor.exe <tam yol>\DisasterBoard.uproject /Game/DisasterBoard/Maps/L_Ana -game -windowed
 -ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~150 sn oynar, 26 görüntü; fabrikada 5 sipariş (1 bilerek yanlış), tahta döndürme, rögar ve somun mini oyunları, 10/10 → sonuç (65 TL, 2 hata). `-DBGainTest` ile sayfa parlaklığını 5 değerde çeker
@@ -272,8 +292,8 @@ grafik düğmeleri ← 2'yi geçerse yeni özellik durur
 
 **Bozuk:** —
 
-**Ekipten bekleyen:** karakter ve hikâye görselleri (`Content/Karakterler`, `Content/Cizgiroman`), ikon görselleri
-(şimdilik harf kısaltmaları), 3D eşya modelleri, bütçe dengesi.
+**Ekipten bekleyen:** bütün 2D görseller ve 3D modeller (Yiğit onaylayıp `Art/Onayli/`'ya gönderecek; 2D'ler
+`--aktar` ile hemen oyunda, 3D'ler Unreal'a içe aktarılıp `DBWorld`'deki yer tutucuların yerine bağlanacak), bütçe dengesi.
 
 ---
 

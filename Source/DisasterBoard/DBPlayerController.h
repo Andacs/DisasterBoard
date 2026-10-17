@@ -24,6 +24,9 @@ public:
 
 	// Konsol (~)
 	UFUNCTION(Exec) void DBTest();                 // akışı baştan sona otomatik oynar, ekran görüntüsü alır, kapanır
+	// Ekip görsellerinin testi (komut satırı -DBVarlikTest, -DBVarlik="<aday klasörü>", -DBRapor="<dosya>"): her görsel
+	// yuvasını gösterir, V_*.png ekran görüntüsü alır, hangi görselin yüklendiğini rapora yazar, kapanır (~35 sn)
+	UFUNCTION(Exec) void DBVarlikTest();
 	UFUNCTION(Exec) void DBExposure(float EV100);  // sabit pozlama
 	UFUNCTION(Exec) void DBTime(float Seconds);    // kalan süre
 	UFUNCTION(Exec) void DBQuake();                // depremi şimdi başlat
@@ -48,5 +51,6 @@ private:
 	int32 TestStep = 0;
 	FTimerHandle TestTimer;
 	void RunTestStep();
+	void TestFab(int32 Kit, const TArray<int32>& Personal);   // fabrikada bir çantayı doğrudan hazırlar
 	void Shot(const FString& Name);
 };

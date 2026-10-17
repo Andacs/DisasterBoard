@@ -22,6 +22,8 @@ public:
 	virtual void DrawHUD() override;
 
 	bool HandleClick(const FVector2D& P);
+	// Varlık testi: oyunun istediği her görsel ve durumu ("OK 128x128 aday", "YOK", "HATA")
+	FString PngReport() const;
 	bool IsOverButton(const FVector2D& P) const;
 	bool IsOverUI(const FVector2D& P) const;
 
@@ -67,8 +69,10 @@ private:
 	void DrawCellHints();
 	void DotRing(const FVector2D& C, float R, const FLinearColor& Col);
 	UPROPERTY() TMap<FString, TObjectPtr<UTexture2D>> PngCache;
+	TMap<FString, FString> PngStatus;   // varlık testi raporu: her istenen görsel yüklendi mi
 	UTexture2D* LoadPng(const FString& Rel);
-	void DrawTex(UTexture2D* T, const FBox2D& R, float RotDeg, const FVector2D& Pivot);
+	void DrawTex(UTexture2D* T, const FBox2D& R, float RotDeg, const FVector2D& Pivot, const FLinearColor& Tint = FLinearColor::White);
+	bool KitIcon(int32 Kit, const FVector2D& C, float R);   // kit görseli varsa çizer
 	bool GuideTarget(int32 Who, FVector2D& Out) const;
 	void DrawGuide(int32 Who, const FVector2D& Feet, float Height);
 	void DrawTasks();

@@ -43,15 +43,15 @@ Bu klasörde oyuna girecek her 3D model ve 2D görsel için **oyundaki gerçek �
 2. **Model kırmızı/renkli kutunun içinde kalır.** Kutu = modelin en büyük hâli (çatı, baca, anten dahil).
    Küçük olabilir, taşamaz. Binaların tabanı (plaka) kutunun tabanını tam doldursun.
 3. **Pivot (origin) tabanın ortası**, modelin en alt noktası Z = 0. Şablon kutuların pivotu zaten böyle.
-4. **Ön yüz -Y.** Kutunun üstünde kırmızı **ÖN** yazan yüz kameraya / yola bakan taraf (arabada gidiş yönü).
+4. **Ön yüz -Y.** Kutunun üstünde kırmızı **ÖN** yazan yüz kameraya / yola bakan taraf. **Araba istisna:** burnu +X ucunda (gidiş yönü).
 5. **Lowpoly, karton masa oyunu:** düz renkli yüzler, doku yok ya da çok basit. Bir malzeme yeter;
    renkler kodla da boyanabiliyor (araba, tahliye kişisi).
 6. **Ad:** `SM_...` aynen tablodaki gibi. Kasabalılar `SM_Kasabali_<Ad>` (12 kişi, adlar tabloda).
 7. **FBX dışa aktarma:** File > Export > FBX, *Selected Objects*, Object Types: Mesh,
    **Apply Scalings: FBX All**, **Forward: -Y Forward**, **Up: Z Up**, *Apply Unit* açık, *Apply Transform* kapalı.
    Model sahnede 0,0,0'da, tabanı Z = 0'da dursun; dışa aktarmadan önce Ctrl+A > All Transforms.
-8. **Teslim:** `Art/Modeller/<ad>.fbx` (ve istersen `.blend`), commit + push. Oyuna bağlamayı Andaç yapar;
-   `Content/` altına kendin bir şey koyma.
+8. **Teslim:** bitmiş `<ad>.fbx` dosyasını (adı tablodaki gibi) **Yiğit'e gönder**. Yiğit kontrol aracından geçirir
+   (kutuya sığıyor mu, pivot, birim, üçgen sayısı); sorun varsa nedenini sana iletir. Repoya kendin koyma.
 
 Kontrol: FBX'i Blender'a geri içe al, N panelinde Dimensions tablodakiyle aynı olmalı (± birkaç mm).
 
@@ -76,11 +76,11 @@ Kontrol: FBX'i Blender'a geri içe al, N panelinde Dimensions tablodakiyle aynı
 5. **Karakterler:** gövde ve kol ayrı. Gövde `*_govde.png`: gösteren kol HARİÇ bütün figür, ayaklar alt kenarda
    (yeşil nokta). Kol `*_kol.png`: yatay, sağa uzanmış, omuz sol kenarın ortasında (oyun kolu buradan döndürür),
    işaret parmağı sağ uçta. A = Mert, B = Asil, C = Yiğit.
-6. **Teslim:** bitmiş PNG'yi tablodaki yola koy: `Content/<yol>` (ör. `Content/Ikonlar/esya_su.png`),
-   commit + push. **Şablonları `Content/` altına koyma**, oyun onları gerçek görsel sanar.
+6. **Teslim:** bitmiş PNG'yi (adı tablodaki gibi, ör. `esya_su.png`) **Yiğit'e gönder**. Yiğit kontrol aracından
+   geçirir ve oyunda yerinde dener; sorun varsa nedenini sana iletir. Repoya kendin koyma.
 
-Şu an oyun `Karakterler/` ve `Cizgiroman/` görsellerini dosya varsa kendisi yükler (yoksa çizilmiş yer tutucu).
-`Ikonlar/` ve `Arayuz/` görselleri gelince Andaç bağlayacak; adlar bu tablodaki gibi kalmalı.
+Oyun bütün bu görselleri dosyadan okur: dosya yoksa çizilmiş yer tutucu görünür, dosya gelince kendiliğinden yerine
+oturur. Adlar bu tablodaki gibi kalmalı.
 
 ### Karakterler
 {table_2d("Karakterler/")}
@@ -93,6 +93,12 @@ Kontrol: FBX'i Blender'a geri içe al, N panelinde Dimensions tablodakiyle aynı
 
 ### Arayüz
 {table_2d("Arayuz/")}
+
+## Onay akışı (Yiğit)
+
+Gelen her dosya `python Tools/varlik_kontrol.py <dosya>` ile kontrol edilir; sorun yoksa `Art/Onayli/` altına
+geçer, varsa nedeni yazılır. `--durum` kalanları listeler, hepsi bitince `--teslim` repoya gönderir. Ayrıntı:
+`.claude/skills/varlik-onay/SKILL.md` (Yiğit dosyayı Claude'a atar, Claude bu adımları uygular).
 
 ## Şablonları yeniden üretmek (ölçü değişirse)
 

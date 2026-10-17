@@ -56,7 +56,10 @@ for name, w, d, h, cat, note in ASSETS_3D:
     boxes.append((ob, w, d, h))
     ts = 4.0 if cat == "Sahne" else (1.6 if w < 10 else 2.0)
     make_text(f"{name}\n{w:g} x {d:g} x {h:g} cm", ts, (x, y - d / 2 - 0.5, h + ts * 1.6))
-    if cat in FRONT:
+    if name == "SM_Araba":
+        # Araba oyunda kendi +X yönüne gider: burnu +X ucunda (uzun kenar X)
+        make_text("ÖN", max(1.0, min(d, h) * 0.3), (x + w / 2 + 0.05, y, h * 0.45), rot=(math.radians(90), 0, math.radians(90)), color=(0.75, 0.15, 0.1, 1))
+    elif cat in FRONT:
         make_text("ÖN", max(1.0, min(w, h) * 0.18), (x, y - d / 2 - 0.05, h * 0.45), color=(0.75, 0.15, 0.1, 1))
     # tek tek FBX (yalnızca kutu): modelci referans olarak içe alır, modelini kutunun içine yapar
     bpy.ops.object.select_all(action='DESELECT')

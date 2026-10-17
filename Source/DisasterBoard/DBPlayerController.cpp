@@ -11,6 +11,9 @@
 #include "InputActionValue.h"
 #include "TimerManager.h"
 #include "UnrealClient.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Parse.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDBInput, Log, All);
 
@@ -36,6 +39,12 @@ void ADBPlayerController::BeginPlay()
 	if (UEnhancedInputLocalPlayerSubsystem* Sub = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 	{
 		Sub->AddMappingContext(Mapping, 0);
+	}
+	// Paketlenmiş oyunda konsol olmayabilir: görsel testi komut satırından başlar
+	if (FParse::Param(FCommandLine::Get(), TEXT("DBVarlikTest")))
+	{
+		FTimerHandle Start;
+		GetWorldTimerManager().SetTimer(Start, FTimerDelegate::CreateUObject(this, &ADBPlayerController::DBVarlikTest), 1.f, false);
 	}
 }
 
@@ -386,6 +395,96 @@ void ADBPlayerController::DBTest()
 	Add([] { FGenericPlatformMisc::RequestExit(false); });
 
 	GetWorldTimerManager().SetTimer(TestTimer, this, &ADBPlayerController::RunTestStep, 1.3f, true, 2.f);
+}
+
+void ADBPlayerController::TestFab(int32 Kit, const TArray<int32>& Personal)
+{
+	ADBGameMode* M = GM();
+	const FDBContent& C = FDBContent::Get();
+	M->SetBagT(ADBGameMode::StationCenter(0));
+	M->StationClick(0, Kit);
+	for (int32 It : Personal)
+	{
+		for (int32 K = 1; K <= C.Stations.Num(); ++K)
+		{
+			const int32 B = C.Stations[K - 1].Items.IndexOfByKey(It);
+			if (B != INDEX_NONE)
+			{
+				M->SetBagT(ADBGameMode::StationCenter(K));
+				M->StationClick(K, B);
+			}
+		}
+	}
+	M->SetBagT(0.5f);
+}
+
+void ADBPlayerController::DBVarlikTest()
+{
+	ADBGameMode* G = GM();
+	if (!G)
+	{
+		return;
+	}
+	TestSteps.Reset();
+	TestStep = 0;
+	auto Add = [this](TFunction<void()> F) { TestSteps.Add(MoveTemp(F)); };
+	auto Talk = [this, Add](int32 Times) { for (int32 i = 0; i < Times; ++i) { Add([this] { GM()->AdvanceTalk(); GM()->AdvanceTalk(); }); } };
+	auto VShot = [this](const TCHAR* Name) { FScreenshotRequest::RequestScreenshot(FString::Printf(TEXT("V_%s.png"), Name), true, false); };
+
+	// Görüntü adı → içinde görünen görseller (Tools/varlik_kontrol.py aynı eşlemeyi kullanır)
+	// Hikâye sahneleri (Cizgiroman/sahne1..4)
+	Add([VShot] { VShot(TEXT("01_sahne1")); });
+	Add([this] { GM()->NextComic(); });
+	Add([VShot] { VShot(TEXT("02_sahne2")); });
+	Add([this] { GM()->NextComic(); });
+	Add([VShot] { VShot(TEXT("03_sahne3")); });
+	Add([this] { GM()->NextComic(); });
+	Add([VShot] { VShot(TEXT("04_sahne4")); });
+	Add([this] { GM()->SkipComic(); });
+	Add([] {});
+	Add([] {});
+	// Takvim menüsü (Arayuz/logo)
+	Add([this, VShot] { VShot(TEXT("05_menu_logo")); GM()->ClickPlay(); });
+	Add([] {});
+	Add([] {});
+	// Mert (A) tarayıcıyı gösterir (Karakterler/A_*, Arayuz/tarayici)
+	Talk(2);
+	Add([VShot] { VShot(TEXT("06_mert_tarayici")); });
+	Talk(1);
+	Add([this] { GM()->StartScan(); });
+	Add([] {});
+	// Uyarı işaretleri (Ikonlar/isaret_uyari)
+	Add([VShot] { VShot(TEXT("07_uyari_isaretleri")); });
+	Talk(1);
+	// Asil (B) ve fabrika: sipariş kartı, kit düğmeleri, eşya ikonları, bütçe (Karakterler/B_*, Ikonlar/esya_*, kit_*, butce, Arayuz/canta)
+	Talk(2);
+	Add([VShot] { VShot(TEXT("08_asil_fabrika")); });
+	Talk(4);
+	Add([this] { TestFab(0, { 8, 10 }); });
+	Add([VShot] { VShot(TEXT("09_canta_bantta")); });
+	Add([this] { GM()->SetBagT(0.999f); });
+	Add([] {});
+	Add([this] { GM()->ClosePanel(); });
+	// Yiğit (C) ve şehir önlemleri (Karakterler/C_*, Ikonlar/onlem_*)
+	Add([VShot] { VShot(TEXT("10_yigit_onlemler")); });
+	Talk(6);
+	// Tamam işareti (Ikonlar/isaret_tamam): apartmanı güçlendir
+	Add([this] { ADBGameMode* M = GM(); M->SelectTool(4); M->ClickBuilding(4); });
+	Add([this] { GM()->CloseNpc(); });
+	Add([VShot] { VShot(TEXT("11_tamam_isareti")); });
+	Add([] {});
+	Add([this]
+	{
+		const ADBHUD* H = GetHUD<ADBHUD>();
+		FString Path = FPaths::ProjectSavedDir() / TEXT("DB_varlik_rapor.txt");
+		FParse::Value(FCommandLine::Get(), TEXT("DBRapor="), Path);
+		const FString Report = (H ? H->PngReport() : FString()) + TEXT("TUR TAMAM\n");
+		FFileHelper::SaveStringToFile(Report, *Path, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+		UE_LOG(LogDBInput, Log, TEXT("DB_VARLIK rapor=%s"), *Path);
+	});
+	Add([] { FGenericPlatformMisc::RequestExit(false); });
+
+	GetWorldTimerManager().SetTimer(TestTimer, this, &ADBPlayerController::RunTestStep, 1.1f, true, 1.f);
 }
 
 void ADBPlayerController::RunTestStep()

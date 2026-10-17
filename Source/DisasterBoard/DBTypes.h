@@ -36,6 +36,7 @@ struct FDBKitDef
 	FLinearColor Color;
 	FString Hint;          // fabrikada kit düğmesinin altında
 	TArray<int32> Defaults; // temel kit: seçilince kendiliğinden eklenen eşyalar
+	FString Key;           // görsel: Content/Ikonlar/kit_<Key>.png
 };
 
 // Çanta fabrikasında kişiye özel eşya istasyonu (bant yukarıdan aşağı geçer)
@@ -51,6 +52,7 @@ struct FDBItemDef
 	FString Icon;          // kartta büyük yazılan kısaltma (emoji yok: fontta olmayan glif oyunu dondurur)
 	FLinearColor Color;
 	int32 KitMask = 0;     // hangi çantalara girer (bit = çanta türü); bazı eşyalar birden fazla çantada
+	FString Key;           // görsel: Content/Ikonlar/esya_<Key>.png
 };
 
 // Şehir önlemi: bedeli bütçeden düşer
@@ -62,6 +64,7 @@ struct FDBToolDef
 	int32 Cost = 0;
 	FString Hazard;        // Sel / Tsunami / Yangın / Deprem
 	FString Done;          // uygulanınca söylenen ("Yangın musluğu tamir edildi")
+	FString Key;           // görsel: Content/Ikonlar/onlem_<Key>.png
 };
 
 struct FDBBuildingDef

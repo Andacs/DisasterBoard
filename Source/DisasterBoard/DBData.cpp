@@ -284,6 +284,17 @@ namespace
 			TEXT("Kod yardımı: Claude (Anthropic)"),
 			TEXT("CIVIL GAME JAM 2026"),
 		};
+
+		// Ekip görsellerinin dosya adları (Tools/sablon_listesi.py ile aynı sıra; şablonlar oradan üretiliyor)
+		const TCHAR* ItemKeys[] = { TEXT("sargi_bezi"), TEXT("antiseptik"), TEXT("yara_bandi"), TEXT("su"), TEXT("el_feneri"), TEXT("duduk"),
+			TEXT("yangin_tupu"), TEXT("duman_maskesi"), TEXT("kalp_ilaci"), TEXT("astim_spreyi"), TEXT("gozluk"), TEXT("bebek_mamasi"),
+			TEXT("bebek_bezi"), TEXT("kedi_mamasi"), TEXT("battaniye"), TEXT("powerbank"), TEXT("onemli_belgeler") };
+		const TCHAR* KitKeys[] = { TEXT("ilk_yardim"), TEXT("deprem"), TEXT("yangin") };
+		const TCHAR* ToolKeys[] = { TEXT("rogar_kapagi"), TEXT("tahliye"), TEXT("yangin_muslugu"), TEXT("ingiliz_anahtari"), TEXT("bina_guclendirme") };
+		check(UE_ARRAY_COUNT(ItemKeys) == C.Items.Num() && UE_ARRAY_COUNT(KitKeys) == C.Kits.Num() && UE_ARRAY_COUNT(ToolKeys) == C.Tools.Num());
+		for (int32 i = 0; i < C.Items.Num(); ++i) C.Items[i].Key = ItemKeys[i];
+		for (int32 i = 0; i < C.Kits.Num(); ++i) C.Kits[i].Key = KitKeys[i];
+		for (int32 i = 0; i < C.Tools.Num(); ++i) C.Tools[i].Key = ToolKeys[i];
 		return C;
 	}
 }

@@ -1,7 +1,7 @@
 # DisasterBoard: modelci ve tasarımcı şablonları
 
 Bu klasörde oyuna girecek her 3D model ve 2D görsel için **oyundaki gerçek ölçüsünde bir şablon** var:
-21 adet 3D kutu (hitbox) ve 40 adet 2D PNG. Her şablonun üstünde **dosya adı ve ölçüsü yazılı**.
+21 adet 3D kutu (hitbox) ve 41 adet 2D PNG. Her şablonun üstünde **dosya adı ve ölçüsü yazılı**.
 Şablonun adı = teslim edeceğin dosyanın adı. Ölçüye uyarsan model/görsel oyuna dokunmadan oturur.
 
 ```
@@ -19,15 +19,15 @@ Bu klasörde oyuna girecek her 3D model ve 2D görsel için **oyundaki gerçek �
 2. **Model kırmızı/renkli kutunun içinde kalır.** Kutu = modelin en büyük hâli (çatı, baca, anten dahil).
    Küçük olabilir, taşamaz. Binaların tabanı (plaka) kutunun tabanını tam doldursun.
 3. **Pivot (origin) tabanın ortası**, modelin en alt noktası Z = 0. Şablon kutuların pivotu zaten böyle.
-4. **Ön yüz -Y.** Kutunun üstünde kırmızı **ÖN** yazan yüz kameraya / yola bakan taraf (arabada gidiş yönü).
+4. **Ön yüz -Y.** Kutunun üstünde kırmızı **ÖN** yazan yüz kameraya / yola bakan taraf. **Araba istisna:** burnu +X ucunda (gidiş yönü).
 5. **Lowpoly, karton masa oyunu:** düz renkli yüzler, doku yok ya da çok basit. Bir malzeme yeter;
    renkler kodla da boyanabiliyor (araba, tahliye kişisi).
 6. **Ad:** `SM_...` aynen tablodaki gibi. Kasabalılar `SM_Kasabali_<Ad>` (12 kişi, adlar tabloda).
 7. **FBX dışa aktarma:** File > Export > FBX, *Selected Objects*, Object Types: Mesh,
    **Apply Scalings: FBX All**, **Forward: -Y Forward**, **Up: Z Up**, *Apply Unit* açık, *Apply Transform* kapalı.
    Model sahnede 0,0,0'da, tabanı Z = 0'da dursun; dışa aktarmadan önce Ctrl+A > All Transforms.
-8. **Teslim:** `Art/Modeller/<ad>.fbx` (ve istersen `.blend`), commit + push. Oyuna bağlamayı Andaç yapar;
-   `Content/` altına kendin bir şey koyma.
+8. **Teslim:** bitmiş `<ad>.fbx` dosyasını (adı tablodaki gibi) **Yiğit'e gönder**. Yiğit kontrol aracından geçirir
+   (kutuya sığıyor mu, pivot, birim, üçgen sayısı); sorun varsa nedenini sana iletir. Repoya kendin koyma.
 
 Kontrol: FBX'i Blender'a geri içe al, N panelinde Dimensions tablodakiyle aynı olmalı (± birkaç mm).
 
@@ -51,7 +51,7 @@ Kontrol: FBX'i Blender'a geri içe al, N panelinde Dimensions tablodakiyle aynı
 | Dosya | G x D x Y (cm) | Ne |
 |---|---|---|
 | `SM_Agac.fbx` | 6.7 x 6.7 x 9.1 | Ağaç (gövde + yuvarlak tepe). Boş arsalarda ve parkta. |
-| `SM_Araba.fbx` | 6 x 3 x 3.4 | Araba. ÖN yüzü işaretli tarafa (hareket yönü). 3 renk varyantı kodla boyanır. |
+| `SM_Araba.fbx` | 6 x 3 x 3.4 | Araba. Uzun kenar X; burnu (farlar) +X ucunda, şablonda ÖN yazan uç: araba o yöne gider. 3 renk varyantı kodla boyanır. |
 | `SM_YanginMuslugu.fbx` | 3.2 x 3.2 x 5.5 | Yangın musluğu. Bozukken kod eğik gösterir, tamirde doğrultur; tek mesh yeter. |
 | `SM_RogarKapagi.fbx` | 5.4 x 5.4 x 0.6 | Rögar kapağı (ızgaraya konur). Yassı daire, üstünde çubuklar. |
 | `SM_SuBirikintisi.fbx` | 7.2 x 7.2 x 0.3 | Su birikintisi (yolda, sel). Yassı, düzensiz kenar olabilir. |
@@ -76,11 +76,11 @@ Kontrol: FBX'i Blender'a geri içe al, N panelinde Dimensions tablodakiyle aynı
 5. **Karakterler:** gövde ve kol ayrı. Gövde `*_govde.png`: gösteren kol HARİÇ bütün figür, ayaklar alt kenarda
    (yeşil nokta). Kol `*_kol.png`: yatay, sağa uzanmış, omuz sol kenarın ortasında (oyun kolu buradan döndürür),
    işaret parmağı sağ uçta. A = Mert, B = Asil, C = Yiğit.
-6. **Teslim:** bitmiş PNG'yi tablodaki yola koy: `Content/<yol>` (ör. `Content/Ikonlar/esya_su.png`),
-   commit + push. **Şablonları `Content/` altına koyma**, oyun onları gerçek görsel sanar.
+6. **Teslim:** bitmiş PNG'yi (adı tablodaki gibi, ör. `esya_su.png`) **Yiğit'e gönder**. Yiğit kontrol aracından
+   geçirir ve oyunda yerinde dener; sorun varsa nedenini sana iletir. Repoya kendin koyma.
 
-Şu an oyun `Karakterler/` ve `Cizgiroman/` görsellerini dosya varsa kendisi yükler (yoksa çizilmiş yer tutucu).
-`Ikonlar/` ve `Arayuz/` görselleri gelince Andaç bağlayacak; adlar bu tablodaki gibi kalmalı.
+Oyun bütün bu görselleri dosyadan okur: dosya yoksa çizilmiş yer tutucu görünür, dosya gelince kendiliğinden yerine
+oturur. Adlar bu tablodaki gibi kalmalı.
 
 ### Karakterler
 | Dosya (`Content/` altında) | Piksel | Pivot | Ne |
@@ -122,6 +122,7 @@ Kontrol: FBX'i Blender'a geri içe al, N panelinde Dimensions tablodakiyle aynı
 | `Ikonlar/esya_onemli_belgeler.png` | 128 x 128 | orta | Önemli Belgeler (fabrikada düğme, çantada küçük ikon). Şeffaf arka plan, daire içine sığsın. |
 | `Ikonlar/onlem_rogar_kapagi.png` | 128 x 128 | orta | Rögar Kapağı (alttaki şehir önlemleri paneli). Şeffaf arka plan. |
 | `Ikonlar/onlem_tahliye.png` | 128 x 128 | orta | Tahliye (alttaki şehir önlemleri paneli). Şeffaf arka plan. |
+| `Ikonlar/onlem_yangin_muslugu.png` | 128 x 128 | orta | Yangın Musluğu (alttaki şehir önlemleri paneli). Şeffaf arka plan. |
 | `Ikonlar/onlem_ingiliz_anahtari.png` | 128 x 128 | orta | İngiliz Anahtarı (alttaki şehir önlemleri paneli). Şeffaf arka plan. |
 | `Ikonlar/onlem_bina_guclendirme.png` | 128 x 128 | orta | Bina Güçlendirme (alttaki şehir önlemleri paneli). Şeffaf arka plan. |
 | `Ikonlar/kit_ilk_yardim.png` | 128 x 128 | orta | İlk Yardım Çantası (fabrikada temel kit düğmesi, sipariş kartı). |
@@ -137,6 +138,12 @@ Kontrol: FBX'i Blender'a geri içe al, N panelinde Dimensions tablodakiyle aynı
 | `Arayuz/tarayici.png` | 168 x 300 | orta | Tarayıcı cihazı (sol altta, Mert'in yanında; basınca tahta taranır). Antenler dahil. |
 | `Arayuz/canta.png` | 168 x 176 | orta | Fabrikada bantta inen sırt çantası (boş hâli). Kit seçilince kod rengini değiştirir: açık/nötr renk yap. |
 | `Arayuz/logo.png` | 1024 x 256 | orta | DisasterBoard logosu (takvim menüsünde başlık). Şeffaf arka plan. |
+
+## Onay akışı (Yiğit)
+
+Gelen her dosya `python Tools/varlik_kontrol.py <dosya>` ile kontrol edilir; sorun yoksa `Art/Onayli/` altına
+geçer, varsa nedeni yazılır. `--durum` kalanları listeler, hepsi bitince `--teslim` repoya gönderir. Ayrıntı:
+`.claude/skills/varlik-onay/SKILL.md` (Yiğit dosyayı Claude'a atar, Claude bu adımları uygular).
 
 ## Şablonları yeniden üretmek (ölçü değişirse)
 

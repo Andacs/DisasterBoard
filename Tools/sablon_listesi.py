@@ -23,7 +23,7 @@ ASSETS_3D = [
     ("SM_Bina_AhsapEvler",   14.6, 14.6, 18.5, "Bina", "Bitişik ahşap evler (Nermin Hanım). Gövde ~12.2 x 10.9."),
     # --- Küçük nesneler
     ("SM_Agac",              6.7,  6.7,  9.1, "Nesne", "Ağaç (gövde + yuvarlak tepe). Boş arsalarda ve parkta."),
-    ("SM_Araba",             6.0,  3.0,  3.4, "Nesne", "Araba. ÖN yüzü işaretli tarafa (hareket yönü). 3 renk varyantı kodla boyanır."),
+    ("SM_Araba",             6.0,  3.0,  3.4, "Nesne", "Araba. Uzun kenar X; burnu (farlar) +X ucunda, şablonda ÖN yazan uç: araba o yöne gider. 3 renk varyantı kodla boyanır."),
     ("SM_YanginMuslugu",     3.2,  3.2,  5.5, "Nesne", "Yangın musluğu. Bozukken kod eğik gösterir, tamirde doğrultur; tek mesh yeter."),
     ("SM_RogarKapagi",       5.4,  5.4,  0.6, "Nesne", "Rögar kapağı (ızgaraya konur). Yassı daire, üstünde çubuklar."),
     ("SM_SuBirikintisi",     7.2,  7.2,  0.3, "Nesne", "Su birikintisi (yolda, sel). Yassı, düzensiz kenar olabilir."),
@@ -43,7 +43,8 @@ ITEMS = [
     ("bebek_bezi", "Bebek Bezi"), ("kedi_mamasi", "Kedi Maması"), ("battaniye", "Battaniye"), ("powerbank", "Powerbank"),
     ("onemli_belgeler", "Önemli Belgeler"),
 ]
-TOOLS = [("rogar_kapagi", "Rögar Kapağı"), ("tahliye", "Tahliye"), ("ingiliz_anahtari", "İngiliz Anahtarı"), ("bina_guclendirme", "Bina Güçlendirme")]
+TOOLS = [("rogar_kapagi", "Rögar Kapağı"), ("tahliye", "Tahliye"), ("yangin_muslugu", "Yangın Musluğu"), ("ingiliz_anahtari", "İngiliz Anahtarı"),
+         ("bina_guclendirme", "Bina Güçlendirme")]   # sıra DBData.cpp C.Tools ile aynı
 KITS = [("ilk_yardim", "İlk Yardım Çantası"), ("deprem", "Deprem Çantası"), ("yangin", "Yangın Çantası")]
 
 ASSETS_2D = []
@@ -67,3 +68,19 @@ ASSETS_2D += [
     ("Arayuz/canta.png", 168, 176, "Arayüz", "Fabrikada bantta inen sırt çantası (boş hâli). Kit seçilince kod rengini değiştirir: açık/nötr renk yap.", ""),
     ("Arayuz/logo.png", 1024, 256, "Arayüz", "DisasterBoard logosu (takvim menüsünde başlık). Şeffaf arka plan.", ""),
 ]
+
+# Kasabalı figürleri tek tek teslim edilir: SM_Kasabali_<Ad> (sıra DBData.cpp C.Residents ile aynı)
+KASABALILAR = ["AyseTeyze", "SelmaOgretmen", "HasanAmca", "Zeynep", "KemalBey", "Elif", "AliUsta", "RizaAbi", "Can", "Deniz",
+               "MuratAbi", "NerminHanim"]
+
+
+def teslim_listesi():
+    """Teslim edilecek her dosya: {ad: bilgi}. 2D anahtarı Content/ altındaki yol, 3D anahtarı SM_... adı (uzantısız)."""
+    out = {}
+    for path, W, H, cat, note, mark in ASSETS_2D:
+        out[path] = {"tur": "2D", "yol": path, "G": W, "Y": H, "kategori": cat, "not": note, "isaret": mark}
+    for name, w, d, h, cat, note in ASSETS_3D:
+        names = [f"{name}_{k}" for k in KASABALILAR] if name == "SM_Kasabali" else [name]
+        for n in names:
+            out[n] = {"tur": "3D", "ad": n, "G": w, "D": d, "Y": h, "kategori": cat, "not": note}
+    return out

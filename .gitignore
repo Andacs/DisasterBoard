@@ -13,3 +13,9 @@ Build/Teslim/
 
 # python önbelleği
 __pycache__/
+
+# varlık onayı: deneme klasörü, reddedilenler (yerel), test paketi
+Art/_deneme/
+Art/Reddedildi/
+Build/TestKiti/
+*.blend1

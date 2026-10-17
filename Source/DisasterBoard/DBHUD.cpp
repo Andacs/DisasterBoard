@@ -13,6 +13,8 @@
 #include "Engine/Texture2D.h"
 #include "ImageUtils.h"
 #include "Misc/Paths.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 
 namespace
 {
@@ -217,6 +219,13 @@ void ADBHUD::Portrait(int32 Who, const FVector2D& C, float R)
 void ADBHUD::ItemIcon(int32 Item, const FVector2D& C, float R)
 {
 	const FDBItemDef& D = FDBContent::Get().Items[Item];
+	if (UTexture2D* T = LoadPng(TEXT("Ikonlar/esya_") + D.Key + TEXT(".png")))
+	{
+		Disc(C, R + 2.f * S, Ink);
+		Disc(C, R, Paper);
+		DrawTex(T, FBox2D(C - FVector2D(R), C + FVector2D(R)), 0.f, FVector2D(0.5f, 0.5f));
+		return;
+	}
 	Disc(C, R + 2.f * S, Ink);
 	Disc(C, R, D.Color);
 	Txt(D.Icon, C.X, C.Y - R * 0.5f, R, Ink, 1);
@@ -227,8 +236,28 @@ void ADBHUD::ToolIcon(int32 Tool, const FVector2D& C, float R)
 	const FDBToolDef& D = FDBContent::Get().Tools[Tool];
 	const FBox2D B(C - FVector2D(R), C + FVector2D(R));
 	Box(B.ExpandBy(2.f * S), Ink);
+	if (UTexture2D* T = LoadPng(TEXT("Ikonlar/onlem_") + D.Key + TEXT(".png")))
+	{
+		Box(B, Paper);
+		DrawTex(T, B, 0.f, FVector2D(0.5f, 0.5f));
+		return;
+	}
 	Box(B, D.Color);
 	Txt(D.Icon, C.X, C.Y - R * 0.45f, R * 0.9f, Paper, 1);
+}
+
+bool ADBHUD::KitIcon(int32 Kit, const FVector2D& C, float R)
+{
+	const FDBContent& Ct = FDBContent::Get();
+	UTexture2D* T = Ct.Kits.IsValidIndex(Kit) ? LoadPng(TEXT("Ikonlar/kit_") + Ct.Kits[Kit].Key + TEXT(".png")) : nullptr;
+	if (!T)
+	{
+		return false;
+	}
+	Disc(C, R + 2.f * S, Ink);
+	Disc(C, R, Paper);
+	DrawTex(T, FBox2D(C - FVector2D(R), C + FVector2D(R)), 0.f, FVector2D(0.5f, 0.5f));
+	return true;
 }
 
 void ADBHUD::KitBadge(int32 Kit, const FBox2D& R, float Px)
@@ -581,7 +610,14 @@ void ADBHUD::DrawMainPage(bool bEnabled)
 	Box(0.f, 0.f, W, H, U(248, 240, 224));
 	Box(0.f, 0.f, W, BandH, U(232, 128, 104));
 	Txt(TEXT("EKİM 2026"), CX, BandH * 0.5f - 4.5f * U1, 9.f * U1, Paper, 1);
-	Txt(TEXT("DisasterBoard"), CX, BandH + 4.f * U1, 12.f * U1, Ink, 1);
+	if (UTexture2D* Logo = LoadPng(TEXT("Arayuz/logo.png")))
+	{
+		DrawTex(Logo, Rect(CX - 30.f * U1, BandH + 1.5f * U1, 60.f * U1, 15.f * U1), 0.f, FVector2D(0.5f, 0.5f));
+	}
+	else
+	{
+		Txt(TEXT("DisasterBoard"), CX, BandH + 4.f * U1, 12.f * U1, Ink, 1);
+	}
 	Txt(TEXT("Afetlere hazır mısın?"), CX, BandH + 18.f * U1, 6.f * U1, DarkK, 1);
 	const TCHAR* Labels[] = { TEXT("Oyna"), TEXT("Ayarlar"), TEXT("Emeği Geçenler"), TEXT("Çıkış") };
 	const FName Ids[] = { TEXT("Play"), TEXT("Settings"), TEXT("Credits"), TEXT("Quit") };
@@ -659,17 +695,28 @@ void ADBHUD::DrawMarkers()
 		{
 			R *= 1.f + 0.06f * FMath::Sin(GM->Now * 6.f + p);
 		}
-		Tri(Sp + FVector2D(-R * 0.5f, R * 0.6f), Sp + FVector2D(R * 0.5f, R * 0.6f), Sp + FVector2D(0.f, R * 1.5f), Ink);
-		Disc(Sp, R + 3.f * S, Ink);
-		Disc(Sp, R, bSolved ? U(232, 246, 226) : Paper);
-		if (bSolved)
+		if (UTexture2D* Mark = LoadPng(bSolved ? TEXT("Ikonlar/isaret_tamam.png") : TEXT("Ikonlar/isaret_uyari.png")))
 		{
-			TickMark(Sp, R * 1.15f, Green);
+			// Tasarımcının işareti (96×96): alt ucu sivri, binayı gösterir
+			DrawTex(Mark, Rect(Sp.X - R * 1.25f, Sp.Y - R * 1.0f, R * 2.5f, R * 2.5f), 0.f, FVector2D(0.5f, 0.5f));
 		}
 		else
 		{
-			Tri(Sp + FVector2D(0.f, -R * 0.66f), Sp + FVector2D(-R * 0.68f, R * 0.48f), Sp + FVector2D(R * 0.68f, R * 0.48f), Red);
-			Txt(TEXT("!"), Sp.X, Sp.Y - R * 0.34f, R * 0.78f, Paper, 1);
+			Tri(Sp + FVector2D(-R * 0.5f, R * 0.6f), Sp + FVector2D(R * 0.5f, R * 0.6f), Sp + FVector2D(0.f, R * 1.5f), Ink);
+			Disc(Sp, R + 3.f * S, Ink);
+			Disc(Sp, R, bSolved ? U(232, 246, 226) : Paper);
+			if (bSolved)
+			{
+				TickMark(Sp, R * 1.15f, Green);
+			}
+			else
+			{
+				Tri(Sp + FVector2D(0.f, -R * 0.66f), Sp + FVector2D(-R * 0.68f, R * 0.48f), Sp + FVector2D(R * 0.68f, R * 0.48f), Red);
+				Txt(TEXT("!"), Sp.X, Sp.Y - R * 0.34f, R * 0.78f, Paper, 1);
+			}
+		}
+		if (!bSolved)
+		{
 			// İstek açıkça: hangi çanta / hangi önlem (ekip: "istekler net belirtilecek")
 			const FDBProblemDef& Pr = C.Problems[p];
 			const bool bKit = Pr.Kit >= 0;
@@ -701,9 +748,16 @@ void ADBHUD::DrawMoney()
 	Card(R, Paper, DarkK);
 	Blockers.Add(R);
 	const FVector2D Coin(R.Min.X + 32.f * S, R.GetCenter().Y);
-	Disc(Coin, 17.f * S, U(214, 160, 56));
-	Disc(Coin, 12.f * S, U(240, 196, 86));
-	Txt(TEXT("TL"), Coin.X, Coin.Y - 7.f * S, 13.f * S, U(120, 84, 30), 1);
+	if (UTexture2D* T = LoadPng(TEXT("Ikonlar/butce.png")))
+	{
+		DrawTex(T, Rect(Coin.X - 20.f * S, Coin.Y - 20.f * S, 40.f * S, 40.f * S), 0.f, FVector2D(0.5f, 0.5f));
+	}
+	else
+	{
+		Disc(Coin, 17.f * S, U(214, 160, 56));
+		Disc(Coin, 12.f * S, U(240, 196, 86));
+		Txt(TEXT("TL"), Coin.X, Coin.Y - 7.f * S, 13.f * S, U(120, 84, 30), 1);
+	}
 	Txt(TEXT("Bütçe"), R.Min.X + 60.f * S, R.Min.Y + 15.f * S, 22.f * S, DarkK);
 	Txt(FString::Printf(TEXT("%d TL"), GM->Money), R.Max.X - 18.f * S, R.Min.Y + 9.f * S, 34.f * S, Ink, 2);
 }
@@ -721,23 +775,31 @@ void ADBHUD::DrawScannerAndA()
 	}
 	const bool bHov = bCan && Hover(R);
 	const FBox2D RR = bHov ? R.ShiftBy(FVector2D(0.f, -4.f * S)) : R;
-	Line(FVector2D(RR.Min.X + 22.f * S, RR.Min.Y), FVector2D(RR.Min.X + 12.f * S, RR.Min.Y - 34.f * S), 3.f * S, Ink);
-	Line(FVector2D(RR.Max.X - 24.f * S, RR.Min.Y), FVector2D(RR.Max.X - 16.f * S, RR.Min.Y - 46.f * S), 3.f * S, Ink);
-	Disc(FVector2D(RR.Min.X + 12.f * S, RR.Min.Y - 34.f * S), 5.f * S, Coral);
-	Disc(FVector2D(RR.Max.X - 16.f * S, RR.Min.Y - 46.f * S), 5.f * S, Coral);
-	Card(RR, U(92, 116, 124), Ink, 5.f);
-	const FBox2D Screen = Rect(RR.Min.X + 10.f * S, RR.Min.Y + 12.f * S, RR.GetSize().X - 20.f * S, 62.f * S);
-	Box(Screen, U(196, 232, 206));
-	const FVector2D Dial(Screen.GetCenter().X, Screen.Max.Y - 8.f * S);
-	Disc(Dial, 5.f * S, Ink);
-	const bool bScanning = GM->Phase == EDBPhase::Scanning;
-	const float Ang = bScanning ? FMath::Sin(GM->Now * 9.f) * 1.2f : -1.1f;
-	Line(Dial, Dial + FVector2D(FMath::Sin(Ang), -FMath::Cos(Ang)) * 40.f * S, 3.f * S, Red);
-	for (int32 i = 0; i < 3; ++i)
+	UTexture2D* ScannerTex = LoadPng(TEXT("Arayuz/tarayici.png"));
+	if (ScannerTex)
 	{
-		Box(Rect(RR.Min.X + 14.f * S + i * 20.f * S, RR.Min.Y + 88.f * S, 14.f * S, 14.f * S), i == 1 ? Coral : U(236, 188, 86));
+		DrawTex(ScannerTex, RR, 0.f, FVector2D(0.5f, 0.5f));
 	}
-	Txt(TEXT("Tarayıcı"), RR.GetCenter().X, RR.Max.Y - 34.f * S, 17.f * S, Paper, 1);
+	else
+	{
+		Line(FVector2D(RR.Min.X + 22.f * S, RR.Min.Y), FVector2D(RR.Min.X + 12.f * S, RR.Min.Y - 34.f * S), 3.f * S, Ink);
+		Line(FVector2D(RR.Max.X - 24.f * S, RR.Min.Y), FVector2D(RR.Max.X - 16.f * S, RR.Min.Y - 46.f * S), 3.f * S, Ink);
+		Disc(FVector2D(RR.Min.X + 12.f * S, RR.Min.Y - 34.f * S), 5.f * S, Coral);
+		Disc(FVector2D(RR.Max.X - 16.f * S, RR.Min.Y - 46.f * S), 5.f * S, Coral);
+		Card(RR, U(92, 116, 124), Ink, 5.f);
+		const FBox2D Screen = Rect(RR.Min.X + 10.f * S, RR.Min.Y + 12.f * S, RR.GetSize().X - 20.f * S, 62.f * S);
+		Box(Screen, U(196, 232, 206));
+		const FVector2D Dial(Screen.GetCenter().X, Screen.Max.Y - 8.f * S);
+		Disc(Dial, 5.f * S, Ink);
+		const bool bScanning = GM->Phase == EDBPhase::Scanning;
+		const float Ang = bScanning ? FMath::Sin(GM->Now * 9.f) * 1.2f : -1.1f;
+		Line(Dial, Dial + FVector2D(FMath::Sin(Ang), -FMath::Cos(Ang)) * 40.f * S, 3.f * S, Red);
+		for (int32 i = 0; i < 3; ++i)
+		{
+			Box(Rect(RR.Min.X + 14.f * S + i * 20.f * S, RR.Min.Y + 88.f * S, 14.f * S, 14.f * S), i == 1 ? Coral : U(236, 188, 86));
+		}
+		Txt(TEXT("Tarayıcı"), RR.GetCenter().X, RR.Max.Y - 34.f * S, 17.f * S, Paper, 1);
+	}
 	if (bCan)
 	{
 		Hit(TEXT("Scanner"), -1, R);
@@ -848,9 +910,16 @@ void ADBHUD::DrawBagIcon(const FVector2D& C, float Sc, int32 Kit, const TArray<i
 	// Sırt çantası: kit seçilince kit renginde; içindekiler küçük daireler (üstte temel kit, altta kişiye özel)
 	const FDBContent& Ct = FDBContent::Get();
 	const FLinearColor Body = Kit >= 0 ? Ct.Kits[Kit].Color : U(196, 154, 108);
-	Frame(Rect(C.X - 18.f * Sc, C.Y - 54.f * Sc, 36.f * Sc, 16.f * Sc), Ink, 4.f * Sc);
-	Card(Rect(C.X - 42.f * Sc, C.Y - 42.f * Sc, 84.f * Sc, 86.f * Sc), Body, Ink, 4.f);
-	Box(Rect(C.X - 30.f * Sc, C.Y + 2.f * Sc, 60.f * Sc, 34.f * Sc), U(255, 255, 255, 70));
+	if (UTexture2D* T = LoadPng(TEXT("Arayuz/canta.png")))
+	{
+		DrawTex(T, Rect(C.X - 47.f * Sc, C.Y - 54.f * Sc, 94.f * Sc, 98.f * Sc), 0.f, FVector2D(0.5f, 0.5f), Kit >= 0 ? Ct.Kits[Kit].Color : FLinearColor::White);
+	}
+	else
+	{
+		Frame(Rect(C.X - 18.f * Sc, C.Y - 54.f * Sc, 36.f * Sc, 16.f * Sc), Ink, 4.f * Sc);
+		Card(Rect(C.X - 42.f * Sc, C.Y - 42.f * Sc, 84.f * Sc, 86.f * Sc), Body, Ink, 4.f);
+		Box(Rect(C.X - 30.f * Sc, C.Y + 2.f * Sc, 60.f * Sc, 34.f * Sc), U(255, 255, 255, 70));
+	}
 	if (Kit >= 0)
 	{
 		const TArray<int32>& D = Ct.Kits[Kit].Defaults;
@@ -926,6 +995,7 @@ void ADBHUD::DrawPanel()
 		const float KW = Measure(K.Name, 16.f * S).X + 16.f * S;
 		Box(Rect(Card0.Min.X + 124.f * S, Card0.Min.Y + 66.f * S, KW, 24.f * S), K.Color);
 		Txt(K.Name, Card0.Min.X + 132.f * S, Card0.Min.Y + 69.f * S, 16.f * S, Paper);
+		KitIcon(Pr.Kit, FVector2D(Card0.Min.X + 142.f * S + KW, Card0.Min.Y + 78.f * S), 14.f * S);
 		// 2. kişiye özel
 		Txt(TEXT("2. Kişiye özel:"), Card0.Min.X + 14.f * S, Card0.Min.Y + 104.f * S, 17.f * S, Ink);
 		float IX = Card0.Min.X + 140.f * S;
@@ -969,7 +1039,8 @@ void ADBHUD::DrawPanel()
 				const bool bSel = GM->bBagOnBelt && GM->BagKit == B;
 				Card(BR, Kd.Color, bSel ? Ink : DarkK, bHov ? 6.f : 3.f);
 				if (bSel) Frame(BR.ExpandBy(3.f * S), Ink, 3.f * S);
-				Txt(Kd.Short, BR.GetCenter().X, BR.Min.Y + 8.f * S, 19.f * S, Paper, 1);
+				const bool bKitPng = KitIcon(B, FVector2D(BR.Min.X + 20.f * S, BR.Min.Y + 20.f * S), 15.f * S);
+				Txt(Kd.Short, BR.GetCenter().X + (bKitPng ? 12.f * S : 0.f), BR.Min.Y + 8.f * S, 19.f * S, Paper, 1);
 				for (int32 i = 0; i < Kd.Defaults.Num(); ++i)
 				{
 					ItemIcon(Kd.Defaults[i], FVector2D(BR.GetCenter().X + (i - 1) * 26.f * S, BR.Min.Y + 46.f * S), 10.f * S);
@@ -1234,19 +1305,48 @@ UTexture2D* ADBHUD::LoadPng(const FString& Rel)
 	{
 		return Found->Get();
 	}
-	const FString Path = FPaths::ProjectContentDir() / Rel;
+	// Varlık testi: -DBVarlik="<klasör>" verilirse görseller önce oradan okunur (Content'e girmemiş, onay bekleyen dosyalar)
+	FString Override;
+	FString Path = FPaths::ProjectContentDir() / Rel;
+	const TCHAR* Source = TEXT("content");
+	if (FParse::Value(FCommandLine::Get(), TEXT("DBVarlik="), Override) && FPaths::FileExists(Override / Rel))
+	{
+		Path = Override / Rel;
+		Source = TEXT("aday");
+	}
 	UTexture2D* T = FPaths::FileExists(Path) ? FImageUtils::ImportFileAsTexture2D(Path) : nullptr;
 	PngCache.Add(Rel, T);
+	if (T)
+	{
+		PngStatus.Add(Rel, FString::Printf(TEXT("OK %dx%d %s"), T->GetSizeX(), T->GetSizeY(), Source));
+	}
+	else
+	{
+		PngStatus.Add(Rel, FPaths::FileExists(Path) ? FString(TEXT("HATA okunamadi")) : FString(TEXT("YOK")));
+	}
 	return T;
 }
 
-void ADBHUD::DrawTex(UTexture2D* T, const FBox2D& R, float RotDeg, const FVector2D& Pivot)
+FString ADBHUD::PngReport() const
+{
+	FString Out;
+	TArray<FString> Keys;
+	PngStatus.GetKeys(Keys);
+	Keys.Sort();
+	for (const FString& K : Keys)
+	{
+		Out += K + TEXT("\t") + PngStatus[K] + TEXT("\n");
+	}
+	return Out;
+}
+
+void ADBHUD::DrawTex(UTexture2D* T, const FBox2D& R, float RotDeg, const FVector2D& Pivot, const FLinearColor& Tint)
 {
 	if (!T || !T->GetResource())
 	{
 		return;
 	}
-	FCanvasTileItem It(R.Min, T->GetResource(), R.GetSize(), FLinearColor::White);
+	FCanvasTileItem It(R.Min, T->GetResource(), R.GetSize(), Gn(Tint));
 	It.BlendMode = SE_BLEND_Translucent;
 	It.Rotation = FRotator(0.f, RotDeg, 0.f);
 	It.PivotPoint = Pivot;
