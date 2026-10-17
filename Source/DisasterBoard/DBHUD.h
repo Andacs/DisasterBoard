@@ -34,6 +34,7 @@ public:
 	// Test: takvim sayfasındaki bir düğmenin ekrandaki yeri (sayfa dokusu ↔ fare eşlemesini doğrulamak için)
 	bool PageButtonScreenPos(FName Id, bool bTop, FVector2D& OutScreen) const;
 	FVector2D DebugDot = FVector2D(-1.f, -1.f);
+	float UiScale() const { return S; }
 
 private:
 	struct FHit
@@ -69,7 +70,22 @@ private:
 	FBox2D TgScanner = FBox2D(ForceInit), TgTasks = FBox2D(ForceInit), TgTabs = FBox2D(ForceInit), TgItems = FBox2D(ForceInit),
 		TgPack = FBox2D(ForceInit), TgClose = FBox2D(ForceInit), TgTools = FBox2D(ForceInit), TgMoney = FBox2D(ForceInit),
 		TgBackpack = FBox2D(ForceInit), TgDrawer = FBox2D(ForceInit),
-		TgOrder = FBox2D(ForceInit), TgKitStation = FBox2D(ForceInit), TgStations = FBox2D(ForceInit), TgDeliver = FBox2D(ForceInit);
+		TgOrder = FBox2D(ForceInit), TgKitStation = FBox2D(ForceInit), TgStations = FBox2D(ForceInit), TgDeliver = FBox2D(ForceInit),
+		TgTurnL = FBox2D(ForceInit), TgTurnR = FBox2D(ForceInit);
+	// 17 Ekim ~20.00: başarım kartı, çanta-bitti yönlendirmesi, teslim çantası, radar tarayıcı, fotoğraf albümü
+	void DrawAchievementPopup();
+	void DrawAchBadge(int32 Index, const FVector2D& C, float R, bool bOn);
+	void Star(const FVector2D& C, float R, const FLinearColor& Col, float Rot = 0.f);
+	void DrawBagsDoneHint();
+	void DrawPhotoToast();
+	void DrawRT(UTextureRenderTarget2D* T, const FBox2D& R);
+	void DrawPhoto(int32 Problem, const FBox2D& R);
+	void DrawTray(const FVector2D& C, float Sc, int32 Kit, const TArray<int32>& Personal);
+	void DrawDeliveryBag(const FVector2D& C, float Sc, const FLinearColor& Body, float Flap, bool bKitMark, int32 Kit);
+	void DrawRadar(const FVector2D& C, float R, bool bScanning);
+	float ResultStart = -1.f;
+	int32 ResultPhotosShown = 0;
+	int32 ResultHover = -1;
 	void DrawBagIcon(const FVector2D& C, float Sc, int32 Kit, const TArray<int32>& Personal);
 	void DrawNpc();
 	// Fare izi, tıklama patlaması, takvime yaklaşırken rüzgar çizgileri

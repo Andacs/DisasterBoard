@@ -171,6 +171,18 @@ void ADBPlayerController::OnClick()
 	{
 		return;
 	}
+	// Arabaya tıklamak: korna çalar, araba zıplar (Andaç)
+	if (G->World && G->IsBoardPhase() && G->Phase != EDBPhase::ToBoard && G->Phase != EDBPhase::Result)
+	{
+		int32 SX = 1920, SY = 1080;
+		GetViewportSize(SX, SY);
+		const int32 Car = G->World->CarAtScreen(this, FVector2D(MX, MY), 30.f * SY / 1080.f);
+		if (Car >= 0)
+		{
+			G->World->HonkCar(Car);
+			return;
+		}
+	}
 	if (HoveredBuilding >= 0)
 	{
 		G->PlaySfx(EDBSfx::Click, 0.75f, 0.f, FMath::FRandRange(0.8f, 0.9f));
@@ -380,9 +392,15 @@ void ADBPlayerController::DBTest()
 		GM()->SetBagT(0.3f);   // hızlı kalırken bir sonraki adımda teslime varmasın
 	});
 	Add([this] { GM()->bBeltFast = false; GM()->SetBagT(0.85f); });
-	Add([this] { Shot(TEXT("09b_canta_hazir_iniyor")); GM()->SetBagT(0.999f); });
-	Add([] {});
-	Add([this] { Shot(TEXT("09c_teslim_edildi")); });
+	// Paket açık çantaya düşer, çanta kapanır (0,9 sn), sonra teslim: çanta uçup gider
+	Add([this]
+	{
+		Shot(TEXT("09b_canta_hazir_iniyor"));
+		GM()->SetBagT(0.999f);
+		FTimerHandle Hh;
+		GetWorldTimerManager().SetTimer(Hh, FTimerDelegate::CreateLambda([this] { Shot(TEXT("09c_canta_kapaniyor")); }), 0.6f, false);
+	});
+	Add([this] { Shot(TEXT("09c2_teslim_edildi")); });
 	// 3 sipariş (revizyon: her kitten bir). Yılmazlar: önce bilerek eksik (mama ve bez yok), sonra doğru
 	Add([this, Fab] { Fab(1, {}); GM()->SetBagT(0.999f); });
 	Add([this] { Shot(TEXT("09d_yanlis_canta")); });
@@ -393,7 +411,13 @@ void ADBPlayerController::DBTest()
 	Add([] {});
 	Add([this] { GM()->ClosePanel(); });
 	Add([this] { Shot(TEXT("11_C_konusuyor")); });
-	Talk(6);
+	Talk(5);
+	// Q / E dersi: oklara basılmadan geçmez; E'ye basmak tahtayı döndürür ve satırı geçirir
+	Add([this] { Shot(TEXT("11b_QE_dersi")); UE_LOG(LogDBInput, Log, TEXT("DB_TEST qe_dersi do=%d"), GM()->DoLineTarget()); });
+	Add([this] { OnRotRight(); });
+	Add([this] { UE_LOG(LogDBInput, Log, TEXT("DB_TEST qe_sonra do=%d phase=%d"), GM()->DoLineTarget(), (int32)GM()->Phase); });
+	Add([this] { OnRotLeft(); });
+	Talk(1);
 	Add([this] { Shot(TEXT("12_oyun")); });
 	// Tahta: sağ okla kalkar, döner, iner (havadayken görüntü), sonra geri; tekerlekle yakınlaştır
 	Add([this]
@@ -446,8 +470,15 @@ void ADBPlayerController::DBTest()
 	Add([this] { Shot(TEXT("15f_yeni_musluk")); });
 	// Duraklatma: menü → Takvime dön (ilerleme korunur) → takvimde "Devam et" → kalınan yer
 	Add([this] { GM()->AskMenu(); });
-	Add([this] { Shot(TEXT("17a_duraklat")); });
-	Add([this] { GM()->PauseToCalendar(); });
+	Add([this] { Shot(TEXT("17a_duraklat")); GM()->bMenuConfirm = false; });
+	// Menü düğmesi: doğrudan takvime (gerçek tıklama yolu)
+	Add([this]
+	{
+		ADBHUD* H = GetHUD<ADBHUD>();
+		const float Sc = H ? H->UiScale() : 1.f;
+		const bool bHit = H && H->HandleClick(FVector2D(80.f * Sc, 42.f * Sc));
+		UE_LOG(LogDBInput, Log, TEXT("DB_TEST menu_dugmesi hit=%d paused=%d"), bHit ? 1 : 0, GM()->bPausedGame ? 1 : 0);
+	});
 	Add([] {});
 	Add([this] { Shot(TEXT("17b_takvim_devam")); UE_LOG(LogDBInput, Log, TEXT("DB_TEST takvim phase=%d paused=%d"), (int32)GM()->Phase, GM()->bPausedGame ? 1 : 0); });
 	Add([this] { GM()->ClickPlay(); });
@@ -456,8 +487,12 @@ void ADBPlayerController::DBTest()
 	Add([this] { ADBGameMode* M = GM(); M->SelectTool(4); M->ClickBuilding(4); M->SelectTool(1); M->ClickBuilding(10); });
 	Add([this] { Shot(TEXT("16_tahliye_konfeti")); });
 	Add([] {});
+	Add([this] { Shot(TEXT("16b_basarim")); });
 	Add([] {});
 	Add([this] { Shot(TEXT("18_sonuc")); });
+	Add([] {});
+	Add([] {});
+	Add([this] { Shot(TEXT("18b_sonuc_album")); UE_LOG(LogDBInput, Log, TEXT("DB_TEST basarim=%d/%d"), GM()->NumAchieved(), ADBGameMode::Achievements().Num()); });
 	Add([this] { UE_LOG(LogDBInput, Log, TEXT("DB_TEST DONE para=%d hata=%d"), GM()->Money, GM()->Mistakes); });
 	Add([] { FGenericPlatformMisc::RequestExit(false); });
 
@@ -538,7 +573,7 @@ void ADBPlayerController::DBVarlikTest()
 	Add([VShot] { VShot(TEXT("10_yigit_onlemler")); });
 	Talk(1);
 	Add([VShot] { VShot(TEXT("10b_yigit_gosteriyor")); });
-	Talk(5);
+	Talk(6);
 	// Tamam işareti (Ikonlar/isaret_tamam): apartmanı güçlendir
 	Add([this] { ADBGameMode* M = GM(); M->SelectTool(4); M->ClickBuilding(4); });
 	Add([this] { GM()->CloseNpc(); });

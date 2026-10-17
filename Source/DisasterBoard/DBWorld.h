@@ -14,6 +14,7 @@ class UTextureRenderTarget2D;
 class UTexture2D;
 class UMaterialInstanceDynamic;
 class UDBSfxWave;
+class USceneCaptureComponent2D;
 
 // Odanın tamamı koddan: zemin, iki duvar, kaide, tahta, binalar, duvardaki takvim, üç kamera.
 // Seviye dosyasında yalnızca ışık var; modelciden mesh gelince ilgili parça burada değiştirilir.
@@ -113,6 +114,16 @@ public:
 	void ClearHaze(int32 Building);
 	void ApplyExposure(float EV100);
 
+	// Fotoğraf albümü (sonuç ekranı): çözülen isteğin binası kameranın baktığı yönden çekilir
+	void TakePhoto(int32 Slot, int32 Building);
+	UTextureRenderTarget2D* Photo(int32 Slot) const { return Photos.IsValidIndex(Slot) ? Photos[Slot].Get() : nullptr; }
+	// Yapılan iş kasabada görünür: teslim edilen çanta kasabalının yanında, güçlendirilen binada çelik çaprazlar
+	void PlaceBagProp(int32 Building, const FLinearColor& Color);
+	void PlaceBraces(int32 Building);
+	// Arabaya tıklamak: korna + araba zıplar
+	int32 CarAtScreen(const APlayerController* PC, const FVector2D& Screen, float RadiusPx) const;
+	void HonkCar(int32 Car);
+
 	// Oyuncu tahtayı döndürür: alttaki oklar / Q-E → tahta masadan kalkar, 90° döner, yerine iner (kamera sabit)
 	void TurnBoard(int32 Dir);
 	UPROPERTY() TObjectPtr<UDBSfxWave> SfxWave;      // GameMode verir: tahta sesleri
@@ -201,9 +212,33 @@ private:
 	UPROPERTY() TArray<TObjectPtr<USceneComponent>> TreeRoots;
 	float PrevYaw = 0.f;
 	void BuildFeedbackFx();
-	void BuildLife();       // revizyon 16: kuşlar ve bulut gölgeleri
-	UPROPERTY() TArray<TObjectPtr<USceneComponent>> Birds;
-	UPROPERTY() TArray<TObjectPtr<USceneComponent>> BirdWings;
+	void BuildLife();       // böcekler (sinek, uğur böceği, kelebek), örümcek ve ağı, bulut gölgeleri
+	void TickBugs(float Dt, bool bLife);
+	UPROPERTY() TObjectPtr<USceneComponent> Fly;
+	UPROPERTY() TArray<TObjectPtr<USceneComponent>> FlyWings;
+	UPROPERTY() TObjectPtr<USceneComponent> Butterfly;
+	UPROPERTY() TArray<TObjectPtr<USceneComponent>> ButterflyWings;
+	UPROPERTY() TObjectPtr<USceneComponent> Ladybug;
+	UPROPERTY() TObjectPtr<USceneComponent> Spider;
+	UPROPERTY() TArray<TObjectPtr<USceneComponent>> SpiderLegs;
+	UPROPERTY() TObjectPtr<USceneComponent> WebRoot;
+	FVector WebCenter = FVector::ZeroVector;     // tahtanın yerel koordinatı
+	TArray<FVector> SpiderPath;
+	float SpiderD = 0.f;
+	float BugT = 0.f;
+	UPROPERTY() TObjectPtr<USceneCaptureComponent2D> PhotoCam;
+	UPROPERTY() TArray<TObjectPtr<UTextureRenderTarget2D>> Photos;
+	struct FGrow
+	{
+		TObjectPtr<USceneComponent> Comp;
+		float T = 0.f;
+	};
+	TArray<FGrow> Grows;    // yeni konan parça yaylanarak büyür (sıfır ölçek yok)
+	TArray<float> CarHonkT;
+	void BuildWallArt();    // yan duvar: ekip logosu + jam afişi (Content/Arayuz/duvar_logo.png, duvar_afis.png)
+	UTexture2D* LoadWallPng(const FString& Rel);
+	UStaticMeshComponent* TexPlane(USceneComponent* Parent, const FVector& Loc, const FRotator& Rot, const FVector2D& SizeCm, UTexture* Tex, bool bTranslucent);
+	UPROPERTY() TObjectPtr<UStaticMeshComponent> ScanCurtain;
 	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> CloudShadows;
 	UPROPERTY() TObjectPtr<UMaterialInstanceDynamic> CloudMid;
 	void TickFeedbackFx(float Dt, float YawVel);

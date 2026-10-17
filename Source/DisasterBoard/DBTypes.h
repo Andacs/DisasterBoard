@@ -126,6 +126,7 @@ struct FDBContent
 	int32 NewHydrantBuilding = -1;   // yeni musluk bu binanın sokağına
 	FIntPoint NewHydrantCell = FIntPoint(-1, -1);
 	int32 EvacuateTool = -1;   // bu önlem uygulanınca sakinler sığınağa yürür
+	int32 BraceTool = -1;      // bina güçlendirme: binaya çelik çaprazlar konur
 
 	int32 StartMoney = 100;
 	int32 KitReward = 30;      // doğru eve gönderilen her çanta

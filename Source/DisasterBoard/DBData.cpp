@@ -73,6 +73,7 @@ namespace
 			{ TEXT("Bina Güçlendirme"), TEXT("BG"), Teal, 60, TEXT("Deprem"), TEXT("Bina güçlendirildi") },
 		};
 		C.EvacuateTool = Tahliye;
+		C.BraceTool = Guclendirme;   // güçlendirilen binaya çelik çaprazlar konur
 		// Sel: marketin altındaki yolda iki karo su birikintisi; rögar kapakları ızgaraya konur (kapak başı 15 TL)
 		C.FloodTool = Rogar;
 		C.FloodCells = { FIntPoint(7, 5), FIntPoint(8, 6) };
@@ -248,7 +249,8 @@ namespace
 			{ S::C, TEXT("Önlemler bütçeden düşer; teslim ettiğin her çanta bütçe kazandırır.") },
 			{ S::C, TEXT("Önlemi seç, isteği olan yere tıkla. Rögar kapağını su birikintisinin olduğu ızgaraya koy.") },
 			{ S::C, TEXT("Kasabalılara tıkla, dertlerini anlatsınlar. Çantalar sağdaki çekmecede: kulpa bas.") },
-			{ S::C, TEXT("Hepsi yeşil olunca kasaba hazır! Tekerlek yakınlaştırır, alttaki oklar tahtayı döndürür.") },
+			{ S::C, TEXT("Arkada kalan yerleri görmek için tahtayı döndür: alttaki oklara ya da klavyede Q / E tuşlarına bas.") },
+			{ S::C, TEXT("Hepsi yeşil olunca kasaba hazır! Fare tekerleği yakınlaştırır.") },
 		};
 
 		C.Comic = {

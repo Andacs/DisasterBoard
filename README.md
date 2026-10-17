@@ -49,8 +49,8 @@ Her satır: araç · amaç · oyundaki yeri. Çok küçük kullanım da yazılı
 
 | Kategori | Durum | Araç · amaç · oyundaki yeri |
 |---|---|---|
-| Görsel | [...] | [...] |
-| Ses | Kullanıldı | **Claude (Anthropic)** · müziği ve ses efektlerini (tık, rüzgar, sayfa, tahta, su, doğru/yanlış) oyun içinde üreten kodun yazımı; ses dosyası yok · `Source/DisasterBoard/DBMusic.cpp`, `DBSfx.cpp` |
+| Görsel | Kullanıldı | **Claude (Anthropic)** · yan duvardaki jam afişi ve ekip logosunu (yer tutucu, resmi dosya gelince aynı adla değişir) şekillerle çizen Python betiği; görüntü üretici model yok · `Tools/duvar_gorsel.py` → `Content/Arayuz/duvar_afis.png`, `duvar_logo.png` |
+| Ses | Kullanıldı | **Claude (Anthropic)** · müziği ve ses efektlerini (tık, rüzgar, sayfa, tahta, su, doğru/yanlış, karakter konuşma heceleri, korna, tarayıcı, bant, çanta fermuarı, başarım, deklanşör) oyun içinde üreten kodun yazımı; ses dosyası yok · `Source/DisasterBoard/DBMusic.cpp`, `DBSfx.cpp` |
 | Kod | Kullanıldı | **Claude (Anthropic, Claude Code)** · oyun kodunun yazımı (C++: akış, arayüz, sahne kurulumu, sis/kum efektleri, koddan müzik üreteci, otomatik test) · `Source/DisasterBoard/` |
 | Metin | [...] | [...] |
 | Diğer | [...] | [...] |

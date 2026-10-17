@@ -290,6 +290,33 @@ Asil konuşurken duruş. Test turu 13 kare (B duruş, C gösterme eklendi).
 Gösterme pozunda kolun ötesinde fırçadan kalmış tek bir nokta vardı; kesimi büyütüp karakteri küçültüyordu.
 Kesim artık ayrı küçük lekeleri saymıyor (`govde_kutusu`, 8 px ızgarada bağlantılı parçalar).
 
+**17 Ekim ~20.30, Andaç'ın notları (uygulandı; ekranda görülenler DBTest'te, ses yalnız sentez):**
+- **Başarımlar** (8: İlk Adım, Çanta Ustası, Sel Bekçisi, Usta Tamirci, Döndür Bakalım, İyi Komşu, Kasaba Hazır,
+  Hatasız; `ADBGameMode::Achievements`/`Unlock`): açılınca sağ üstte kayan altın kart + fanfar, sırayla. Duraklatma
+  penceresinde ve sonuç albümünde rozet sırası.
+- **Çantalar bitti, masa açık kaldı** (2,5 sn): Asil gelir, kulpu gösterir, "Masayı kapat" düğmeli balon (`BagsDoneHint`).
+- **Q / E dersi:** Yiğit'in satırları arasında "oklara ya da Q / E'ye bas" (`DoLineTarget` 4); basmadan geçmez, basınca
+  tahta döner. PanelIntroC 7 satır (testlerde `Talk` sayıları buna göre).
+- **Menü düğmesi doğrudan takvime** (`PauseToCalendar`, `CanPause`); takvimde "Oyuna devam et". Esc hâlâ duraklatma
+  penceresi. Takvimdeki "Afetlere hazır mısın?" kalktı.
+- **Sonuç ekranı baştan: fotoğraf albümü.** Her çözülen istekte binanın fotoğrafı çekilir (`ADBWorld::TakePhoto`,
+  SceneCapture, 480×360); oyunda sağda "Albüme eklendi" polaroidi. Sonuçta kraft albüm: kurdele başlık, istatistik
+  çipleri, 4×2 polaroid (deklanşörle sırayla "banyo olur"), üstüne gelince "Neden önemli?", başarım rozetleri.
+  Kasabada iz kalır: teslim edilen çanta kasabalının yanında, güçlendirilen apartmanda çelik çaprazlar (`PlaceBagProp`,
+  `PlaceBraces`, yaylanarak büyür).
+- **Teslim:** TESLİM düğmesi yerine bandın dibinde açık sırt çantası. Bantta karton paket iner, çantaya düşer, kapak
+  kapanır (`bPacking`, 0,9 sn), sonra teslim: doğruysa çanta uçup gider, yanlışsa sallanır. Çantaya basılı tutmak bandı
+  hızlandırır.
+- **Sesler** (`DBSfx`, hepsi sentez): Tomodachi Life gibi konuşma (her sesli harfte formant hecesi, konuşana / kasabalıya
+  göre perde, soru sonunda yükselir), kasabalı "Hm?" selamı (tıklayınca figür de esner), arabaya tıklayınca korna + zıplama,
+  tarayıcı radar süpürmesi, bant tıkırtısı (döngü), çanta düşme + fermuar, başarım fanfarı, deklanşör. **Kulakla dinlenmedi.**
+- **Tarayıcı:** radar ekranlı cihaz (dönen tarama, bulunan riskler bip), taranırken ekrana yayılan halkalar + "TARANIYOR %",
+  tahtada parlayan yeşil ışık perdesi.
+- **Kuşlar kalktı:** arada sinek ve kelebek geçer, uğur böceği yollarda yürür, tahtanın sağ köşesinde iki çöp arasında
+  örümcek ağı; örümcek ağından inip yoldan karşıya yürür, geri döner (`TickBugs`).
+- **Yan duvar:** jam afişi + FreakLabs logosu, çerçeve ve raptiyeyle (`BuildWallArt`). Görseller `Tools/duvar_gorsel.py`
+  ile çizildi (yer tutucu); resmi afiş/logo gelirse `Content/Arayuz/duvar_afis.png` / `duvar_logo.png` olarak değiştir.
+
 **17 Ekim ~19.00: ekip revizyon belgesi uygulandı** (`Downloads/Dogal_Afetlere_Hazirlik_Oyunu_Revizyon_Dokumani.pdf`,
 20 madde; Andaç'ın kararları: 3 sipariş, küçük görev şeridi, "Takvime dön" = duraklat, hepsi önemliden). DBTest
 8/8, 25 TL, 2 hata; görsel turu 14 kare; hepsi ekranda görüldü:

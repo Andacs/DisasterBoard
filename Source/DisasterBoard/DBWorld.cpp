@@ -13,6 +13,9 @@
 #include "Kismet/KismetRenderingLibrary.h"
 #include "Engine/Texture2D.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Components/SceneCaptureComponent2D.h"
+#include "ImageUtils.h"
+#include "Misc/Paths.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDBWorld, Log, All);
 
@@ -109,6 +112,7 @@ void ADBWorld::Build()
 	BuildHydrant();
 	BuildFeedbackFx();
 	BuildLife();
+	BuildWallArt();
 
 	for (TActorIterator<ADirectionalLight> It(GetWorld()); It; ++It)
 	{
@@ -217,9 +221,30 @@ void ADBWorld::BuildBoard()
 		BuildTree(B, LotCenter(T), BuildingScale);
 	}
 
-	// Tarama çizgisi (yalnızca taramada görünür)
-	ScanBeam = Part(B, CubeMesh, FVector(0, 0, BoardTopZ + 1.f), FVector(100.f, 1.6f, 1.2f), RGB(222, 196, 140), FRotator(0, -45.f, 0));
+	// Tarama çizgisi (yalnızca taramada görünür): parlak lazer çubuğu + üstünde yükselen ışık perdesi
+	ScanBeam = Part(B, CubeMesh, FVector(0, 0, BoardTopZ + 1.f), FVector(100.f, 1.6f, 1.2f), RGB(140, 255, 220), FRotator(0, -45.f, 0));
 	ScanBeam->SetVisibility(false);
+	{
+		const int32 N = 64;
+		TArray<uint8> Px;
+		Px.SetNumUninitialized(4 * N * 4);
+		for (int32 y = 0; y < N; ++y)
+		{
+			// Alt kenar (V=1) parlak, yukarı doğru söner; ince yatay tarama çizgileri
+			const float V = (y + 0.5f) / N;
+			const float A = FMath::Pow(V, 2.2f) * (0.75f + 0.25f * ((y / 3) % 2));
+			for (int32 x = 0; x < 4; ++x)
+			{
+				uint8* P = &Px[(y * 4 + x) * 4];
+				P[0] = 200; P[1] = 255; P[2] = 120; P[3] = (uint8)FMath::RoundToInt(FMath::Clamp(A, 0.f, 1.f) * 200.f);
+			}
+		}
+		UTexture2D* Tex = UTexture2D::CreateTransient(4, N, PF_B8G8R8A8, NAME_None, TConstArrayView64<uint8>(Px.GetData(), Px.Num()));
+		Tex->UpdateResource();
+		PuffTextures.Add(Tex);
+		ScanCurtain = TexPlane(B, FVector(0, 0, BoardTopZ + 6.f), FRotator(0.f, -45.f, 90.f), FVector2D(100.f, 12.f), Tex, true);
+		ScanCurtain->SetVisibility(false);
+	}
 
 	// Tahliye edilen sakinler (tsunami)
 	const FLinearColor Shirts[] = { RGB(232, 128, 104), RGB(96, 170, 164), RGB(236, 188, 86), RGB(172, 152, 204) };
@@ -837,6 +862,7 @@ void ADBWorld::BuildCars()
 			Part(Car, CylinderMesh, FVector((w & 1) ? 1.9f : -1.9f, (w & 2) ? 1.5f : -1.5f, 0.7f), FVector(1.4f, 1.4f, 0.6f), RGB(40, 40, 44), FRotator(0.f, 0.f, 90.f));
 		}
 		CarRoots.Add(Car);
+		CarHonkT.Add(-100.f);
 		FCar Cr;
 		Cr.A = CellLocal(Rt.From);
 		Cr.B = CellLocal(Rt.To);
@@ -928,6 +954,7 @@ void ADBWorld::StartScan(float Seconds)
 	ScanDuration = FMath::Max(0.1f, Seconds);
 	ScanS = -HalfDiag();
 	ScanBeam->SetVisibility(true);
+	if (ScanCurtain) ScanCurtain->SetVisibility(true);
 }
 
 void ADBWorld::StopScan()
@@ -935,6 +962,7 @@ void ADBWorld::StopScan()
 	bScanning = false;
 	ScanS = HalfDiag() + 1.f;
 	ScanBeam->SetVisibility(false);
+	if (ScanCurtain) ScanCurtain->SetVisibility(false);
 }
 
 float ADBWorld::SweepCoord(int32 Building) const
@@ -1006,10 +1034,18 @@ void ADBWorld::Tick(float Dt)
 		ScanS = FMath::Lerp(-R, R, A);
 		const float Len = FMath::Max(4.f, 2.f * (R - FMath::Abs(ScanS)));
 		ScanBeam->SetRelativeLocation(SweepDir * ScanS + FVector(0, 0, BoardTopZ + 1.f));
-		ScanBeam->SetRelativeScale3D(FVector(Len / 100.f, 0.03f, 0.02f));
+		const float Throb = 1.f + 0.35f * FMath::Sin(ScanT * 40.f);
+		ScanBeam->SetRelativeScale3D(FVector(Len / 100.f, 0.03f * Throb, 0.02f * Throb));
+		if (ScanCurtain)
+		{
+			const float Hgt = 10.f + 4.f * FMath::Sin(ScanT * 9.f);
+			ScanCurtain->SetRelativeLocation(SweepDir * ScanS + FVector(0, 0, BoardTopZ + 1.f + Hgt * 0.5f));
+			ScanCurtain->SetRelativeScale3D(FVector(Len / 100.f, Hgt / 100.f, 1.f));
+		}
 		if (A >= 1.f)
 		{
 			ScanBeam->SetVisibility(false);
+			if (ScanCurtain) ScanCurtain->SetVisibility(false);
 		}
 	}
 
@@ -1103,7 +1139,14 @@ void ADBWorld::Tick(float Dt)
 		const FVector To = Cr.bFwd ? Cr.B : Cr.A;
 		const FVector Dir = (To - From).GetSafeNormal();
 		const FVector Right(-Dir.Y, Dir.X, 0.f);
-		CarRoots[i]->SetRelativeLocationAndRotation(FMath::Lerp(From, To, Cr.T) + Right * 1.7f, Dir.Rotation());
+		// Korna: araba iki kez zıplar
+		float Hop = 0.f;
+		if (CarHonkT.IsValidIndex(i))
+		{
+			const float Ht = GetWorld()->GetTimeSeconds() - CarHonkT[i];
+			Hop = (Ht >= 0.f && Ht < 0.5f) ? FMath::Abs(FMath::Sin(Ht * 2.f * PI * 2.f)) * 2.2f * (1.f - Ht / 0.5f) : 0.f;
+		}
+		CarRoots[i]->SetRelativeLocationAndRotation(FMath::Lerp(From, To, Cr.T) + Right * 1.7f + FVector(0, 0, Hop), Dir.Rotation());
 	}
 
 	// Musluk tamiri: doğrulur
@@ -1443,27 +1486,25 @@ void ADBWorld::TickFeedbackFx(float Dt, float YawVel)
 		W.Root->SetRelativeRotation(FQuat(FVector(W.Axis.X, W.Axis.Y, 0.f), FMath::DegreesToRadians(W.Theta)));
 	}
 
-	// Kuşlar: kasabanın üstünde geniş daireler çizer, kanat çırpar; bulut gölgeleri tahtada süzülür
+	// Böcekler (Andaç: kuşlar yerine): arada sinek / kelebek geçer, uğur böceği yollarda yürür, örümcek ağından inip
+	// tahtayı geçer. Bulut gölgeleri tahtada süzülür.
 	const bool bLife = VfxLevel > 0 && bLifeVisible;
-	for (int32 i = 0; i < Birds.Num(); ++i)
+	TickBugs(Dt, bLife);
+	// Yeni konan parçalar (çanta, çapraz) yaylanarak büyür
+	for (int32 i = Grows.Num() - 1; i >= 0; --i)
 	{
-		if (Birds[i]->IsVisible() != bLife)
+		FGrow& G = Grows[i];
+		G.T += Dt;
+		const float U = FMath::Clamp(G.T / 0.55f, 0.f, 1.f);
+		const float Sc = U >= 1.f ? 1.f : FMath::Max(0.05f, 1.f + FMath::Exp(-6.f * U) * FMath::Sin(U * 12.f - PI * 0.5f));
+		if (G.Comp)
 		{
-			Birds[i]->SetVisibility(bLife, true);
+			G.Comp->SetRelativeScale3D(FVector(Sc));
 		}
-		if (!bLife)
+		if (U >= 1.f)
 		{
-			continue;
+			Grows.RemoveAt(i);
 		}
-		const float R = 45.f + 14.f * i;
-		const float Sp = (i & 1 ? -1.f : 1.f) * (0.22f + 0.05f * i);
-		const float A = FlutterT * Sp + i * 1.9f;
-		const FVector P(FMath::Cos(A) * R, FMath::Sin(A) * R, 62.f + 9.f * i + 4.f * FMath::Sin(FlutterT * 0.9f + i));
-		const FVector Tan(-FMath::Sin(A) * Sp, FMath::Cos(A) * Sp, 0.f);
-		Birds[i]->SetRelativeLocationAndRotation(P, Tan.Rotation() + FRotator(0.f, 0.f, -18.f * FMath::Sign(Sp)));
-		const float Flap = 35.f * FMath::Sin(FlutterT * (9.f + i) + i);
-		BirdWings[2 * i]->SetRelativeRotation(FRotator(0.f, 0.f, Flap));
-		BirdWings[2 * i + 1]->SetRelativeRotation(FRotator(0.f, 0.f, -Flap));
 	}
 	for (int32 i = 0; i < CloudShadows.Num(); ++i)
 	{
@@ -1479,18 +1520,99 @@ void ADBWorld::TickFeedbackFx(float Dt, float YawVel)
 
 void ADBWorld::BuildLife()
 {
-	// Kuşlar: gövde + iki kanat (kanatlar omuzdan döner)
-	for (int32 i = 0; i < 4; ++i)
+	const float Z0 = BoardTopZ;
+	// Sinek: koyu gövde, iri kırmızımsı gözler, iki saydamımsı kanat (hızlı çırpar)
+	Fly = Node(BoardRoot, FVector(0, 0, 40.f));
+	Part(Fly, SphereMesh, FVector::ZeroVector, FVector(2.2f, 1.4f, 1.3f), RGB(46, 48, 56));
+	Part(Fly, SphereMesh, FVector(1.1f, 0.45f, 0.25f), FVector(0.8f, 0.8f, 0.8f), RGB(150, 50, 44));
+	Part(Fly, SphereMesh, FVector(1.1f, -0.45f, 0.25f), FVector(0.8f, 0.8f, 0.8f), RGB(150, 50, 44));
+	for (int32 s = 0; s < 2; ++s)
 	{
-		USceneComponent* B = Node(RootComponent, FVector(0.f, 0.f, 70.f));
-		Part(B, CubeMesh, FVector::ZeroVector, FVector(2.2f, 0.9f, 0.9f), RGB(70, 66, 72));
-		for (int32 s = 0; s < 2; ++s)
+		USceneComponent* Wg = Node(Fly, FVector(0.f, s ? 0.3f : -0.3f, 0.5f));
+		Part(Wg, SphereMesh, FVector(-0.4f, s ? 1.1f : -1.1f, 0.f), FVector(1.6f, 2.2f, 0.12f), RGB(214, 226, 236));
+		FlyWings.Add(Wg);
+	}
+	// Kelebek: ince gövde, iki büyük renkli kanat (yavaş çırpar)
+	Butterfly = Node(BoardRoot, FVector(0, 0, 35.f));
+	Part(Butterfly, CylinderMesh, FVector::ZeroVector, FVector(0.6f, 0.6f, 3.f), RGB(60, 46, 40), FRotator(90.f, 0.f, 0.f));
+	for (int32 s = 0; s < 2; ++s)
+	{
+		USceneComponent* Wg = Node(Butterfly, FVector(0.f, s ? 0.2f : -0.2f, 0.f));
+		Part(Wg, SphereMesh, FVector(0.5f, s ? 1.7f : -1.7f, 0.f), FVector(2.6f, 3.2f, 0.12f), RGB(246, 176, 72));
+		Part(Wg, SphereMesh, FVector(-1.1f, s ? 1.3f : -1.3f, 0.f), FVector(1.8f, 2.2f, 0.12f), RGB(232, 128, 104));
+		Part(Wg, SphereMesh, FVector(0.6f, s ? 2.1f : -2.1f, 0.05f), FVector(0.8f, 0.8f, 0.1f), RGB(70, 50, 44));
+		ButterflyWings.Add(Wg);
+	}
+	// Uğur böceği: kırmızı kubbe, siyah baş ve orta çizgi, benekler (yollarda yürür)
+	Ladybug = Node(BoardRoot, CellLocal(FIntPoint(2, 2)));
+	Part(Ladybug, SphereMesh, FVector(0, 0, 0.7f), FVector(3.2f, 2.7f, 1.8f), RGB(214, 52, 44));
+	Part(Ladybug, SphereMesh, FVector(1.6f, 0, 0.6f), FVector(1.3f, 1.5f, 1.1f), RGB(30, 30, 34));
+	Part(Ladybug, CubeMesh, FVector(-0.1f, 0, 1.55f), FVector(3.f, 0.18f, 0.1f), RGB(30, 30, 34));
+	const FVector Dots[] = { FVector(0.5f, 0.75f, 1.4f), FVector(0.5f, -0.75f, 1.4f), FVector(-0.7f, 0.65f, 1.35f), FVector(-0.7f, -0.65f, 1.35f) };
+	for (const FVector& D : Dots)
+	{
+		Part(Ladybug, SphereMesh, D, FVector(0.55f, 0.55f, 0.3f), RGB(30, 30, 34));
+	}
+	// Örümcek ağı: tahtanın sağ köşesinde (+X, -Y) iki çöp çubuğun arasında, kameraya bakan düzlemde
+	{
+		const FVector U = FVector(1.f, -1.f, 0.f).GetSafeNormal();
+		WebCenter = FVector(54.f, -54.f, Z0 + 6.f);
+		WebRoot = Node(BoardRoot, FVector::ZeroVector);
+		const FLinearColor Silk = RGB(240, 240, 246);
+		auto Thread = [this, Silk](const FVector& A, const FVector& Bp, float Th)
 		{
-			USceneComponent* Wg = Node(B, FVector(0.f, s ? 0.4f : -0.4f, 0.2f));
-			Part(Wg, CubeMesh, FVector(0.f, s ? 1.6f : -1.6f, 0.f), FVector(1.2f, 3.2f, 0.18f), RGB(90, 86, 94));
-			BirdWings.Add(Wg);
+			const FVector D = Bp - A;
+			Part(WebRoot, CylinderMesh, (A + Bp) * 0.5f, FVector(Th, Th, D.Size()), Silk, FRotationMatrix::MakeFromZ(D.GetSafeNormal()).Rotator());
+		};
+		for (int32 s = -1; s <= 1; s += 2)
+		{
+			const FVector Base = WebCenter + U * 8.f * s;
+			Part(WebRoot, CylinderMesh, FVector(Base.X, Base.Y, 12.f + 8.f), FVector(0.6f, 0.6f, 16.f), RGB(150, 112, 74), FRotator(0.f, 0.f, 4.f * s));
 		}
-		Birds.Add(B);
+		const int32 Spokes = 9;
+		const float Rad = 6.5f;
+		TArray<FVector> Prev;
+		for (int32 r = 1; r <= 4; ++r)
+		{
+			TArray<FVector> Ring;
+			for (int32 k = 0; k < Spokes; ++k)
+			{
+				const float A = 2.f * PI * k / Spokes + 0.2f;
+				const float Rr = Rad * r / 4.f * (1.f + 0.08f * FMath::Sin(k * 2.1f));
+				Ring.Add(WebCenter + U * FMath::Cos(A) * Rr + FVector(0, 0, FMath::Sin(A) * Rr));
+			}
+			for (int32 k = 0; k < Spokes; ++k)
+			{
+				Thread(Ring[k], Ring[(k + 1) % Spokes], 0.1f);   // halka
+				Thread(r == 1 ? WebCenter : Prev[k], Ring[k], 0.12f);   // ışın
+			}
+			Prev = Ring;
+		}
+		// Dış ışınlar çubuklara ve tahtaya bağlanır
+		Thread(Prev[0], WebCenter + U * 8.f + FVector(0, 0, 4.f), 0.1f);
+		Thread(Prev[Spokes / 2], WebCenter - U * 8.f + FVector(0, 0, 3.f), 0.1f);
+		Thread(Prev[3 * Spokes / 4], FVector(WebCenter.X, WebCenter.Y, 12.f), 0.1f);
+	}
+	// Örümcek: iki parçalı gövde, sekiz bacak (yürürken sırayla kıpırdar)
+	Spider = Node(BoardRoot, WebCenter);
+	Part(Spider, SphereMesh, FVector(-0.9f, 0, 1.4f), FVector(2.4f, 2.1f, 1.8f), RGB(44, 36, 34));
+	Part(Spider, SphereMesh, FVector(0.8f, 0, 1.2f), FVector(1.3f, 1.3f, 1.1f), RGB(60, 48, 44));
+	Part(Spider, SphereMesh, FVector(1.35f, 0.3f, 1.45f), FVector(0.35f, 0.35f, 0.35f), RGB(250, 250, 250));
+	Part(Spider, SphereMesh, FVector(1.35f, -0.3f, 1.45f), FVector(0.35f, 0.35f, 0.35f), RGB(250, 250, 250));
+	for (int32 l = 0; l < 8; ++l)
+	{
+		const float Side = l < 4 ? 1.f : -1.f;
+		const float Fw = 0.9f - 0.6f * (l % 4);
+		USceneComponent* Leg = Node(Spider, FVector(0.4f * Fw, 0.4f * Side, 1.3f));
+		Leg->SetRelativeRotation(FRotator(0.f, Side * (90.f - 28.f * (l % 4 - 1.5f)), 0.f));
+		// Bacak: dışarı ve aşağı eğik ince çubuk (yerel +X dışarı)
+		Part(Leg, CylinderMesh, FVector(1.4f, 0.f, -0.5f), FVector(0.22f, 0.22f, 3.2f), RGB(40, 32, 30), FRotator(-70.f, 0.f, 0.f));
+		SpiderLegs.Add(Leg);
+	}
+	// Yol: ağdan tahtaya iner, 2. sıradaki yoldan karşı kenara yürür, geri döner
+	{
+		const float Row = -GridN * CellCm * 0.5f + 2.5f * CellCm - 2.f;
+		SpiderPath = { WebCenter, FVector(WebCenter.X, WebCenter.Y, 12.2f), FVector(50.f, Row, Z0 + 0.1f), FVector(-58.f, Row, Z0 + 0.1f) };
 	}
 	// Bulut gölgesi: yumuşak, çok saydam koyu leke (tahtanın üstünde süzülür; binalar içinden geçer)
 	const int32 N = 64;
@@ -1525,5 +1647,321 @@ void ADBWorld::BuildLife()
 		C->SetCastShadow(false);
 		C->RegisterComponent();
 		CloudShadows.Add(C);
+	}
+}
+
+// ---------------------------------------------------------------- böcekler (Andaç, 17 Ekim ~20.00: kuşlar yerine)
+
+void ADBWorld::TickBugs(float Dt, bool bLife)
+{
+	BugT += Dt;
+	const float T = BugT;
+	auto Show = [](USceneComponent* C, bool b) { if (C && C->IsVisible() != b) C->SetVisibility(b, true); };
+
+	// Sinek: 30 sn'de bir 13 sn uğrar, kasabanın üstünde zikzak çizer, ara ara havada durur
+	const float FlyCycle = FMath::Fmod(T, 30.f);
+	const bool bFly = bLife && FlyCycle < 13.f;
+	Show(Fly, bFly);
+	if (bFly && Fly)
+	{
+		const float A = FlyCycle;
+		const float Hover = 0.5f + 0.5f * FMath::Sin(A * 0.9f);   // yavaşlayıp hızlanır
+		const FVector P(FMath::Sin(A * 0.7f) * 42.f + FMath::Sin(A * 3.3f) * 6.f * Hover, FMath::Cos(A * 0.53f) * 36.f + FMath::Sin(A * 2.9f) * 5.f * Hover,
+			30.f + 7.f * FMath::Sin(A * 1.7f) + 2.f * FMath::Sin(A * 11.f));
+		const FVector V(0.7f * 42.f * FMath::Cos(A * 0.7f), -0.53f * 36.f * FMath::Sin(A * 0.53f), 0.f);
+		Fly->SetRelativeLocationAndRotation(P, V.Rotation());
+		const float Flap = 50.f * FMath::Sin(T * 95.f);
+		FlyWings[0]->SetRelativeRotation(FRotator(0.f, 0.f, Flap));
+		FlyWings[1]->SetRelativeRotation(FRotator(0.f, 0.f, -Flap));
+	}
+
+	// Kelebek: 40 sn'de bir 15 sn, geniş yavaş kıvrımlar, kanatlar yavaş çırpar
+	const float BfCycle = FMath::Fmod(T + 18.f, 40.f);
+	const bool bBf = bLife && BfCycle < 15.f;
+	Show(Butterfly, bBf);
+	if (bBf && Butterfly)
+	{
+		const float A = BfCycle * 0.35f;
+		const FVector P(-70.f + BfCycle / 15.f * 140.f, FMath::Sin(A * 1.3f) * 30.f, 26.f + 6.f * FMath::Sin(A * 2.4f) + 3.f * FMath::Abs(FMath::Sin(T * 5.f)));
+		const FVector V(140.f / 15.f, 1.3f * 0.35f * 30.f * FMath::Cos(A * 1.3f), 0.f);
+		Butterfly->SetRelativeLocationAndRotation(P, V.Rotation());
+		const float Flap = 15.f + 55.f * (0.5f + 0.5f * FMath::Sin(T * 13.f));
+		ButterflyWings[0]->SetRelativeRotation(FRotator(0.f, 0.f, Flap));
+		ButterflyWings[1]->SetRelativeRotation(FRotator(0.f, 0.f, -Flap));
+	}
+
+	// Uğur böceği: yollardan dikdörtgen bir tur (yol kenarında), yavaş; hep tahtada
+	Show(Ladybug, bLife);
+	if (bLife && Ladybug)
+	{
+		const float Off = 2.6f;
+		const TArray<FVector> Loop = { CellLocal(FIntPoint(2, 2)) + FVector(Off, Off, 0), CellLocal(FIntPoint(8, 2)) + FVector(-Off, Off, 0),
+			CellLocal(FIntPoint(8, 8)) + FVector(-Off, -Off, 0), CellLocal(FIntPoint(2, 8)) + FVector(Off, -Off, 0) };
+		float Total = 0.f;
+		for (int32 i = 0; i < 4; ++i) Total += FVector::Dist(Loop[i], Loop[(i + 1) % 4]);
+		float D = FMath::Fmod(T * 3.2f, Total);
+		for (int32 i = 0; i < 4; ++i)
+		{
+			const FVector A = Loop[i], B = Loop[(i + 1) % 4];
+			const float L = FVector::Dist(A, B);
+			if (D <= L)
+			{
+				const FVector Dir = (B - A).GetSafeNormal();
+				const FVector P = FMath::Lerp(A, B, D / L) + FVector(0, 0, 0.05f + 0.15f * FMath::Abs(FMath::Sin(T * 14.f)));
+				Ladybug->SetRelativeLocationAndRotation(P, FRotator(0.f, Dir.Rotation().Yaw + 6.f * FMath::Sin(T * 7.f), 0.f));
+				break;
+			}
+			D -= L;
+		}
+	}
+
+	// Örümcek: ağında bekler (18 sn), ipiyle tahtaya iner, yoldan karşı kenara yürür, geri gelip ağına tırmanır
+	Show(Spider, bLife);
+	Show(WebRoot, bLife);
+	if (bLife && Spider && SpiderPath.Num() >= 2)
+	{
+		float Len = 0.f;
+		for (int32 i = 0; i + 1 < SpiderPath.Num(); ++i) Len += FVector::Dist(SpiderPath[i], SpiderPath[i + 1]);
+		const float Speed = 6.5f;
+		const float Wait = 18.f;
+		const float Cycle = Wait + 2.f * Len / Speed + 3.f;
+		const float C = FMath::Fmod(T + 6.f, Cycle);
+		float Dist = 0.f;
+		bool bMoving = false;
+		if (C < Wait) Dist = 0.f;
+		else if (C < Wait + Len / Speed) { Dist = (C - Wait) * Speed; bMoving = true; }
+		else if (C < Wait + Len / Speed + 3.f) Dist = Len;   // karşı kenarda durup bakınır
+		else { Dist = FMath::Max(0.f, Len - (C - Wait - Len / Speed - 3.f) * Speed); bMoving = true; }
+		const bool bBack = C >= Wait + Len / Speed + 3.f;
+		FVector P = SpiderPath[0], Dir(1.f, 0.f, 0.f);
+		float Rem = Dist;
+		for (int32 i = 0; i + 1 < SpiderPath.Num(); ++i)
+		{
+			const float L = FVector::Dist(SpiderPath[i], SpiderPath[i + 1]);
+			if (Rem <= L || i + 2 == SpiderPath.Num())
+			{
+				P = FMath::Lerp(SpiderPath[i], SpiderPath[i + 1], FMath::Clamp(Rem / FMath::Max(L, 0.01f), 0.f, 1.f));
+				Dir = (SpiderPath[i + 1] - SpiderPath[i]).GetSafeNormal2D();
+				break;
+			}
+			Rem -= L;
+		}
+		if (bBack) Dir = -Dir;
+		if (Dir.IsNearlyZero()) Dir = FVector(-1.f, 1.f, 0.f).GetSafeNormal();
+		Spider->SetRelativeLocationAndRotation(P, FRotator(0.f, Dir.Rotation().Yaw, 0.f));
+		for (int32 l = 0; l < SpiderLegs.Num(); ++l)
+		{
+			const float Side = l < 4 ? 1.f : -1.f;
+			const float Base = Side * (90.f - 28.f * (l % 4 - 1.5f));
+			const float Step = bMoving ? 14.f * FMath::Sin(T * 16.f + (l % 2) * PI + (l / 4) * PI) : 3.f * FMath::Sin(T * 2.f + l);
+			SpiderLegs[l]->SetRelativeRotation(FRotator(0.f, Base + Step, 0.f));
+		}
+	}
+}
+
+// ---------------------------------------------------------------- fotoğraf albümü, yapılan işin izi, korna
+
+void ADBWorld::TakePhoto(int32 Slot, int32 Building)
+{
+	if (!BuildingRoots.IsValidIndex(Building) || !BoardCam)
+	{
+		return;
+	}
+	if (!PhotoCam)
+	{
+		PhotoCam = NewObject<USceneCaptureComponent2D>(this);
+		PhotoCam->SetupAttachment(RootComponent);
+		PhotoCam->bCaptureEveryFrame = false;
+		PhotoCam->bCaptureOnMovement = false;
+		PhotoCam->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
+		PhotoCam->FOVAngle = 36.f;
+		FPostProcessSettings& PP = PhotoCam->PostProcessSettings;
+		PP.bOverride_AutoExposureMinBrightness = true;
+		PP.bOverride_AutoExposureMaxBrightness = true;
+		PP.AutoExposureMinBrightness = ExposureEV100;
+		PP.AutoExposureMaxBrightness = ExposureEV100;
+		PP.bOverride_MotionBlurAmount = true;
+		PP.MotionBlurAmount = 0.f;
+		PP.bOverride_VignetteIntensity = true;
+		PP.VignetteIntensity = 0.55f;   // eski fotoğraf havası
+		PhotoCam->PostProcessBlendWeight = 1.f;
+		PhotoCam->RegisterComponent();
+	}
+	if (Photos.Num() <= Slot)
+	{
+		Photos.SetNum(Slot + 1);
+	}
+	if (!Photos[Slot])
+	{
+		UTextureRenderTarget2D* RT = NewObject<UTextureRenderTarget2D>(this);
+		RT->RenderTargetFormat = RTF_RGBA8_SRGB;
+		RT->ClearColor = FLinearColor(0.9f, 0.85f, 0.75f, 1.f);
+		RT->InitAutoFormat(480, 360);
+		RT->UpdateResourceImmediate(true);
+		Photos[Slot] = RT;
+	}
+	// Kameranın baktığı yönden, biraz daha alçaktan ve yakından: bina ve önündeki kasabalı kadrajda
+	const float Hgt = (BuildingHeights.IsValidIndex(Building) ? BuildingHeights[Building] : 20.f) * BuildingScale;
+	const FVector Target = BuildingRoots[Building]->GetComponentLocation() + FVector(0, 0, Hgt * 0.42f);
+	const FRotator R(-30.f, BoardCam->GetActorRotation().Yaw, 0.f);
+	const float Dist = 46.f + Hgt * 1.7f;
+	PhotoCam->SetWorldLocationAndRotation(Target - R.Vector() * Dist, R);
+	PhotoCam->TextureTarget = Photos[Slot];
+	PhotoCam->CaptureScene();
+}
+
+void ADBWorld::PlaceBagProp(int32 Building, const FLinearColor& Color)
+{
+	if (!BuildingRoots.IsValidIndex(Building))
+	{
+		return;
+	}
+	// Kasabalının yanında (tasarım birimi; kasabalı (-15, 7)): sırt çantası, kapak, askı, beyaz şerit
+	USceneComponent* Bag = Node(BuildingRoots[Building], FVector(-11.5f, 11.f, 1.f));
+	Bag->SetRelativeRotation(FRotator(0.f, -20.f, 0.f));
+	const FLinearColor Dark = Color * 0.7f;
+	Part(Bag, CubeMesh, FVector(0, 0, 3.4f), FVector(4.6f, 3.2f, 6.8f), Color);
+	Part(Bag, CubeMesh, FVector(-0.2f, 0, 6.2f), FVector(5.f, 3.5f, 1.8f), Dark);
+	Part(Bag, CubeMesh, FVector(0, -1.75f, 2.6f), FVector(3.f, 0.5f, 2.6f), Dark);
+	Part(Bag, CubeMesh, FVector(0, -2.05f, 2.6f), FVector(1.8f, 0.2f, 0.6f), RGB(250, 250, 250));
+	Part(Bag, CylinderMesh, FVector(0, 0, 7.6f), FVector(0.6f, 2.4f, 0.6f), Dark, FRotator(0.f, 0.f, 90.f));
+	Bag->SetRelativeScale3D(FVector(0.05f));
+	Grows.Add({ Bag, 0.f });
+}
+
+void ADBWorld::PlaceBraces(int32 Building)
+{
+	const FDBContent& C = FDBContent::Get();
+	if (!BuildingRoots.IsValidIndex(Building) || !C.Buildings.IsValidIndex(Building))
+	{
+		return;
+	}
+	// Güçlendirme: kameraya bakan iki yüzde (-X, -Y) çelik çaprazlar + kat kirişleri, köşelerde sarı plakalar
+	const FDBBuildingDef& D = C.Buildings[Building];
+	const FVector S(FMath::Min(D.Size.X, 20.f), FMath::Min(D.Size.Y, 20.f), D.Size.Z);
+	const float Base = 1.f;
+	USceneComponent* Br = Node(BuildingRoots[Building], FVector::ZeroVector);
+	const FLinearColor Steel = RGB(84, 92, 110);
+	const FLinearColor Plate = RGB(246, 196, 64);
+	const int32 Bays = FMath::Max(1, FMath::RoundToInt(S.Z / 14.f));
+	const float BayH = S.Z / Bays;
+	for (int32 Face = 0; Face < 2; ++Face)
+	{
+		const float W = Face == 0 ? S.Y : S.X;
+		const float Ang = FMath::RadiansToDegrees(FMath::Atan2(BayH, W));
+		const float L = FMath::Sqrt(W * W + BayH * BayH);
+		for (int32 b = 0; b < Bays; ++b)
+		{
+			const float Zc = Base + BayH * (b + 0.5f);
+			for (int32 s = -1; s <= 1; s += 2)
+			{
+				if (Face == 0)
+				{
+					Part(Br, CubeMesh, FVector(-S.X * 0.5f - 0.7f, 0.f, Zc), FVector(0.7f, L, 0.9f), Steel, FRotator(0.f, 0.f, s * Ang));
+				}
+				else
+				{
+					Part(Br, CubeMesh, FVector(0.f, -S.Y * 0.5f - 0.7f, Zc), FVector(L, 0.7f, 0.9f), Steel, FRotator(s * Ang, 0.f, 0.f));
+				}
+			}
+			const float Zb = Base + BayH * b;
+			Part(Br, CubeMesh, Face == 0 ? FVector(-S.X * 0.5f - 0.8f, 0.f, Zb + 0.5f) : FVector(0.f, -S.Y * 0.5f - 0.8f, Zb + 0.5f),
+				Face == 0 ? FVector(0.8f, W + 1.f, 1.f) : FVector(W + 1.f, 0.8f, 1.f), Steel);
+		}
+		Part(Br, CubeMesh, Face == 0 ? FVector(-S.X * 0.5f - 0.8f, 0.f, Base + S.Z - 0.5f) : FVector(0.f, -S.Y * 0.5f - 0.8f, Base + S.Z - 0.5f),
+			Face == 0 ? FVector(0.8f, W + 1.f, 1.f) : FVector(W + 1.f, 0.8f, 1.f), Steel);
+	}
+	for (int32 k = 0; k <= Bays; ++k)
+	{
+		Part(Br, CubeMesh, FVector(-S.X * 0.5f - 0.9f, -S.Y * 0.5f - 0.9f, Base + BayH * k), FVector(1.8f, 1.8f, 1.8f), Plate);
+	}
+	Br->SetRelativeScale3D(FVector(0.05f));
+	Grows.Add({ Br, 0.f });
+}
+
+int32 ADBWorld::CarAtScreen(const APlayerController* PC, const FVector2D& Screen, float RadiusPx) const
+{
+	int32 Best = -1;
+	float BestD = RadiusPx;
+	for (int32 i = 0; i < CarRoots.Num(); ++i)
+	{
+		FVector2D P;
+		if (PC && CarRoots[i] && PC->ProjectWorldLocationToScreen(CarRoots[i]->GetComponentLocation() + FVector(0, 0, 1.5f), P))
+		{
+			const float D = FVector2D::Distance(P, Screen);
+			if (D < BestD)
+			{
+				BestD = D;
+				Best = i;
+			}
+		}
+	}
+	return Best;
+}
+
+void ADBWorld::HonkCar(int32 Car)
+{
+	if (!CarHonkT.IsValidIndex(Car))
+	{
+		return;
+	}
+	CarHonkT[Car] = GetWorld()->GetTimeSeconds();
+	if (SfxWave)
+	{
+		// Arabanın ekrandaki yerine göre sağ / sol
+		const float Pan = FMath::Clamp(CarRoots[Car]->GetComponentLocation().Y / 80.f, -0.8f, 0.8f);
+		SfxWave->Play(EDBSfx::Horn, 0.9f, Pan, FMath::FRandRange(0.92f, 1.08f));
+	}
+}
+
+// ---------------------------------------------------------------- yan duvar: ekip logosu + jam afişi
+
+UTexture2D* ADBWorld::LoadWallPng(const FString& Rel)
+{
+	const FString Path = FPaths::ProjectContentDir() / Rel;
+	return FPaths::FileExists(Path) ? FImageUtils::ImportFileAsTexture2D(Path) : nullptr;
+}
+
+UStaticMeshComponent* ADBWorld::TexPlane(USceneComponent* Parent, const FVector& Loc, const FRotator& Rot, const FVector2D& SizeCm, UTexture* Tex, bool bTranslucent)
+{
+	UStaticMeshComponent* C = NewObject<UStaticMeshComponent>(this);
+	C->SetMobility(EComponentMobility::Movable);
+	C->SetStaticMesh(PlaneMesh);
+	C->SetupAttachment(Parent);
+	C->SetRelativeLocationAndRotation(Loc, Rot);
+	C->SetRelativeScale3D(FVector(SizeCm.X / 100.f, SizeCm.Y / 100.f, 1.f));
+	UMaterialInstanceDynamic* Mid = UMaterialInstanceDynamic::Create(bTranslucent ? PuffMaterial : PageMaterial, this);
+	Mid->SetTextureParameterValue(TEXT("SlateUI"), Tex);
+	C->SetMaterial(0, Mid);
+	C->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	C->SetCastShadow(false);
+	C->RegisterComponent();
+	return C;
+}
+
+void ADBWorld::BuildWallArt()
+{
+	// Yan duvar (Y = WallY, odaya -Y bakar). Menü kamerasından takvimin sağında görünür. Düzlemin X'i bakanın sağına
+	// (-X), Y'si aşağı, normali odaya. Dosya yoksa çerçeve boş kalmaz: düz renkli pano.
+	const FRotator Face = FMatrix(FVector(-1, 0, 0), FVector(0, 0, -1), FVector(0, -1, 0), FVector::ZeroVector).Rotator();
+	struct FArt { const TCHAR* File; FVector2D Size; float X, Z; FLinearColor Fallback; };
+	const FArt Arts[] = {
+		{ TEXT("Arayuz/duvar_afis.png"), FVector2D(44.f, 62.f), 2.f, 82.f, RGB(232, 128, 104) },
+		{ TEXT("Arayuz/duvar_logo.png"), FVector2D(34.f, 34.f), -52.f, 96.f, RGB(96, 170, 164) },
+	};
+	for (const FArt& A : Arts)
+	{
+		const float Y = WallY - 1.3f;   // çerçevenin (WallY - 0,8) önünde
+		// Ahşap çerçeve (arkada) + raptiye
+		Part(WallYRoot, CubeMesh, FVector(A.X, WallY - 0.4f, A.Z), FVector(A.Size.X + 3.f, 0.8f, A.Size.Y + 3.f), RGB(150, 104, 66));
+		Part(WallYRoot, SphereMesh, FVector(A.X, Y - 0.6f, A.Z + A.Size.Y * 0.5f - 2.f), FVector(1.6f, 1.6f, 1.6f), RGB(214, 76, 66));
+		if (UTexture2D* T = LoadWallPng(A.File))
+		{
+			TexPlane(WallYRoot, FVector(A.X, Y, A.Z), Face, A.Size, T, false);
+		}
+		else
+		{
+			Part(WallYRoot, CubeMesh, FVector(A.X, Y + 0.1f, A.Z), FVector(A.Size.X, 0.4f, A.Size.Y), A.Fallback);
+		}
 	}
 }

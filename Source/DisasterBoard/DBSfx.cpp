@@ -192,6 +192,206 @@ namespace
 		return B;
 	}
 
+	// İki kutuplu rezonatör (formant): konuşma sesindeki ağız boşluğu
+	struct FReso
+	{
+		float Y1 = 0.f, Y2 = 0.f, A0 = 0.f, B1 = 0.f, B2 = 0.f;
+		FReso(float F, float Bw)
+		{
+			const float R = FMath::Exp(-PI * Bw / SR);
+			B1 = 2.f * R * FMath::Cos(2.f * PI * F / SR);
+			B2 = -R * R;
+			A0 = 1.f - R;
+		}
+		float Run(float X) { const float Y = A0 * X + B1 * Y1 + B2 * Y2; Y2 = Y1; Y1 = Y; return Y; }
+	};
+
+	// Hece: titreşen ses tellerinin darbe dizisi üç formanttan geçer, başta kısa ünsüz tıkı (Tomodachi Life'taki
+	// sentez konuşma gibi). F0 hecenin içinde hafifçe kayar.
+	void AddSyllable(TArray<float>& B, float Start, float Dur, float F1, float F2, float F3, float F0a, float F0b, float Amp, uint32 Seed)
+	{
+		FReso R1(F1, 90.f), R2(F2, 130.f), R3(F3, 200.f);
+		FNoise N(Seed);
+		FLowpass L;
+		float Ph = 0.f;
+		const int32 S0 = FMath::RoundToInt(Start * SR);
+		const int32 Len = FMath::RoundToInt(Dur * SR);
+		for (int32 k = 0; k < Len && S0 + k < B.Num(); ++k)
+		{
+			const float T = k / SR;
+			const float U = T / Dur;
+			const float F0 = FMath::Lerp(F0a, F0b, U);
+			Ph += F0 / SR;
+			Ph -= FMath::FloorToFloat(Ph);
+			const float Glottal = (Ph < 0.4f ? FMath::Sin(PI * Ph / 0.4f) : 0.f) - 0.25f;   // yumuşak darbe
+			const float Src = Glottal + 0.04f * N.Next();
+			const float V = R1.Run(Src) * 1.f + R2.Run(Src) * 0.55f + R3.Run(Src) * 0.25f;
+			const float E = FMath::Min(1.f, T / 0.012f) * FMath::Min(1.f, (Dur - T) / 0.035f);
+			const float Cons = L.Run(N.Next(), 0.5f) * FMath::Exp(-T / 0.006f) * 0.25f;
+			B[S0 + k] += (V * 3.f * E + Cons) * Amp;
+		}
+	}
+
+	TArray<float> SynthVowel(float F1, float F2, float F3, uint32 Seed)
+	{
+		TArray<float> B = Make(0.12f);
+		AddSyllable(B, 0.f, 0.115f, F1, F2, F3, 230.f, 205.f, 1.f, Seed);
+		return B;
+	}
+
+	// Kasabalı selamı: "hı-hı?" iki hece, ikincisi yükselir
+	TArray<float> SynthGreet()
+	{
+		TArray<float> B = Make(0.34f);
+		AddSyllable(B, 0.f, 0.12f, 500.f, 1900.f, 2500.f, 210.f, 200.f, 1.f, 21);
+		AddSyllable(B, 0.15f, 0.17f, 800.f, 1200.f, 2500.f, 205.f, 290.f, 1.f, 22);
+		return B;
+	}
+
+	// Korna: iki kısa "bip", iki tonlu (400 + 500 Hz), kare dalga yumuşatılmış
+	TArray<float> SynthHorn()
+	{
+		TArray<float> B = Make(0.42f);
+		FLowpass L;
+		for (int32 i = 0; i < B.Num(); ++i)
+		{
+			const float T = i / SR;
+			const bool bOn = T < 0.14f || (T > 0.2f && T < 0.38f);
+			const float Tl = T < 0.17f ? T : T - 0.2f;
+			const float Lim = T < 0.17f ? 0.14f : 0.18f;
+			const float E = bOn ? FMath::Min(1.f, Tl / 0.01f) * FMath::Min(1.f, (Lim - Tl) / 0.02f) : 0.f;
+			const float Sq = (FMath::Sin(2.f * PI * 400.f * T) > 0.f ? 1.f : -1.f) + (FMath::Sin(2.f * PI * 500.f * T) > 0.f ? 1.f : -1.f);
+			B[i] = L.Run(Sq, 0.18f) * E * 0.5f;
+		}
+		return B;
+	}
+
+	// Tarayıcı: yükselip inen radar süpürmesi, düzenli "bip"ler, altta uğultu
+	TArray<float> SynthScan()
+	{
+		const float Dur = 2.9f;
+		TArray<float> B = Make(Dur);
+		float Ph = 0.f;
+		for (int32 i = 0; i < B.Num(); ++i)
+		{
+			const float T = i / SR;
+			const float U = T / Dur;
+			const float Shape = FMath::Min(1.f, T / 0.15f) * FMath::Min(1.f, (Dur - T) / 0.4f);
+			const float F = 520.f + 520.f * FMath::Sin(PI * U) + 60.f * FMath::Sin(T * 2.f * PI * 6.f);
+			Ph += 2.f * PI * F / SR;
+			const float Sweep = FMath::Sin(Ph) * 0.18f * (0.6f + 0.4f * FMath::Sin(T * 2.f * PI * 12.f));
+			const float Hum = FMath::Sin(2.f * PI * 110.f * T) * 0.12f + FMath::Sin(2.f * PI * 220.f * T) * 0.05f;
+			const float Tp = FMath::Fmod(T, 0.32f);
+			const float Ping = FMath::Sin(2.f * PI * 1760.f * Tp) * FMath::Exp(-Tp / 0.05f) * 0.35f;
+			B[i] = (Sweep + Hum + Ping) * Shape;
+		}
+		return B;
+	}
+
+	// Bant: döngü parçası (0,45 sn): motor uğultusu tam 40 periyot (dikişsiz) + üç makara tıkırtısı
+	TArray<float> SynthBelt()
+	{
+		const float Dur = 0.45f;
+		TArray<float> B = Make(Dur);
+		FNoise N(31);
+		FLowpass L;
+		const float F = 40.f / Dur;
+		for (int32 i = 0; i < B.Num(); ++i)
+		{
+			const float T = i / SR;
+			const float Hum = FMath::Sin(2.f * PI * F * T) * 0.22f + FMath::Sin(4.f * PI * F * T) * 0.08f;
+			const float Tc = FMath::Fmod(T, 0.15f);
+			const float Clack = L.Run(N.Next(), 0.45f) * FMath::Exp(-Tc / 0.007f) * 0.6f
+				+ FMath::Sin(2.f * PI * 900.f * Tc) * FMath::Exp(-Tc / 0.012f) * 0.15f;
+			B[i] = Hum + Clack;
+		}
+		return B;
+	}
+
+	// Çanta: üç eşya içine düşer (tok, perdesi düşen), fermuar kapanır (hızlanan tıkırtı), sonda "çıt"
+	TArray<float> SynthPack()
+	{
+		TArray<float> B = Make(0.9f);
+		FNoise N(41);
+		FLowpass L, Lz;
+		for (int32 d = 0; d < 3; ++d)
+		{
+			const int32 S0 = FMath::RoundToInt((0.04f + d * 0.1f) * SR);
+			float Ph = 0.f;
+			for (int32 k = 0; k < (int32)(0.12f * SR) && S0 + k < B.Num(); ++k)
+			{
+				const float T = k / SR;
+				Ph += 2.f * PI * (110.f + 140.f * FMath::Exp(-T / 0.03f) + d * 20.f) / SR;
+				B[S0 + k] += FMath::Sin(Ph) * FMath::Exp(-T / 0.05f) * 0.7f + L.Run(N.Next(), 0.3f) * FMath::Exp(-T / 0.006f) * 0.4f;
+			}
+		}
+		// Fermuar 0,38 → 0,72 sn: dişler giderek sıklaşır
+		float Zp = 0.f;
+		for (int32 i = FMath::RoundToInt(0.38f * SR); i < FMath::RoundToInt(0.72f * SR); ++i)
+		{
+			const float T = i / SR - 0.38f;
+			Zp += (70.f + 260.f * T / 0.34f) / SR;
+			const float Tooth = FMath::Exp(-(Zp - FMath::FloorToFloat(Zp)) * 40.f);
+			const float Raw = N.Next();
+			B[i] += (Raw - Lz.Run(Raw, 0.3f)) * Tooth * 0.9f;
+		}
+		for (int32 k = 0; k < (int32)(0.05f * SR); ++k)
+		{
+			const int32 I = FMath::RoundToInt(0.75f * SR) + k;
+			const float T = k / SR;
+			B[I] += (FMath::Sin(2.f * PI * 2400.f * T) * 0.5f + N.Next() * 0.4f) * FMath::Exp(-T / 0.006f);
+		}
+		return B;
+	}
+
+	// Başarım: hızlı yükselen arpej (Do-Mi-Sol-Do) + pırıltı
+	TArray<float> SynthFanfare()
+	{
+		TArray<float> B = Make(1.2f);
+		const float Notes[4] = { 1046.5f, 1318.5f, 1568.f, 2093.f };
+		for (int32 n = 0; n < 4; ++n)
+		{
+			const int32 S0 = FMath::RoundToInt(n * 0.075f * SR);
+			for (int32 k = 0; S0 + k < B.Num(); ++k)
+			{
+				const float T = k / SR;
+				const float E = Env(T, 0.004f, n == 3 ? 0.45f : 0.2f);
+				B[S0 + k] += (FMath::Sin(2.f * PI * Notes[n] * T) + 0.3f * FMath::Sin(4.f * PI * Notes[n] * T) + 0.1f * FMath::Sin(6.f * PI * Notes[n] * T)) * E * 0.3f;
+			}
+		}
+		FNoise R(51);
+		for (int32 s = 0; s < 10; ++s)
+		{
+			const int32 S0 = FMath::RoundToInt((0.3f + 0.06f * s) * SR);
+			const float F = 3000.f + 1500.f * (R.Next() * 0.5f + 0.5f);
+			for (int32 k = 0; k < (int32)(0.06f * SR) && S0 + k < B.Num(); ++k)
+			{
+				const float T = k / SR;
+				B[S0 + k] += FMath::Sin(2.f * PI * F * T) * FMath::Exp(-T / 0.015f) * 0.08f;
+			}
+		}
+		return B;
+	}
+
+	// Deklanşör: perde açılır-kapanır (iki kuru tık) + kısa mekanizma hışırtısı
+	TArray<float> SynthShutter()
+	{
+		TArray<float> B = Make(0.2f);
+		FNoise N(61);
+		FLowpass L;
+		for (int32 i = 0; i < B.Num(); ++i)
+		{
+			const float T = i / SR;
+			const float Raw = N.Next();
+			const float Hi = Raw - L.Run(Raw, 0.2f);
+			const float C1 = FMath::Exp(-T / 0.004f);
+			const float C2 = T > 0.07f ? FMath::Exp(-(T - 0.07f) / 0.005f) : 0.f;
+			const float Whir = (T > 0.01f && T < 0.07f) ? 0.15f : 0.f;
+			B[i] = Hi * (C1 + C2 * 0.8f + Whir) + FMath::Sin(2.f * PI * 1800.f * T) * C1 * 0.3f;
+		}
+		return B;
+	}
+
 	void Normalize(TArray<float>& B, float Peak)
 	{
 		float M = 0.f;
@@ -228,6 +428,19 @@ const TArray<float>& UDBSfxWave::Bank(int32 Id)
 		Banks[(int32)EDBSfx::Splash] = SynthSplash(); Normalize(Banks[(int32)EDBSfx::Splash], 0.6f);
 		Banks[(int32)EDBSfx::Good] = SynthGood();    Normalize(Banks[(int32)EDBSfx::Good], 0.55f);
 		Banks[(int32)EDBSfx::Bad] = SynthBad();      Normalize(Banks[(int32)EDBSfx::Bad], 0.5f);
+		// Ünlüler: F1, F2, F3 (Hz)
+		Banks[(int32)EDBSfx::VoA] = SynthVowel(800.f, 1250.f, 2600.f, 11); Normalize(Banks[(int32)EDBSfx::VoA], 0.42f);
+		Banks[(int32)EDBSfx::VoE] = SynthVowel(500.f, 1900.f, 2600.f, 12); Normalize(Banks[(int32)EDBSfx::VoE], 0.42f);
+		Banks[(int32)EDBSfx::VoI] = SynthVowel(320.f, 2300.f, 3000.f, 13); Normalize(Banks[(int32)EDBSfx::VoI], 0.4f);
+		Banks[(int32)EDBSfx::VoO] = SynthVowel(500.f, 880.f, 2450.f, 14);  Normalize(Banks[(int32)EDBSfx::VoO], 0.42f);
+		Banks[(int32)EDBSfx::VoU] = SynthVowel(340.f, 800.f, 2300.f, 15);  Normalize(Banks[(int32)EDBSfx::VoU], 0.42f);
+		Banks[(int32)EDBSfx::Greet] = SynthGreet();  Normalize(Banks[(int32)EDBSfx::Greet], 0.5f);
+		Banks[(int32)EDBSfx::Horn] = SynthHorn();    Normalize(Banks[(int32)EDBSfx::Horn], 0.5f);
+		Banks[(int32)EDBSfx::Scan] = SynthScan();    Normalize(Banks[(int32)EDBSfx::Scan], 0.45f);
+		Banks[(int32)EDBSfx::Belt] = SynthBelt();    Normalize(Banks[(int32)EDBSfx::Belt], 0.4f);
+		Banks[(int32)EDBSfx::Pack] = SynthPack();    Normalize(Banks[(int32)EDBSfx::Pack], 0.6f);
+		Banks[(int32)EDBSfx::Fanfare] = SynthFanfare(); Normalize(Banks[(int32)EDBSfx::Fanfare], 0.55f);
+		Banks[(int32)EDBSfx::Shutter] = SynthShutter(); Normalize(Banks[(int32)EDBSfx::Shutter], 0.55f);
 		bBuilt = true;
 	}
 	return Banks[FMath::Clamp(Id, 0, (int32)EDBSfx::Count - 1)];

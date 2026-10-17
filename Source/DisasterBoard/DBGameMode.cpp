@@ -36,6 +36,8 @@ void ADBGameMode::StartPlay()
 	Solved.Init(false, C.Problems.Num());
 	RevealTime.Init(-100.f, C.Problems.Num());
 	SolveTime.Init(-100.f, C.Problems.Num());
+	PhotoDueAt.Init(-1.f, C.Problems.Num());
+	AchUnlocked.Init(false, Achievements().Num());
 	Money = C.StartMoney;
 
 	World = GetWorld()->SpawnActor<ADBWorld>();
@@ -116,6 +118,48 @@ void ADBGameMode::Tick(float Dt)
 	if (World)
 	{
 		World->bLifeVisible = IsBoardPhase();
+	}
+
+	// Başarım kartları sırayla
+	if (AchQueue.Num() > 0 && Now - AchShowTime >= AchShowSeconds)
+	{
+		AchShowing = AchQueue[0];
+		AchQueue.RemoveAt(0);
+		AchShowTime = Now;
+		PlaySfx(EDBSfx::Fanfare, 0.9f);
+	}
+	// Fotoğraf: çözülen isteğin binası, önlem / çanta yerine oturduktan sonra
+	for (int32 p = 0; p < PhotoDueAt.Num(); ++p)
+	{
+		if (PhotoDueAt[p] >= 0.f && Now >= PhotoDueAt[p] && World && !World->IsBoardTurning())
+		{
+			PhotoDueAt[p] = -1.f;
+			World->TakePhoto(p, FDBContent::Get().Problems[p].Building);
+			LastPhoto = p;
+			LastPhotoTime = Now;
+			PlaySfx(EDBSfx::Shutter, 0.7f, 0.5f);
+		}
+	}
+	// Karakter sesi: rehberler konuşurken ve kasabalı balonu yazılırken
+	if (const FDBLine* L = CurrentLine())
+	{
+		const float Pitch[] = { 1.f, 1.22f, 0.86f };
+		VoiceTick(L->Text, VisibleChars(), Pitch[FMath::Clamp((int32)L->Who, 0, 2)]);
+	}
+	else if (NpcBuilding >= 0 && Phase == EDBPhase::Play)
+	{
+		const FString T = NpcText();
+		VoiceTick(T, FMath::Min(T.Len(), FMath::FloorToInt((Now - NpcTime) * TalkCharsPerSecond)), NpcVoicePitch());
+	}
+	else
+	{
+		VoiceChars = 0;
+	}
+	// Bant sesi: çanta akarken tıkırdayan makara (hızlıyken perdesi yükselir)
+	if (IsBeltRunning() && Now - BeltSoundAt >= UDBSfxWave::Length(EDBSfx::Belt) / (bBeltFast ? 1.5f : 1.f) - 0.02f)
+	{
+		BeltSoundAt = Now;
+		PlaySfx(EDBSfx::Belt, 0.42f, 0.55f, bBeltFast ? 1.5f : 1.f);
 	}
 
 	switch (Phase)
@@ -231,12 +275,13 @@ float ADBGameMode::FarkindalikYuzde() const
 
 void ADBGameMode::PauseToCalendar()
 {
-	if (!bMenuConfirm || bPausedGame)
+	if (!CanPause())
 	{
 		return;
 	}
 	bMenuConfirm = false;
 	bPausedGame = true;
+	bBeltFast = false;
 	SavedPhase = Phase;
 	ClearSelection();
 	CloseNpc();
@@ -280,7 +325,84 @@ int32 ADBGameMode::DoLineTarget() const
 	if (IsTalking(C.IntroA, 2)) return 1;
 	if (IsTalking(C.PanelIntroC, 1)) return 2;
 	if (IsTalking(C.PanelIntroC, 4)) return 3;
+	if (IsTalking(C.PanelIntroC, 5)) return 4;
 	return 0;
+}
+
+// ---------------------------------------------------------------- başarımlar, karakter sesi
+
+const TArray<ADBGameMode::FAchievement>& ADBGameMode::Achievements()
+{
+	static const TArray<FAchievement> A = {
+		{ TEXT("İlk Adım"), TEXT("İlk isteği çöz") },
+		{ TEXT("Çanta Ustası"), TEXT("Bütün çanta siparişlerini teslim et") },
+		{ TEXT("Sel Bekçisi"), TEXT("İki rögar kapağını da yerine oturt") },
+		{ TEXT("Usta Tamirci"), TEXT("Yangın musluğunu anahtarla onar") },
+		{ TEXT("Döndür Bakalım"), TEXT("Tahtayı döndür") },
+		{ TEXT("İyi Komşu"), TEXT("Bütün kasabalılarla konuş") },
+		{ TEXT("Kasaba Hazır"), TEXT("Bütün istekleri çöz") },
+		{ TEXT("Hatasız"), TEXT("Kasabayı hiç hata yapmadan hazırla") },
+	};
+	return A;
+}
+
+void ADBGameMode::Unlock(int32 Index)
+{
+	if (!AchUnlocked.IsValidIndex(Index) || AchUnlocked[Index])
+	{
+		return;
+	}
+	AchUnlocked[Index] = true;
+	AchQueue.Add(Index);
+	UE_LOG(LogDB, Log, TEXT("DB_BASARIM %d %s"), Index, Achievements()[Index].Name);
+}
+
+int32 ADBGameMode::NumAchieved() const
+{
+	int32 N = 0;
+	for (bool b : AchUnlocked) N += b ? 1 : 0;
+	return N;
+}
+
+float ADBGameMode::NpcVoicePitch() const
+{
+	// Her kasabalının kendi perdesi (çocuklar / gençler ince, yaşlılar kalın): bina sırasından tekrarlanabilir
+	const float P[] = { 1.08f, 1.35f, 0.92f, 0.8f, 1.18f, 0.95f, 1.28f, 0.88f, 1.42f, 1.12f, 0.84f, 1.02f };
+	return P[FMath::Abs(NpcBuilding) % 12];
+}
+
+void ADBGameMode::VoiceTick(const FString& Text, int32 Visible, float Pitch)
+{
+	if (Visible < VoiceChars || !FMath::IsNearlyEqual(Pitch, VoiceSpeaker))
+	{
+		VoiceChars = 0;   // yeni satır / yeni konuşan
+		VoiceSpeaker = Pitch;
+	}
+	for (; VoiceChars < Visible && VoiceChars < Text.Len(); ++VoiceChars)
+	{
+		// Tomodachi Life gibi: her sesli harf bir hece; hece sesi harfe göre (a e ı/i o/ö u/ü), perde konuşana göre
+		const TCHAR Ch = FChar::ToLower(Text[VoiceChars]);
+		EDBSfx V = EDBSfx::Count;
+		switch (Ch)
+		{
+		case TEXT('a'): V = EDBSfx::VoA; break;
+		case TEXT('e'): V = EDBSfx::VoE; break;
+		case TEXT('i'): case 0x0131: case TEXT('I'): case 0x0130: V = EDBSfx::VoI; break;
+		case TEXT('o'): case 0x00F6: case 0x00D6: V = EDBSfx::VoO; break;
+		case TEXT('u'): case 0x00FC: case 0x00DC: V = EDBSfx::VoU; break;
+		default: break;
+		}
+		if (V != EDBSfx::Count && Now - VoiceAt >= 0.075f)
+		{
+			VoiceAt = Now;
+			// Cümle sonuna yaklaştıkça perde biraz iner, soru işaretiyle biterse kalkar (konuşma melodisi)
+			const bool bQuestion = Text.EndsWith(TEXT("?"));
+			const float U = Text.Len() > 0 ? (float)VoiceChars / Text.Len() : 0.f;
+			const float Melody = bQuestion ? 1.f + 0.18f * U * U : 1.f - 0.1f * U;
+			const float Jitter = 1.f + 0.07f * FMath::Sin(VoiceChars * 2.3f + Pitch * 7.f);
+			PlaySfx(V, 0.5f, 0.f, Pitch * Melody * Jitter);
+		}
+	}
 }
 
 void ADBGameMode::PlaySfx(EDBSfx Id, float Volume, float Pan, float Pitch, float PanTo)
@@ -502,6 +624,7 @@ void ADBGameMode::StartScan()
 	}
 	World->StartScan(ScanSeconds);
 	SetPhase(EDBPhase::Scanning);
+	PlaySfx(EDBSfx::Scan, 1.f, -0.6f, 1.f, 0.6f);
 }
 
 void ADBGameMode::OpenPanel()
@@ -526,9 +649,17 @@ void ADBGameMode::ShowNpc(int32 Building)
 	TalkedResidents.Add(Building);
 	NpcBuilding = Building;
 	NpcTime = Now;
+	VoiceChars = 0;
 	if (P != INDEX_NONE && Solved[P]) NpcKind = 2;
 	else if (P != INDEX_NONE && Revealed[P]) NpcKind = 1;
 	else NpcKind = 0;
+	// Kasabalı seslenir ("Hm?"): kısa iki hece, kendi perdesinde; figürü zıplar
+	PlaySfx(EDBSfx::Greet, 0.8f, 0.f, NpcVoicePitch());
+	World->JiggleBuilding(Building);
+	if (TalkedResidents.Num() >= C.Residents.Num())
+	{
+		Unlock(5);
+	}
 }
 
 FString ADBGameMode::NpcText() const
@@ -609,6 +740,7 @@ void ADBGameMode::ApplyManhole(FIntPoint Cell)
 	if (Covered == C.FloodCells.Num() && Solved.IsValidIndex(FP) && Revealed[FP] && !Solved[FP])
 	{
 		ShowToast(FString::Printf(TEXT("Rögar kapakları tamam (-%d TL). Su artık akıp gidiyor!"), Cost), false, C.Problems[FP].Building);
+		Unlock(2);
 		Solve(FP, C.Problems[FP].Building);
 	}
 	else
@@ -621,10 +753,21 @@ void ADBGameMode::ApplyManhole(FIntPoint Cell)
 
 void ADBGameMode::TurnBoard(int32 Dir)
 {
-	if (World && Mini == EDBMini::None && (Phase == EDBPhase::Play || Phase == EDBPhase::BagPrep || Phase == EDBPhase::WaitScan))
+	// Yiğit'in "oklara ya da Q / E'ye bas" satırında da döner; döndürünce satır geçer
+	const bool bLesson = DoLineTarget() == 4;
+	if (World && Mini == EDBMini::None && (bLesson || Phase == EDBPhase::Play || Phase == EDBPhase::BagPrep || Phase == EDBPhase::WaitScan))
 	{
 		CloseNpc();
 		World->TurnBoard(Dir);
+		Unlock(4);
+		if (bLesson)
+		{
+			if (!IsLineComplete())
+			{
+				AdvanceTalk();
+			}
+			AdvanceTalk();
+		}
 	}
 }
 
@@ -782,6 +925,7 @@ void ADBGameMode::FinishMini()
 		const FDBToolDef& T = C.Tools[C.WrenchTool];
 		Money -= T.Cost;
 		ShowToast(FString::Printf(TEXT("%s: %s (-%d TL). %s riskine hazır!"), *C.Buildings[MiniBuilding].Name, *T.Done, T.Cost, *C.Problems[MiniProblem].Hazard), false, MiniBuilding);
+		Unlock(3);
 		Solve(MiniProblem, MiniBuilding);
 	}
 }
@@ -804,6 +948,10 @@ TArray<int32> ADBGameMode::PendingOrders() const
 
 void ADBGameMode::ResetBag()
 {
+	if (bPacking)
+	{
+		return;   // çanta kapanıyor: teslim bitsin
+	}
 	bBagOnBelt = true;
 	BagT = 0.f;
 	BagKit = -1;
@@ -812,7 +960,7 @@ void ADBGameMode::ResetBag()
 
 void ADBGameMode::SelectOrder(int32 Problem)
 {
-	if (!PendingOrders().Contains(Problem) || Problem == OrderProblem)
+	if (!PendingOrders().Contains(Problem) || Problem == OrderProblem || bPacking)
 	{
 		return;
 	}
@@ -837,6 +985,16 @@ void ADBGameMode::TickBelt(float Dt)
 	if (!bPanelOpen)
 	{
 		return;   // masa kapalıyken bant bekler
+	}
+	// Paket çantaya düştü, çanta kapandı: şimdi teslim
+	if (bPacking)
+	{
+		if (Now - PackStartAt >= PackSeconds)
+		{
+			bPacking = false;
+			DeliverBag();
+		}
+		return;
 	}
 	// Sipariş masa açılır açılmaz seçilir (Asil anlatırken kart boş kalmasın)
 	if (OrderProblem < 0 || Solved[OrderProblem])
@@ -863,7 +1021,15 @@ void ADBGameMode::TickBelt(float Dt)
 		BagT += Dt / FMath::Max(1.f, BeltSeconds) * (bBeltFast ? BeltFastFactor : 1.f);
 		if (BagT >= 1.f)
 		{
-			DeliverBag();
+			// Bandın dibindeki açık çantaya düşer, çanta kapanır (HUD canlandırır), sonra teslim
+			BagT = 1.f;
+			bPacking = true;
+			bBeltFast = false;
+			PackStartAt = Now;
+			PackKit = BagKit;
+			PackItems = BagPersonal;
+			PackProblem = OrderProblem;
+			PlaySfx(EDBSfx::Pack, 0.9f);
 		}
 	}
 }
@@ -1233,6 +1399,17 @@ void ADBGameMode::Solve(int32 Problem, int32 Building)
 	SelTool = -1;
 	World->PopBuilding(Building);
 	World->ClearHaze(Building);
+	const FDBProblemDef& Pd = FDBContent::Get().Problems[Problem];
+	// Yapılan iş kasabada görünür: kapının önünde çanta, güçlendirilen binada çelik çaprazlar
+	if (Pd.Kit >= 0)
+	{
+		World->PlaceBagProp(Building, FDBContent::Get().Kits[Pd.Kit].Color);
+	}
+	if (Pd.Tool >= 0 && Pd.Tool == FDBContent::Get().BraceTool)
+	{
+		World->PlaceBraces(Building);
+	}
+	PhotoDueAt[Problem] = Now + (Pd.Tool >= 0 && Pd.Tool == FDBContent::Get().EvacuateTool ? 2.6f : 1.1f);
 	if (Building == FDBContent::Get().HydrantBuilding)
 	{
 		World->RepairHydrant();
@@ -1251,9 +1428,25 @@ void ADBGameMode::Solve(int32 Problem, int32 Building)
 		World->StartEvacuation(Building, C.ShelterBuilding);
 	}
 	UE_LOG(LogDB, Log, TEXT("DB_SOLVE sorun=%d bina=%d toplam=%d/%d"), Problem, Building, NumSolved(), Solved.Num());
+	Unlock(0);
+	bool bBagsLeft = false;
+	for (int32 p = 0; p < C.Problems.Num(); ++p)
+	{
+		bBagsLeft |= C.Problems[p].Kit >= 0 && !Solved[p];
+	}
+	if (!bBagsLeft && C.Problems[Problem].Kit >= 0)
+	{
+		Unlock(1);
+		BagsDoneAt = Now;
+	}
 	if (NumSolved() == Solved.Num())
 	{
 		AllSolvedAt = Now;
+		Unlock(6);
+		if (Mistakes == 0)
+		{
+			Unlock(7);
+		}
 	}
 }
 

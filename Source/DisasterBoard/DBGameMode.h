@@ -89,13 +89,49 @@ public:
 	float WindTime = -100.f;     // HUD: takvime yaklaşırken yandan rüzgar çizgileri
 	bool bBeltFast = false;      // TESLİM basılı tutuluyor: bant hızlı akar (PlayerController bırakınca kapatır)
 	UPROPERTY(EditAnywhere, Category = "DB") float BeltFastFactor = 4.f;
-	bool bMenuConfirm = false;   // duraklatma menüsü açık (Oyuna devam / Takvime dön / Ana menü)
+	bool bMenuConfirm = false;   // duraklatma menüsü açık (Oyuna devam / Takvime dön / Ana menü): Esc
 	void AskMenu() { if (Mini == EDBMini::None) { bMenuConfirm = true; CloseNpc(); } }
-	// Takvime dön: ilerleme korunur, takvimde "Devam et" ile kalınan yere dönülür
+	// Takvime dön: ilerleme korunur, takvimde "Oyuna devam et" ile kalınan yere dönülür. Menü düğmesi doğrudan buraya.
 	bool bPausedGame = false;
 	EDBPhase SavedPhase = EDBPhase::Play;
+	bool CanPause() const { return !bPausedGame && Mini == EDBMini::None && (Phase == EDBPhase::Play || Phase == EDBPhase::BagPrep || Phase == EDBPhase::WaitScan || Phase == EDBPhase::Talk); }
 	void PauseToCalendar();
 	void ResumeFromCalendar();
+
+	// Başarımlar (Andaç, 17 Ekim ~19.30): açılınca sağ üstte kart + çan + konfeti; sonuç albümünde ve duraklatmada listelenir
+	struct FAchievement { const TCHAR* Name; const TCHAR* Desc; };
+	static const TArray<FAchievement>& Achievements();
+	TArray<bool> AchUnlocked;
+	TArray<int32> AchQueue;      // aynı anda açılanlar sırayla gösterilir
+	int32 AchShowing = -1;
+	float AchShowTime = -100.f;
+	static constexpr float AchShowSeconds = 3.2f;
+	void Unlock(int32 Index);
+	int32 NumAchieved() const;
+	float BagsDoneAt = -1.f;     // bütün çanta siparişleri teslim edildi: masa açık kalırsa Asil kapatmayı söyler
+
+	// Fotoğraf albümü: her çözülen istek için binanın fotoğrafı (ADBWorld::TakePhoto), sonuç ekranında polaroid
+	TArray<float> PhotoDueAt;
+	int32 LastPhoto = -1;        // HUD: oyunda köşede küçük polaroid (fotoğraf çekildi)
+	float LastPhotoTime = -100.f;
+	bool BagsDoneHint() const { return Phase == EDBPhase::Play && bPanelOpen && BagsDoneAt >= 0.f && Now - BagsDoneAt > 2.5f && PendingOrders().Num() == 0; }
+
+	// Tomodachi Life gibi karakter sesi: yazı akarken her sesli harfte kısa bir hece (konuşana göre perde)
+	int32 VoiceChars = 0;
+	float VoiceAt = -100.f;
+	float VoiceSpeaker = 1.f;
+	void VoiceTick(const FString& Text, int32 Visible, float Pitch);
+	float NpcVoicePitch() const;
+	float BeltSoundAt = -100.f;
+
+	// Çanta teslimi (Andaç: TESLİM düğmesi yerine çanta): bandın dibine varan paket açık çantaya düşer, çanta kapanır,
+	// sonra teslim edilir. HUD bu sürelere göre canlandırır.
+	static constexpr float PackSeconds = 0.9f;
+	float PackStartAt = -100.f;
+	bool bPacking = false;
+	int32 PackKit = -1;
+	TArray<int32> PackItems;
+	int32 PackProblem = -1;
 
 	// Kasaba Hazırlık % (çözülen istekler) ve Şehir Farkındalık % (konuşulan kasabalılar + çözülenler, revizyon 11-12)
 	TSet<int32> TalkedResidents;
@@ -155,7 +191,7 @@ public:
 	TArray<int32> BagPersonal;
 	float DeliverTime = -100.f;
 	bool bDeliverOk = false;
-	bool IsBeltRunning() const { return bPanelOpen && (Phase == EDBPhase::BagPrep || Phase == EDBPhase::Play) && OrderProblem >= 0 && bBagOnBelt; }
+	bool IsBeltRunning() const { return bPanelOpen && (Phase == EDBPhase::BagPrep || Phase == EDBPhase::Play) && OrderProblem >= 0 && bBagOnBelt && !bPacking; }
 	bool IsStationActive(int32 K) const { return IsBeltRunning() && FMath::Abs(BagT - StationCenter(K)) <= StationHalf(); }
 	TArray<int32> PendingOrders() const;
 	void StationClick(int32 K, int32 Button);
@@ -167,7 +203,7 @@ public:
 	// --- Sorgular ---
 	const FDBLine* CurrentLine() const;
 	// Etkileşimli tutorial (revizyon 4): bu satırlarda oyuncu gösterilen tuşa kendisi basar, başka yere tıklamak geçmez
-	// 1 = tarayıcı (basınca tarama başlar), 2 = şehir önlemleri, 3 = çekmece
+	// 1 = tarayıcı (basınca tarama başlar), 2 = şehir önlemleri, 3 = çekmece, 4 = döndürme okları (ya da Q / E)
 	int32 DoLineTarget() const;
 	bool IsTalking(const TArray<FDBLine>& Lines, int32 Index) const { return Phase == EDBPhase::Talk && Talk == &Lines && TalkIndex == Index; }
 	bool IsLineComplete() const { const FDBLine* L = CurrentLine(); return L && VisibleChars() >= L->Text.Len(); }

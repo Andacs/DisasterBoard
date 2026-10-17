@@ -18,6 +18,18 @@ enum class EDBSfx : uint8
 	Splash,    // denizden masaya su sıçrar
 	Good,      // doğru: iki notalı çan
 	Bad,       // yanlış: yumuşak vızıltı
+	VoA,       // karakter sesi (Tomodachi Life gibi): sesli harf heceleri, perde konuşana göre
+	VoE,
+	VoI,
+	VoO,
+	VoU,
+	Greet,     // kasabalı tıklanınca "Hm?"
+	Horn,      // arabaya tıklayınca korna (bip bip)
+	Scan,      // tarayıcı: radar süpürmesi + bip'ler
+	Belt,      // fabrika bandı: makara tıkırtısı + motor uğultusu (döngü parçası)
+	Pack,      // paket çantaya düşer (üç tok ses), fermuar kapanır
+	Fanfare,   // başarım açıldı
+	Shutter,   // fotoğraf makinesi deklanşörü (albüm)
 	Count
 };
 
