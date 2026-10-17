@@ -146,7 +146,7 @@ public:
 
 	// --- Çanta fabrikası (Purble Place gibi; bant yukarıdan aşağı akar, durmaz) ---
 	static constexpr int32 NumStations = 4;    // 0 temel kit, 1..3 kişiye özel
-	static float StationCenter(int32 K) { return 0.14f + K * 0.21f; }
+	static float StationCenter(int32 K) { return 0.12f + K * 0.25f; }   // istasyon sıraları paneli doldurur (UI büyüdü)
 	static float StationHalf() { return 0.085f; }
 	int32 OrderProblem = -1;     // hazırlanan sipariş (çanta isteyen sorun)
 	bool bFactoryTutorial = true; // ilk doğru teslime kadar seçilmesi gerekenler parlar (hatada da sürer)
