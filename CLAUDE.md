@@ -240,6 +240,21 @@ sırt çantası.
 - **Fabrika öğreticisi:** ilk doğru teslime kadar seçilmesi gereken kit ve eşyalar parlar; yanlış teslimde de
   parlamaya devam eder (`bFactoryTutorial`).
 
+**17 Ekim ~09.30, Andaç'ın kararları (uygulandı, DBTest ekranında görüldü):**
+- **Tahta oklarla döner:** alt panelin iki yanında sol/sağ ok (ya da Q/E). Basınca tahta masadan kalkar (28 cm),
+  havada 90° döner, yerine iner (`ADBWorld::TurnBoard`, `TurnSeconds` 1,3); kamera sabit. **Sağ tıkla sürükleyip
+  döndürme kalktı**; sağ tık yalnızca "geri". Tahtadaki her şey `BoardRoot`'a bağlı, ızgara/tarama yerel koordinatta.
+- **Denizde kahverengi yok:** yangın dumanı ve tarama kumu denizin üstüne taşıyordu (bulut yarıçapı + kameradan
+  bakınca yükseklik payı); duman karaya çekilir, denizde kum/toz çıkmaz. Kırpılmış görüntüyle ölçüldü.
+- **Yangın Musluğu önlemi geri geldi** (40 TL): kitapçının sokağında musluk yok, önlem uygulanınca yerden çıkar
+  (`C.NewHydrantBuilding`, `PlaceNewHydrant`). Önlemler artık 5: Rögar 15, Tahliye 30, Yangın Musluğu 40,
+  İngiliz Anahtarı 25, Güçlendirme 60. 10 sorun.
+- **Mini oyunlar** (bedel kazanınca düşer, Vazgeç/Esc/sağ tık bedava): **İngiliz anahtarı** → basılı tut, anahtar
+  somunu sıkar ve hızlanır, yeşil çizgide bırak (geçerse "boşa döndü", baştan); **rögar** → su birikintisinde
+  yerinden oynamış kapak; basılı tutunca kapak sağa kayar, bırakınca sola; gezinen yeşil alanda 4 sn tut.
+  Fare sol tuşu ya da Boşluk. `ADBGameMode::TickMini`, çizim `ADBHUD::DrawMini`. Test bunları kendisi oynar
+  (`bMiniAutoTest`): 10/10, 65 TL, 2 hata. **Gerçek fareyle oynanmadı.**
+
 **17 Ekim ~08.40: modelci/tasarımcı şablonları** `Docs/Sablonlar/` (OKU_BENI.md = iş listesi + ölçüler + dışa
 aktarma ayarları). 21 3D hitbox kutusu (`.blend` + tek tek FBX, pivot taban ortası, ÖN -Y, 1 birim = 1 cm; geri
 içe alınıp ölçüldü) ve 40 2D PNG şablonu (tam piksel, adı yazılı). Tek kaynak `Tools/sablon_listesi.py`;
@@ -247,7 +262,7 @@ içe alınıp ölçüldü) ve 40 2D PNG şablonu (tam piksel, adı yazılı). Te
 2D `Content/<yol>`. **Kod henüz `Ikonlar/` ve `Arayuz/` PNG'lerini yüklemiyor** (karakter ve çizgi roman yükleniyor).
 
 **Test:** `UnrealEditor.exe <tam yol>\DisasterBoard.uproject /Game/DisasterBoard/Maps/L_Ana -game -windowed
--ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~110 sn oynar, 18 görüntü; fabrikada 5 sipariş (1 bilerek yanlış), kamera döndürme, 9/9 → sonuç (90 TL, 2 hata). `-DBGainTest` ile sayfa parlaklığını 5 değerde çeker
+-ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~150 sn oynar, 26 görüntü; fabrikada 5 sipariş (1 bilerek yanlış), tahta döndürme, rögar ve somun mini oyunları, 10/10 → sonuç (65 TL, 2 hata). `-DBGainTest` ile sayfa parlaklığını 5 değerde çeker
 `Saved/Screenshots/WindowsEditor/DB_*.png`, kendisi kapanır. Test tıklama işlevlerini doğrudan çağırıyor.
 
 **Derlendi, ekranda görülmedi:** gerçek fareyle tıklama/hover (imleç, tooltip), Ayarlar'daki tam ekran ve

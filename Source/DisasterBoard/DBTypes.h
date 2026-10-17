@@ -22,6 +22,10 @@ enum class EDBPhase : uint8
 
 enum class EDBMenuPage : uint8 { None, Settings, Credits };
 
+// Önlem uygulanırken açılan mini oyun: somunu yeşil çizgiye kadar sık (İngiliz anahtarı),
+// rögar kapağını yeşil alanda 4 sn tut
+enum class EDBMini : uint8 { None, Nut, Manhole };
+
 enum class EDBSpeaker : uint8 { A, B, C };
 
 // Üç çanta türü: ilk yardım, deprem, yangın
@@ -114,6 +118,10 @@ struct FDBContent
 	TArray<FIntPoint> FloodCells;    // 13×13 tahtada su biriken yol karoları
 	int32 HydrantBuilding = -1;      // bozuk yangın musluğu bu binanın sokağında
 	FIntPoint HydrantCell = FIntPoint(-1, -1);
+	int32 WrenchTool = -1;           // İngiliz anahtarı: bozuk musluğu somun mini oyunuyla tamir eder
+	int32 HydrantAddTool = -1;       // yangın musluğu: musluğu olmayan sokağa yenisi konur
+	int32 NewHydrantBuilding = -1;   // yeni musluk bu binanın sokağına
+	FIntPoint NewHydrantCell = FIntPoint(-1, -1);
 	int32 EvacuateTool = -1;   // bu önlem uygulanınca sakinler sığınağa yürür
 
 	int32 StartMoney = 100;

@@ -99,6 +99,30 @@ public:
 	void CloseNpc() { NpcBuilding = -1; }
 	void NpcOpenFactory();
 	void ClickCell(FIntPoint Cell);
+	void TurnBoard(int32 Dir);   // alttaki oklar / Q-E: tahta kalkar, 90° döner, iner
+
+	// --- Mini oyun (Andaç, 17 Ekim): İngiliz anahtarı → somunu yeşil çizgiye kadar sık;
+	//     rögar → yerinden oynamış kapağı yeşil alanda 4 sn tut. Önlemin bedeli kazanınca düşer, vazgeçmek bedava.
+	UPROPERTY(EditAnywhere, Category = "DB") float ManholeHoldSeconds = 4.f;
+	EDBMini Mini = EDBMini::None;
+	int32 MiniProblem = -1;
+	int32 MiniBuilding = -1;
+	FIntPoint MiniCell = FIntPoint(-1, -1);
+	float MiniPos = 0.f;         // somun: anahtarın açısı 0..1 (1'e varırsa fazla sıkıldı); rögar: kapağın yeri 0..1
+	float MiniVel = 0.f;
+	float MiniHoldT = 0.f;
+	float MiniZone = 0.7f;       // yeşil çizginin / alanın ortası
+	float MiniZoneHalf = 0.06f;
+	float MiniProgress = 0.f;    // rögar: yeşilde geçen süre (sn)
+	float MiniT = 0.f;
+	float MiniWinAt = -1.f;      // kazanınca kısa "tamam", sonra önlem uygulanır
+	FString MiniMsg;
+	float MiniMsgTime = -100.f;
+	bool bMiniMsgBad = false;
+	bool bMiniHold = false;      // oyuncu basılı tutuyor (fare sol tuşu ya da boşluk; PlayerController yazar)
+	bool bMiniAutoTest = false;  // DBTest: mini oyunu kendisi oynar
+	void CancelMini();
+
 	float BagT = 0.f;            // 0 tepe, 1 teslim
 	bool bBagOnBelt = false;
 	int32 BagKit = -1;
@@ -184,6 +208,13 @@ private:
 	float NextBagAt = -1.f;
 	void TickBelt(float Dt);
 	void DeliverBag();
+	void StartMini(EDBMini Kind, int32 Problem, int32 Building, FIntPoint Cell);
+	void TickMini(float Dt);
+	void MiniSay(const FString& Text, bool bBad);
+	void FinishMini();
+	void ApplyManhole(FIntPoint Cell);
+	bool bMiniWasHold = false;
+	bool bMiniNeedRelease = false;
 	bool bPageFlipPending = false;  // takvim kamerasına varınca sayfa kalkacak
 	bool bReturnPending = false;    // sayfa inince menü kamerasına dönülecek
 	float MenuUIDelay = 0.f;

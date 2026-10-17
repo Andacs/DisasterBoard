@@ -63,6 +63,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float MinZoomDistance = 190.f;  // tekerlekle yakınlaşma sınırı
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float MaxZoomDistance = 520.f;
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float ExposureEV100 = 1.9f;
+	UPROPERTY(EditAnywhere, Category = "DB|Tahta") float TurnSeconds = 1.3f;   // oklarla döndürme: kalk, 90° dön, in
+	UPROPERTY(EditAnywhere, Category = "DB|Tahta") float TurnLiftCm = 28.f;
 	UPROPERTY(EditAnywhere, Category = "DB|Işık") FRotator SunRotation = FRotator(-52.f, 32.f, 0.f);
 
 	UPROPERTY() TObjectPtr<ACameraActor> MenuCam;
@@ -102,11 +104,15 @@ public:
 	void PlaceManhole(FIntPoint Cell);
 	bool HasManhole(FIntPoint Cell) const { return Manholes.Contains(Cell); }
 	void RepairHydrant();
+	void PlaceNewHydrant();                         // musluğu olmayan sokağa yenisi (yerden çıkar)
 	FVector ResidentWorld(int32 Building) const;    // kasabalının başının üstü (konuşma balonu buraya bağlanır)
 	void ClearHaze(int32 Building);
 	void ApplyExposure(float EV100);
 
-	// Oyuncu tahtayı döndürür (Q/E 90°, sağ tıkla sürükle) ve yakınlaştırır (tekerlek); yumuşak geçiş
+	// Oyuncu tahtayı döndürür: alttaki oklar / Q-E → tahta masadan kalkar, 90° döner, yerine iner (kamera sabit)
+	void TurnBoard(int32 Dir);
+	bool IsBoardTurning() const { return TurnT >= 0.f; }
+	// Yakınlaştırma (tekerlek); yumuşak geçiş
 	void RotateBoardView(float Deg) { ViewYawTarget += Deg; }
 	void ZoomBoardView(float DeltaCm) { ViewDistTarget = FMath::Clamp(ViewDistTarget + DeltaCm, MinZoomDistance, MaxZoomDistance); }
 	float ViewYaw = 0.f;
@@ -141,6 +147,16 @@ private:
 	UPROPERTY() TObjectPtr<USceneComponent> HydrantRoot;
 	UPROPERTY() TObjectPtr<UStaticMeshComponent> HydrantLeak;
 	float HydrantFixT = -1.f;
+	UPROPERTY() TObjectPtr<USceneComponent> NewHydrantRoot;
+	float NewHydrantT = -1.f;
+	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> BrokenCovers;   // su birikintisindeki delik ve yerinden oynamış kapak
+	USceneComponent* MakeHydrant(int32 Building, FIntPoint Cell, bool bCollide);
+	float BoardYaw = 0.f;
+	float TurnFrom = 0.f;
+	float TurnTo = 0.f;
+	float TurnT = -1.f;
+	int32 TurnQueued = 0;
+	float SeaStartY() const { return -GridN * CellCm * 0.5f + (GridN - 2) * CellCm; }   // yerel Y: deniz buradan başlar
 	UPROPERTY() TArray<TObjectPtr<USceneComponent>> CarRoots;
 	struct FCar
 	{

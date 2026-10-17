@@ -38,12 +38,7 @@ private:
 	void OnZoom(const struct FInputActionValue& Value);
 	void OnRotLeft();
 	void OnRotRight();
-	void OnRmbDown();
-	void OnRmbUp();
-	bool bRmbDown = false;
-	bool bRmbDragged = false;
-	float RmbLastX = 0.f;
-	float RmbTotal = 0.f;
+	bool bMiniMouse = false;   // mini oyunda basılı tutma Vazgeç düğmesinin dışında başladı
 	bool CanControlBoard() const;
 	ADBGameMode* GM() const;
 

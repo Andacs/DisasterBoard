@@ -252,7 +252,7 @@ FBox2D ADBHUD::DrawerHandleRect() const
 	return Rect(P.Min.X - 46.f * S, P.GetCenter().Y - 100.f * S, 48.f * S, 200.f * S);
 }
 
-FBox2D ADBHUD::BottomBarRect() const { return Rect(W * 0.5f - 270.f * S, H - 182.f * S, 540.f * S, 164.f * S); }
+FBox2D ADBHUD::BottomBarRect() const { return Rect(W * 0.5f - 325.f * S, H - 182.f * S, 650.f * S, 164.f * S); }
 FBox2D ADBHUD::ScannerRect() const { return Rect(178.f * S, H - 200.f * S, 84.f * S, 150.f * S); }
 FBox2D ADBHUD::MoneyRect() const { return Rect(W * 0.5f - 140.f * S, 16.f * S, 280.f * S, 58.f * S); }
 
@@ -313,6 +313,18 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 	{
 		return false;
 	}
+	if (GM->Mini != EDBMini::None)
+	{
+		for (const FHit& Hh : Hits)
+		{
+			if (Hh.Id == TEXT("MiniCancel") && Hh.R.IsInside(P))
+			{
+				GM->CancelMini();
+				return true;
+			}
+		}
+		return false;
+	}
 	if (GM->Phase == EDBPhase::Talk)
 	{
 		GM->AdvanceTalk();
@@ -348,6 +360,7 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 		else if (Id == TEXT("NpcClose")) GM->CloseNpc();
 		else if (Id == TEXT("Music")) GM->ToggleMusic();
 		else if (Id == TEXT("Menu")) GM->Restart(false);
+		else if (Id == TEXT("Turn")) GM->TurnBoard(Ix);
 	};
 
 	if (GM->Phase == EDBPhase::Menu || GM->Phase == EDBPhase::MenuPage)
@@ -457,7 +470,7 @@ void ADBHUD::DrawHUD()
 	{
 		DrawNpc();
 	}
-	if (GM->Phase != EDBPhase::Talk && GM->Phase != EDBPhase::Result && GM->NpcBuilding < 0)
+	if (GM->Phase != EDBPhase::Talk && GM->Phase != EDBPhase::Result && GM->NpcBuilding < 0 && GM->Mini == EDBMini::None)
 	{
 		DrawTooltip();
 		DrawSelectionCursor();
@@ -478,11 +491,15 @@ void ADBHUD::DrawHUD()
 			}
 			else if (L->Who == EDBSpeaker::C)
 			{
-				DrawGuide(2, FVector2D(W * 0.5f - 340.f * S, H - 196.f * S), 170.f * S);
+				DrawGuide(2, FVector2D(W * 0.5f - 520.f * S, H - 196.f * S), 170.f * S);
 			}
 		}
 	}
 	DrawTalk();
+	if (GM->Mini != EDBMini::None)
+	{
+		DrawMini();
+	}
 	if (GM->Phase == EDBPhase::Result)
 	{
 		DrawResult();
@@ -743,12 +760,12 @@ void ADBHUD::DrawBottomBar()
 	const float X = BR.Min.X + 20.f * S;
 	const float Y = BR.Min.Y + 40.f * S;
 	Txt(TEXT("Şehir önlemleri"), X, BR.Min.Y + 10.f * S, 19.f * S, DarkK);
-	TgTools = Rect(X, Y, 4.f * 112.f * S + 3.f * 10.f * S, 112.f * S);
+	TgTools = Rect(X, Y, 5.f * 112.f * S + 4.f * 10.f * S, 112.f * S);
 	if (GM->IsTalking(C.PanelIntroC, 1))
 	{
 		Glow(TgTools);
 	}
-	for (int32 t = 0; t < C.Tools.Num() && t < 4; ++t)
+	for (int32 t = 0; t < C.Tools.Num() && t < 5; ++t)
 	{
 		const FDBToolDef& T = C.Tools[t];
 		const FBox2D R = Rect(X + t * 122.f * S, Y, 112.f * S, 112.f * S);
@@ -779,6 +796,23 @@ void ADBHUD::DrawBottomBar()
 		}
 	}
 
+	// Tahtayı döndür (Andaç: sağ ve sol ok; basınca tahta kalkar, döner, yerine iner)
+	const bool bCanTurn = GM->Mini == EDBMini::None && (bPlay || GM->Phase == EDBPhase::BagPrep || GM->Phase == EDBPhase::WaitScan);
+	for (int32 Dir : { -1, 1 })
+	{
+		const float Sz = 76.f * S;
+		const FBox2D R = Rect(Dir < 0 ? BR.Min.X - Sz - 14.f * S : BR.Max.X + 14.f * S, BR.GetCenter().Y - Sz * 0.5f, Sz, Sz);
+		const bool bHov = bCanTurn && Hover(R);
+		const FBox2D RR = bHov ? R.ShiftBy(FVector2D(0.f, -4.f * S)) : R;
+		Card(RR, bHov ? U(255, 248, 220) : Paper, DarkK, 4.f);
+		TurnArrow(RR.GetCenter() + FVector2D(0.f, 4.f * S), 22.f * S, Dir, bCanTurn ? Ink : U(170, 160, 150));
+		Txt(Dir < 0 ? TEXT("Q") : TEXT("E"), Dir < 0 ? RR.Min.X + 7.f * S : RR.Max.X - 7.f * S, RR.Min.Y + 4.f * S, 17.f * S, DarkK, Dir < 0 ? 0 : 2);
+		Blockers.Add(R);
+		if (bCanTurn)
+		{
+			Hit(TEXT("Turn"), Dir, RR);
+		}
+	}
 }
 
 void ADBHUD::DrawDrawerHandle()
@@ -1655,4 +1689,162 @@ void ADBHUD::DrawNpc()
 		Button(TEXT("NpcBag"), -1, Rect(R.Min.X + 18.f * S, BY, 230.f * S, 38.f * S), TEXT("Çantasını hazırla"), 19.f * S, Coral, Ink, Paper);
 	}
 	Button(TEXT("NpcClose"), -1, Rect(R.Max.X - 128.f * S, BY, 110.f * S, 38.f * S), TEXT("Tamam"), 19.f * S, CardC, DarkK, Ink);
+}
+
+// ---------------------------------------------------------------- tahta döndürme oku, mini oyunlar
+
+void ADBHUD::TurnArrow(const FVector2D& C, float R, int32 Dir, const FLinearColor& Col)
+{
+	// Üstten dönen yay + ok ucu: sağ ok saat yönünde, sol ok tersine
+	const float A0 = FMath::DegreesToRadians(Dir > 0 ? 160.f : 380.f);
+	const float A1 = FMath::DegreesToRadians(Dir > 0 ? 380.f : 160.f);
+	const int32 N = 16;
+	FVector2D Prev = C + FVector2D(FMath::Cos(A0), FMath::Sin(A0)) * R;
+	for (int32 i = 1; i <= N; ++i)
+	{
+		const float A = FMath::Lerp(A0, A1, (float)i / N);
+		const FVector2D P = C + FVector2D(FMath::Cos(A), FMath::Sin(A)) * R;
+		Line(Prev, P, 5.f * S, Col);
+		Prev = P;
+	}
+	const FVector2D Nrm(FMath::Cos(A1), FMath::Sin(A1));
+	const FVector2D Tan = FVector2D(-Nrm.Y, Nrm.X) * (A1 > A0 ? 1.f : -1.f);
+	const float Hd = 11.f * S;
+	Tri(Prev + Tan * Hd, Prev + Nrm * Hd * 0.8f, Prev - Nrm * Hd * 0.8f, Col);
+}
+
+void ADBHUD::Hex(const FVector2D& C, float R, float AngleRad, const FLinearColor& Col)
+{
+	for (int32 i = 0; i < 6; ++i)
+	{
+		const float A = AngleRad + i * PI / 3.f;
+		const float B = AngleRad + (i + 1) * PI / 3.f;
+		Tri(C, C + FVector2D(FMath::Cos(A), FMath::Sin(A)) * R, C + FVector2D(FMath::Cos(B), FMath::Sin(B)) * R, Col);
+	}
+}
+
+void ADBHUD::DrawMini()
+{
+	const bool bNut = GM->Mini == EDBMini::Nut;
+	Box(0.f, 0.f, W, H, U(40, 30, 22, 120));
+	Blockers.Add(Rect(0.f, 0.f, W, H));
+	const FBox2D R = Rect(W * 0.5f - 400.f * S, H * 0.5f - 280.f * S, 800.f * S, 540.f * S);
+	const float CX = R.GetCenter().X;
+	Card(R, Paper, Ink, 8.f);
+	Txt(bNut ? TEXT("Yangın musluğunu tamir et") : TEXT("Rögar kapağını yerine oturt"), CX, R.Min.Y + 20.f * S, 32.f * S, Ink, 1);
+	const FString How = bNut
+		? TEXT("Basılı tut: anahtar somunu sıkar ve gittikçe hızlanır. Yeşil çizgiye gelince bırak!")
+		: TEXT("Basılı tut: kapak sağa kayar, bırakınca sola. Kapağı yeşil alanda 4 saniye tut!");
+	float Y = R.Min.Y + 68.f * S;
+	for (const FString& L : Wrap(How, 19.f * S, 700.f * S))
+	{
+		Txt(L, CX, Y, 19.f * S, DarkK, 1);
+		Y += 25.f * S;
+	}
+	if (bNut)
+	{
+		DrawNutGame(R);
+	}
+	else
+	{
+		DrawManholeGame(R);
+	}
+	if (!GM->MiniMsg.IsEmpty() && GM->Now - GM->MiniMsgTime < 2.5f)
+	{
+		Txt(GM->MiniMsg, CX, R.Max.Y - 104.f * S, 23.f * S, GM->bMiniMsgBad ? Red : Green, 1);
+	}
+	Txt(TEXT("Fare sol tuşu ya da Boşluk  ·  Esc / sağ tık: vazgeç"), R.Min.X + 24.f * S, R.Max.Y - 44.f * S, 15.f * S, DarkK);
+	if (GM->MiniWinAt < 0.f)
+	{
+		Button(TEXT("MiniCancel"), -1, Rect(R.Max.X - 170.f * S, R.Max.Y - 62.f * S, 150.f * S, 46.f * S), TEXT("Vazgeç"), 20.f * S, CardC, DarkK, Ink);
+	}
+	else
+	{
+		const float A = FMath::Clamp((GM->Now - GM->MiniWinAt) / 0.25f, 0.f, 1.f);
+		TickMark(FVector2D(CX + 300.f * S, R.Min.Y + 150.f * S), 70.f * S * A + 10.f * S, Green);
+	}
+	// Basılı tutarken düğme gibi çöker: oyuncu basılı tuttuğunu görsün
+	const FBox2D Pad = Rect(R.Min.X + 24.f * S, R.Min.Y + 130.f * S, 132.f * S, 46.f * S);
+	const bool bHold = GM->bMiniHold || GM->bMiniAutoTest;
+	Card(bHold ? Pad.ShiftBy(FVector2D(0.f, 3.f * S)) : Pad, bHold ? Coral : CardC, DarkK, bHold ? 1.f : 4.f);
+	Txt(bHold ? (bNut ? TEXT("SIKIYOR") : TEXT("BASILI")) : TEXT("Basılı tut"), Pad.GetCenter().X, Pad.Min.Y + (bHold ? 14.f : 11.f) * S, 18.f * S, bHold ? Paper : Ink, 1);
+}
+
+void ADBHUD::DrawNutGame(const FBox2D& R)
+{
+	// Anahtar yarım daire boyunca soldan sağa döner; yay üstünde yeşil çizgi, sonunda kırmızı (fazla sıkma)
+	const FVector2D G(R.GetCenter().X, R.Min.Y + 372.f * S);
+	const float Rg = 175.f * S;
+	auto Dir = [](float Pos) { const float A = PI + Pos * PI; return FVector2D(FMath::Cos(A), FMath::Sin(A)); };
+	const int32 N = 48;
+	for (int32 i = 0; i < N; ++i)
+	{
+		const float P0 = (float)i / N;
+		const float P1 = (float)(i + 1) / N;
+		const float Pm = (P0 + P1) * 0.5f;
+		FLinearColor Col = U(214, 204, 190);
+		if (Pm > 0.93f) Col = U(214, 76, 66);
+		else if (FMath::Abs(Pm - GM->MiniZone) <= GM->MiniZoneHalf) Col = U(90, 186, 104);
+		Line(G + Dir(P0) * Rg, G + Dir(P1) * Rg, 16.f * S, Col);
+	}
+	for (int32 i = 0; i <= 10; ++i)
+	{
+		const FVector2D D = Dir(i / 10.f);
+		Line(G + D * (Rg + 12.f * S), G + D * (Rg + 22.f * S), 2.f * S, DarkK);
+	}
+	// Yeşil çizgi: hedef (yayın dışında, ok ucuyla; yayın üstünde çapraz duruyordu, "X" gibi okunuyordu)
+	const FVector2D Dz = Dir(GM->MiniZone);
+	const FVector2D Nz(-Dz.Y, Dz.X);
+	Line(G + Dz * (Rg + 10.f * S), G + Dz * (Rg + 44.f * S), 6.f * S, U(40, 150, 70));
+	Tri(G + Dz * (Rg + 10.f * S), G + Dz * (Rg + 24.f * S) + Nz * 9.f * S, G + Dz * (Rg + 24.f * S) - Nz * 9.f * S, U(40, 150, 70));
+	// İngiliz anahtarı: sap ibre gibi döner, ucunda kırmızı tutamak; ağzı somunu kavrar
+	const FVector2D Dh = Dir(GM->MiniPos);
+	const FLinearColor Steel = U(120, 128, 150);
+	Line(G, G + Dh * (Rg - 26.f * S), 24.f * S, U(70, 74, 90));
+	Line(G, G + Dh * (Rg - 28.f * S), 18.f * S, Steel);
+	Disc(G + Dh * (Rg - 40.f * S), 15.f * S, Coral);
+	Disc(G, 66.f * S, U(70, 74, 90));
+	Disc(G, 60.f * S, Steel);
+	const float Spin = GM->MiniPos * 2.f * PI;
+	Hex(G, 44.f * S, Spin, U(60, 62, 70));
+	Hex(G, 40.f * S, Spin, U(176, 178, 188));
+	Disc(G, 16.f * S, U(96, 98, 108));
+	Txt(FString::Printf(TEXT("%d%%"), FMath::RoundToInt(GM->MiniPos * 100.f)), G.X, G.Y + 72.f * S, 16.f * S, DarkK, 1);
+}
+
+void ADBHUD::DrawManholeGame(const FBox2D& R)
+{
+	// Yol şeridi: yeşil alan gezinir, kapak basılı tutunca sağa kayar
+	const FBox2D Tr = Rect(R.Min.X + 80.f * S, R.Min.Y + 220.f * S, 640.f * S, 96.f * S);
+	const float TW = Tr.GetSize().X;
+	Box(Tr.ShiftBy(FVector2D(3.f, 5.f) * S), ShadowC);
+	Box(Tr, U(98, 100, 110));
+	for (int32 i = 0; i < 8; ++i)
+	{
+		Box(Rect(Tr.Min.X + 20.f * S + i * 80.f * S, Tr.GetCenter().Y - 2.f * S, 40.f * S, 4.f * S), U(236, 230, 210));
+	}
+	const float Z0 = Tr.Min.X + (GM->MiniZone - GM->MiniZoneHalf) * TW;
+	const float Z1 = Tr.Min.X + (GM->MiniZone + GM->MiniZoneHalf) * TW;
+	const bool bIn = FMath::Abs(GM->MiniPos - GM->MiniZone) <= GM->MiniZoneHalf;
+	const FBox2D Zone = FBox2D(FVector2D(Z0, Tr.Min.Y - 8.f * S), FVector2D(Z1, Tr.Max.Y + 8.f * S));
+	Box(Zone, bIn ? U(90, 200, 110, 200) : U(90, 186, 104, 140));
+	Frame(Zone, U(40, 150, 70), 3.f * S);
+	// Kapak
+	const FVector2D Cv(Tr.Min.X + GM->MiniPos * TW, Tr.GetCenter().Y);
+	Disc(Cv + FVector2D(3.f, 5.f) * S, 40.f * S, ShadowC);
+	Disc(Cv, 40.f * S, U(56, 58, 64));
+	Disc(Cv, 33.f * S, U(96, 98, 106));
+	for (int32 k = -1; k <= 1; ++k)
+	{
+		Box(Rect(Cv.X + k * 13.f * S - 3.f * S, Cv.Y - 22.f * S, 6.f * S, 44.f * S), U(56, 58, 64));
+	}
+	// İlerleme: yeşilde geçen süre
+	const float Total = GM->ManholeHoldSeconds;
+	const float F = FMath::Clamp(GM->MiniProgress / Total, 0.f, 1.f);
+	const FBox2D Bar = Rect(Tr.Min.X, Tr.Max.Y + 56.f * S, TW, 28.f * S);
+	Box(Bar, CardC);
+	Box(Rect(Bar.Min.X, Bar.Min.Y, TW * F, Bar.GetSize().Y), Green);
+	Frame(Bar, DarkK, 2.f * S);
+	FString Sec = FString::Printf(TEXT("Yeşilde: %.1f / %.0f sn"), GM->MiniProgress, Total).Replace(TEXT("."), TEXT(","));
+	Txt(Sec, Bar.GetCenter().X, Bar.Max.Y + 6.f * S, 18.f * S, Ink, 1);
 }

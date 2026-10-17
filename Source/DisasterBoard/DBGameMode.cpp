@@ -109,6 +109,7 @@ void ADBGameMode::Tick(float Dt)
 		Music->SetIntensity(Solved.Num() > 0 ? (float)NumSolved() / Solved.Num() : 0.f);
 	}
 	TickBelt(Dt);
+	TickMini(Dt);
 
 	switch (Phase)
 	{
@@ -502,6 +503,14 @@ void ADBGameMode::ClickCell(FIntPoint Cell)
 		ShowToast(FString::Printf(TEXT("Rögar kapağı %d TL, bütçede %d TL var. Çanta teslim ederek bütçe kazan."), Cost, Money), true);
 		return;
 	}
+	// Bozuk kapak: oturtmak için mini oyun; bedel kazanınca düşer
+	StartMini(EDBMini::Manhole, C.FloodProblem, -1, Cell);
+}
+
+void ADBGameMode::ApplyManhole(FIntPoint Cell)
+{
+	const FDBContent& C = FDBContent::Get();
+	const int32 Cost = C.Tools[C.FloodTool].Cost;
 	Money -= Cost;
 	World->PlaceManhole(Cell);
 	int32 Covered = 0;
@@ -518,6 +527,169 @@ void ADBGameMode::ClickCell(FIntPoint Cell)
 	else
 	{
 		ShowToast(FString::Printf(TEXT("Rögar kapağı kondu (-%d TL). %d su birikintisi kaldı."), Cost, C.FloodCells.Num() - Covered), false);
+	}
+}
+
+// ---------------------------------------------------------------- tahta döndürme, mini oyunlar
+
+void ADBGameMode::TurnBoard(int32 Dir)
+{
+	if (World && Mini == EDBMini::None && (Phase == EDBPhase::Play || Phase == EDBPhase::BagPrep || Phase == EDBPhase::WaitScan))
+	{
+		CloseNpc();
+		World->TurnBoard(Dir);
+	}
+}
+
+void ADBGameMode::StartMini(EDBMini Kind, int32 Problem, int32 Building, FIntPoint Cell)
+{
+	Mini = Kind;
+	MiniProblem = Problem;
+	MiniBuilding = Building;
+	MiniCell = Cell;
+	MiniPos = 0.f;
+	MiniVel = 0.f;
+	MiniHoldT = 0.f;
+	MiniProgress = 0.f;
+	MiniT = 0.f;
+	MiniWinAt = -1.f;
+	MiniMsg.Reset();
+	bMiniWasHold = false;
+	bMiniNeedRelease = true;   // önlemi uygulayan tıklama hâlâ basılı olabilir: önce bırakılsın
+	MiniZone = Kind == EDBMini::Nut ? FMath::FRandRange(0.55f, 0.8f) : 0.5f;
+	MiniZoneHalf = Kind == EDBMini::Nut ? 0.06f : 0.11f;
+	bPanelOpen = false;
+	CloseNpc();
+	UE_LOG(LogDB, Log, TEXT("DB_MINI basla tur=%d sorun=%d"), (int32)Kind, Problem);
+}
+
+void ADBGameMode::CancelMini()
+{
+	if (Mini != EDBMini::None && MiniWinAt < 0.f)
+	{
+		Mini = EDBMini::None;
+		ShowToast(TEXT("Vazgeçtin; bütçeden bir şey düşmedi. İstediğin zaman yeniden dene."), false);
+	}
+}
+
+void ADBGameMode::MiniSay(const FString& Text, bool bBad)
+{
+	MiniMsg = Text;
+	MiniMsgTime = Now;
+	bMiniMsgBad = bBad;
+}
+
+void ADBGameMode::TickMini(float Dt)
+{
+	if (Mini == EDBMini::None)
+	{
+		return;
+	}
+	MiniT += Dt;
+	if (MiniWinAt >= 0.f)
+	{
+		if (Now - MiniWinAt >= 1.f)
+		{
+			FinishMini();
+		}
+		return;
+	}
+	bool bHold = bMiniHold;
+	if (bMiniAutoTest)
+	{
+		bHold = Mini == EDBMini::Nut ? MiniPos < MiniZone - 0.012f : MiniPos + MiniVel * 0.35f < MiniZone;
+	}
+	if (bMiniNeedRelease && !bMiniAutoTest)
+	{
+		bMiniNeedRelease = bHold;
+		bHold = false;
+	}
+
+	if (Mini == EDBMini::Nut)
+	{
+		if (bHold)
+		{
+			// Ne kadar uzun sıkarsan anahtar o kadar hızlanır
+			MiniHoldT += Dt;
+			MiniPos += (0.15f + 0.6f * MiniHoldT) * Dt;
+			if (MiniPos >= 1.f)
+			{
+				MiniSay(TEXT("Fazla sıktın, somun boşa döndü! Bırak, baştan dene."), true);
+				MiniPos = 0.f;
+				MiniHoldT = 0.f;
+				MiniZone = FMath::FRandRange(0.55f, 0.8f);
+				bMiniNeedRelease = true;
+				bHold = false;
+			}
+		}
+		else
+		{
+			if (bMiniWasHold)
+			{
+				if (FMath::Abs(MiniPos - MiniZone) <= MiniZoneHalf)
+				{
+					MiniWinAt = Now;
+					MiniSay(TEXT("Tık! Somun tam yerine oturdu."), false);
+				}
+				else if (MiniPos < MiniZone)
+				{
+					MiniSay(TEXT("Biraz daha sık! Yeşil çizgiye gelince bırak."), false);
+				}
+				else
+				{
+					MiniSay(TEXT("Fazla sıktın, somun boşa döndü! Baştan dene."), true);
+					MiniPos = 0.f;
+					MiniZone = FMath::FRandRange(0.55f, 0.8f);
+				}
+			}
+			MiniHoldT = 0.f;
+			MiniPos = FMath::FInterpConstantTo(MiniPos, 0.f, Dt, 0.3f);   // bırakılan somun yavaşça gevşer
+		}
+		bMiniWasHold = bHold;
+		return;
+	}
+
+	// Rögar: yeşil alan yavaşça gezinir; basılı tutunca kapak sağa, bırakınca sola kayar
+	MiniZone = 0.5f + 0.3f * FMath::Sin(MiniT * 0.8f) * FMath::Cos(MiniT * 0.33f + 0.6f);
+	MiniVel = FMath::Clamp(MiniVel + (bHold ? 1.7f : -1.7f) * Dt, -0.75f, 0.75f);
+	MiniPos += MiniVel * Dt;
+	if (MiniPos < 0.f)
+	{
+		MiniPos = 0.f;
+		MiniVel = FMath::Max(0.f, MiniVel);
+	}
+	if (MiniPos > 1.f)
+	{
+		MiniPos = 1.f;
+		MiniVel = FMath::Min(0.f, MiniVel);
+	}
+	const bool bIn = FMath::Abs(MiniPos - MiniZone) <= MiniZoneHalf;
+	MiniProgress = bIn ? MiniProgress + Dt : FMath::Max(0.f, MiniProgress - Dt * 0.5f);   // dışarıda yavaşça geri gider
+	if (MiniProgress >= ManholeHoldSeconds)
+	{
+		MiniProgress = ManholeHoldSeconds;
+		MiniWinAt = Now;
+		MiniSay(TEXT("Kapak yerine oturdu!"), false);
+	}
+}
+
+void ADBGameMode::FinishMini()
+{
+	const EDBMini Kind = Mini;
+	Mini = EDBMini::None;
+	const FDBContent& C = FDBContent::Get();
+	UE_LOG(LogDB, Log, TEXT("DB_MINI kazandi tur=%d sure=%.1f"), (int32)Kind, MiniT);
+	if (Kind == EDBMini::Manhole)
+	{
+		ApplyManhole(MiniCell);
+		return;
+	}
+	if (C.Problems.IsValidIndex(MiniProblem) && !Solved[MiniProblem])
+	{
+		const FDBToolDef& T = C.Tools[C.WrenchTool];
+		Money -= T.Cost;
+		ShowToast(FString::Printf(TEXT("%s: %s (-%d TL). %s riskine hazır!"), *C.Buildings[MiniBuilding].Name, *T.Done, T.Cost, *C.Problems[MiniProblem].Hazard), false, MiniBuilding);
+		Solve(MiniProblem, MiniBuilding);
 	}
 }
 
@@ -906,6 +1078,11 @@ void ADBGameMode::ClickBuilding(int32 Building)
 				ShowToast(FString::Printf(TEXT("%s için %d TL gerekiyor, bütçede %d TL var. Çanta göndererek bütçe kazan."), *Tool.Name, Tool.Cost, Money), true, Building);
 				return;
 			}
+			if (SelTool == C.WrenchTool)
+			{
+				StartMini(EDBMini::Nut, P, Building, FIntPoint(-1, -1));   // somunu sıkma mini oyunu; bedel kazanınca
+				return;
+			}
 			Money -= Tool.Cost;
 			ShowToast(FString::Printf(TEXT("%s: %s (-%d TL). %s riskine hazır!"), *Name, *Tool.Done, Tool.Cost, *Prob.Hazard), false, Building);
 			Solve(P, Building);
@@ -957,6 +1134,10 @@ void ADBGameMode::Solve(int32 Problem, int32 Building)
 	{
 		World->RepairHydrant();
 	}
+	if (Building == FDBContent::Get().NewHydrantBuilding)
+	{
+		World->PlaceNewHydrant();
+	}
 	// Kasabalı teşekkür eder
 	NpcBuilding = Building;
 	NpcKind = 2;
@@ -1006,7 +1187,11 @@ void ADBGameMode::Back()
 	case EDBPhase::MenuPage: CloseMenuPage(); break;
 	case EDBPhase::BagPrep: ClosePanel(); break;
 	case EDBPhase::Play:
-		if (NpcBuilding >= 0)
+		if (Mini != EDBMini::None)
+		{
+			CancelMini();
+		}
+		else if (NpcBuilding >= 0)
 		{
 			CloseNpc();
 		}

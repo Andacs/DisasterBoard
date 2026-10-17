@@ -196,6 +196,9 @@ void ADBWorld::BuildBoard()
 	{
 		PuddleComps.Add(Part(B, CubeMesh, CellLocal(Fc) + FVector(0, 0, 0.15f), FVector(CellCm - 0.8f, CellCm - 0.8f, 0.3f), RGB(104, 164, 218)));
 		PuddleCells.Add(Fc);
+		// Bozuk rögar: delik açık, kapak yanına kaymış ve eğik duruyor
+		BrokenCovers.Add(Part(B, CylinderMesh, CellLocal(Fc) + FVector(0, 0, 0.32f), FVector(4.2f, 4.2f, 0.06f), RGB(34, 36, 42)));
+		BrokenCovers.Add(Part(B, CylinderMesh, CellLocal(Fc) + FVector(2.2f, 1.6f, 0.9f), FVector(5.4f, 5.4f, 0.5f), RGB(78, 80, 88), FRotator(0.f, 0.f, 16.f)));
 	}
 
 	const FDBContent& Content = FDBContent::Get();
@@ -569,11 +572,21 @@ void ADBWorld::ShowHaze(int32 Building, const FString& Hazard)
 	}
 	const FVector C = BuildingRoots[Building]->GetRelativeLocation();
 	const int32 Tint = TintForHazard(Hazard);
+	// Denizin üstünde duman yok (Andaç: denizdeki kahverengi kalksın); tsunami pusu mavi, o denize taşabilir
+	const bool bSeaOk = Tint == TintForHazard(TEXT("Tsunami"));
 	for (int32 k = 0; k < 6; ++k)
 	{
 		const float Ang = k * 2.f * PI / 6.f + Building;
-		const FVector Base = C + FVector(FMath::Cos(Ang) * 10.f, FMath::Sin(Ang) * 10.f, 4.f + k * 2.4f);
-		const int32 Ix = MakePuff(Building, Base, 18.f + (k % 3) * 4.f, Tint);
+		FVector Base = C + FVector(FMath::Cos(Ang) * 10.f, FMath::Sin(Ang) * 10.f, 4.f + k * 2.4f);
+		const float Size = 18.f + (k % 3) * 4.f;
+		// İlk denemede bulutun kenarı denize taşıyordu (yarıçap + salınım payı); yüksekteki bulut kameradan bakınca
+		// daha da arkada (denizin üstünde) görünüyordu (yükseklik payı). Denize bakan taraftakiler karaya döner.
+		const float Limit = SeaStartY() - Size * 0.5f - 3.f - (4.f + k * 2.4f) * 0.8f;
+		if (!bSeaOk && Base.Y > Limit)
+		{
+			Base.Y = FMath::Min(Limit, C.Y - (Base.Y - C.Y));
+		}
+		const int32 Ix = MakePuff(Building, Base, Size, Tint);
 		Puffs[Ix].Target = 1.f;
 		PuffComps[Ix]->SetVisibility(true);
 	}
@@ -689,6 +702,11 @@ void ADBWorld::PlaceManhole(FIntPoint Cell)
 	if (Ix != INDEX_NONE)
 	{
 		PuddleComps[Ix]->SetVisibility(false);
+		if (BrokenCovers.IsValidIndex(Ix * 2 + 1))
+		{
+			BrokenCovers[Ix * 2]->SetVisibility(false);
+			BrokenCovers[Ix * 2 + 1]->SetVisibility(false);
+		}
 		const FVector W = CellLocal(Cell) + FVector(0, 0, 2.f);
 		for (int32 i = 0; i < 6; ++i)
 		{
@@ -697,26 +715,64 @@ void ADBWorld::PlaceManhole(FIntPoint Cell)
 	}
 }
 
+USceneComponent* ADBWorld::MakeHydrant(int32 Building, FIntPoint Cell, bool bCollide)
+{
+	// Musluk binaya bağlı (tıklanınca o binanın sorunu), ölçeği geri alınır: çocukları cm ile kurulur
+	USceneComponent* Root = BuildingRoots[Building];
+	const FVector Local = CellLocal(Cell) + FVector(2.4f, 0.f, 0.f);
+	USceneComponent* Hy = Node(Root, (Local - Root->GetRelativeLocation()) / BuildingScale);
+	Hy->SetRelativeScale3D(FVector(1.f / BuildingScale));
+	const FLinearColor Red = RGB(214, 64, 52);
+	Part(Hy, CylinderMesh, FVector(0, 0, 2.2f), FVector(2.4f, 2.4f, 4.4f), Red, FRotator::ZeroRotator, bCollide);
+	Part(Hy, SphereMesh, FVector(0, 0, 4.5f), FVector(2.6f, 2.6f, 2.f), RGB(180, 48, 40), FRotator::ZeroRotator, bCollide);
+	Part(Hy, CylinderMesh, FVector(0, 0, 2.8f), FVector(1.f, 1.f, 4.f), Red, FRotator(0.f, 0.f, 90.f), bCollide);
+	Part(Hy, CylinderMesh, FVector(0, 0, 0.3f), FVector(3.2f, 3.2f, 0.6f), RGB(150, 150, 156), FRotator::ZeroRotator, bCollide);
+	return Hy;
+}
+
 void ADBWorld::BuildHydrant()
 {
 	const FDBContent& C = FDBContent::Get();
-	if (!BuildingRoots.IsValidIndex(C.HydrantBuilding))
+	if (BuildingRoots.IsValidIndex(C.HydrantBuilding))
+	{
+		HydrantRoot = MakeHydrant(C.HydrantBuilding, C.HydrantCell, true);
+		// Bozuk: eğik duruyor, dibinde su sızıntısı
+		HydrantRoot->SetRelativeRotation(FRotator(0.f, 0.f, 24.f));
+		HydrantLeak = Part(BoardRoot, CylinderMesh, CellLocal(C.HydrantCell) + FVector(2.4f, 1.6f, 0.12f), FVector(6.f, 7.f, 0.2f), RGB(104, 164, 218));
+	}
+	// Yeni musluğun yeri: önlem uygulanınca yerden çıkar
+	if (BuildingRoots.IsValidIndex(C.NewHydrantBuilding))
+	{
+		NewHydrantRoot = MakeHydrant(C.NewHydrantBuilding, C.NewHydrantCell, false);
+		NewHydrantRoot->SetVisibility(false, true);
+	}
+}
+
+void ADBWorld::PlaceNewHydrant()
+{
+	if (!NewHydrantRoot)
 	{
 		return;
 	}
-	// Musluk binaya bağlı (tıklanınca o binanın sorunu), ölçeği geri alınır: çocukları cm ile kurulur
-	USceneComponent* Root = BuildingRoots[C.HydrantBuilding];
-	const FVector Local = CellLocal(C.HydrantCell) + FVector(2.4f, 0.f, 0.f);
-	HydrantRoot = Node(Root, (Local - Root->GetRelativeLocation()) / BuildingScale);
-	HydrantRoot->SetRelativeScale3D(FVector(1.f / BuildingScale));
-	const FLinearColor Red = RGB(214, 64, 52);
-	Part(HydrantRoot, CylinderMesh, FVector(0, 0, 2.2f), FVector(2.4f, 2.4f, 4.4f), Red, FRotator::ZeroRotator, true);
-	Part(HydrantRoot, SphereMesh, FVector(0, 0, 4.5f), FVector(2.6f, 2.6f, 2.f), RGB(180, 48, 40), FRotator::ZeroRotator, true);
-	Part(HydrantRoot, CylinderMesh, FVector(0, 0, 2.8f), FVector(1.f, 1.f, 4.f), Red, FRotator(0.f, 0.f, 90.f), true);
-	Part(HydrantRoot, CylinderMesh, FVector(0, 0, 0.3f), FVector(3.2f, 3.2f, 0.6f), RGB(150, 150, 156), FRotator::ZeroRotator, true);
-	// Bozuk: eğik duruyor, dibinde su sızıntısı
-	HydrantRoot->SetRelativeRotation(FRotator(0.f, 0.f, 24.f));
-	HydrantLeak = Part(BoardRoot, CylinderMesh, Local + FVector(0, 1.6f, 0.12f), FVector(6.f, 7.f, 0.2f), RGB(104, 164, 218));
+	NewHydrantRoot->SetVisibility(true, true);
+	NewHydrantT = 0.f;
+	const FVector W = BoardRoot->GetComponentTransform().InverseTransformPosition(NewHydrantRoot->GetComponentLocation());
+	for (int32 i = 0; i < 8; ++i)
+	{
+		SpawnGrain(W + FVector(0, 0, 1.f), FMath::FRandRange(25.f, 45.f));
+	}
+}
+
+void ADBWorld::TurnBoard(int32 Dir)
+{
+	if (IsBoardTurning())
+	{
+		TurnQueued = FMath::Clamp(TurnQueued + Dir, -1, 1);   // dönerken basılan bir sonraki dönüş olur
+		return;
+	}
+	TurnFrom = BoardYaw;
+	TurnTo = BoardYaw + 90.f * FMath::Sign(Dir);
+	TurnT = 0.f;
 }
 
 void ADBWorld::RepairHydrant()
@@ -862,7 +918,7 @@ float ADBWorld::SweepCoord(int32 Building) const
 	{
 		return 0.f;
 	}
-	FVector P = BuildingRoots[Building]->GetComponentLocation();
+	FVector P = BuildingRoots[Building]->GetRelativeLocation();   // tahta dönebiliyor: tarama tahtanın kendi ekseninde
 	P.Z = 0.f;
 	return FVector::DotProduct(P, SweepDir);
 }
@@ -926,6 +982,10 @@ void ADBWorld::Tick(float Dt)
 			const FVector Across = FVector(1.f, -1.f, 0.f).GetSafeNormal();
 			const float Half = FMath::Max(4.f, HalfDiag() - FMath::Abs(ScanS));
 			P.Base = BeamPos + Across * ((i % 6) / 5.f * 2.f - 1.f) * Half * 0.9f + FVector(0, 0, BoardTopZ + 3.f + (i % 2) * 2.f);
+			if (P.Base.Y > SeaStartY() - P.Size * 0.5f - 3.f)
+			{
+				P.Target = 0.f;   // denizin üstünde kum bulutu yok
+			}
 		}
 		P.Scale = FMath::FInterpTo(P.Scale, P.Target, Dt, P.Target > 0.f ? 2.f : 1.6f);
 		if (P.Target <= 0.f && P.Scale < 0.04f)
@@ -957,7 +1017,11 @@ void ADBWorld::Tick(float Dt)
 		while (GrainSpawn >= 1.f)
 		{
 			GrainSpawn -= 1.f;
-			SpawnGrain(BeamPos + Across * FMath::FRandRange(-Half, Half) + FVector(0, 0, BoardTopZ + 1.f), FMath::FRandRange(25.f, 50.f));
+			const FVector At = BeamPos + Across * FMath::FRandRange(-Half, Half) + FVector(0, 0, BoardTopZ + 1.f);
+			if (At.Y < SeaStartY() - 2.f)
+			{
+				SpawnGrain(At, FMath::FRandRange(25.f, 50.f));
+			}
 		}
 	}
 	for (int32 i = 0; i < Grains.Num(); ++i)
@@ -1002,6 +1066,42 @@ void ADBWorld::Tick(float Dt)
 		HydrantFixT += Dt;
 		const float F = FMath::Clamp(HydrantFixT / 0.6f, 0.f, 1.f);
 		HydrantRoot->SetRelativeRotation(FRotator(0.f, 0.f, FMath::Lerp(24.f, 0.f, F) + FMath::Sin(HydrantFixT * 30.f) * 4.f * (1.f - F)));
+	}
+
+	// Yeni yangın musluğu yerden çıkar
+	if (NewHydrantT >= 0.f && NewHydrantRoot)
+	{
+		NewHydrantT += Dt;
+		const float F = FMath::Clamp(NewHydrantT / 0.45f, 0.f, 1.f);
+		const float Sc = FMath::Lerp(0.2f, 1.f, F) + 0.25f * FMath::Sin(F * PI);
+		NewHydrantRoot->SetRelativeScale3D(FVector(1.f, 1.f, Sc) / BuildingScale);
+		if (F >= 1.f)
+		{
+			NewHydrantT = -1.f;
+		}
+	}
+
+	// Tahta dönüşü: masadan kalkar, havada 90° döner, yerine iner
+	if (TurnT >= 0.f && BoardRoot)
+	{
+		TurnT += Dt;
+		const float A = FMath::Clamp(TurnT / FMath::Max(0.2f, TurnSeconds), 0.f, 1.f);
+		const float Up = FMath::SmoothStep(0.f, 0.28f, A) * (1.f - FMath::SmoothStep(0.72f, 1.f, A));
+		const float Spin = FMath::SmoothStep(0.18f, 0.82f, A);
+		BoardYaw = FMath::Lerp(TurnFrom, TurnTo, Spin);
+		BoardRoot->SetRelativeLocationAndRotation(FVector(0.f, 0.f, TurnLiftCm * Up), FRotator(0.f, BoardYaw, 0.f));
+		if (A >= 1.f)
+		{
+			BoardYaw = FRotator::NormalizeAxis(TurnTo);
+			BoardRoot->SetRelativeLocationAndRotation(FVector::ZeroVector, FRotator(0.f, BoardYaw, 0.f));
+			TurnT = -1.f;
+			if (TurnQueued != 0)
+			{
+				const int32 Q = TurnQueued;
+				TurnQueued = 0;
+				TurnBoard(Q);
+			}
+		}
 	}
 
 	// Kasabalılar hafifçe sallanır
@@ -1064,7 +1164,7 @@ void ADBWorld::Tick(float Dt)
 		const float Env = FMath::Sin(A * PI);
 		const float Amp = 2.5f * Env;
 		BoardRoot->SetRelativeLocation(FVector(FMath::Sin(QuakeT * 41.f) * Amp, FMath::Cos(QuakeT * 33.f) * Amp, 0.f));
-		BoardRoot->SetRelativeRotation(FRotator(FMath::Sin(QuakeT * 23.f) * 1.2f * Env, 0.f, FMath::Cos(QuakeT * 29.f) * 1.2f * Env));
+		BoardRoot->SetRelativeRotation(FRotator(FMath::Sin(QuakeT * 23.f) * 1.2f * Env, BoardYaw, FMath::Cos(QuakeT * 29.f) * 1.2f * Env));
 
 		int32 Unsafe = 0;
 		for (int32 i = 0; i < BuildingRoots.Num(); ++i)
@@ -1086,7 +1186,7 @@ void ADBWorld::Tick(float Dt)
 		if (A >= 1.f)
 		{
 			bQuaking = false;
-			BoardRoot->SetRelativeLocationAndRotation(FVector::ZeroVector, FRotator::ZeroRotator);
+			BoardRoot->SetRelativeLocationAndRotation(FVector::ZeroVector, FRotator(0.f, BoardYaw, 0.f));
 			for (int32 i = 0; i < BuildingRoots.Num(); ++i)
 			{
 				if (QuakeSafe[i])

@@ -25,7 +25,7 @@ namespace
 	enum EKit { IlkYardim, Deprem, Yangin };
 	enum EItem { SargiBezi, Antiseptik, YaraBandi, Su, Fener, Duduk, YanginTupu, DumanMaskesi,
 		KalpIlaci, AstimSpreyi, Gozluk, BebekMamasi, BebekBezi, KediMamasi, Battaniye, Powerbank, Belgeler };
-	enum ETool { Rogar, Tahliye, YanginMuslugu, Guclendirme };
+	enum ETool { Rogar, Tahliye, YanginMuslugu, IngilizAnahtari, Guclendirme };
 	enum EBina { AyseEv, Okul, Siginak, YilmazEv, Apartman, Kitapci, Firin, Market, OgrenciEv, Park, SahilEv, AhsapEv };
 
 	FDBContent Build()
@@ -64,11 +64,12 @@ namespace
 			{ TEXT("İHTİYAÇ"), { Battaniye, Powerbank, Belgeler } },
 		};
 
-		// Alt panel sırası çizimdeki gibi: rögar kapağı, tahliye, yangın musluğu, bina güçlendirme
+		// Alt panel sırası: rögar kapağı, tahliye, yangın musluğu (yenisini koy), İngiliz anahtarı (bozuğu tamir), bina güçlendirme
 		C.Tools = {
 			{ TEXT("Rögar Kapağı"), TEXT("RK"), RGB(80, 84, 92), 15, TEXT("Sel"), TEXT("Rögar kapakları kondu") },
 			{ TEXT("Tahliye"), TEXT("TH"), Sky, 30, TEXT("Tsunami"), TEXT("Sığınağın yolu öğretildi") },
-			{ TEXT("İngiliz Anahtarı"), TEXT("İA"), RGB(214, 76, 66), 40, TEXT("Yangın"), TEXT("Yangın musluğu tamir edildi") },
+			{ TEXT("Yangın Musluğu"), TEXT("YM"), RGB(214, 76, 66), 40, TEXT("Yangın"), TEXT("Sokağa yangın musluğu kondu") },
+			{ TEXT("İngiliz Anahtarı"), TEXT("İA"), RGB(120, 128, 150), 25, TEXT("Yangın"), TEXT("Yangın musluğu tamir edildi") },
 			{ TEXT("Bina Güçlendirme"), TEXT("BG"), Teal, 60, TEXT("Deprem"), TEXT("Bina güçlendirildi") },
 		};
 		C.EvacuateTool = Tahliye;
@@ -78,6 +79,11 @@ namespace
 		// Yangın: ahşap evlerin sokağındaki musluk bozuk; İngiliz anahtarıyla tamir edilir
 		C.HydrantBuilding = AhsapEv;
 		C.HydrantCell = FIntPoint(8, 9);
+		C.WrenchTool = IngilizAnahtari;
+		// Yangın: kitapçının sokağında hiç musluk yok; yenisi kitapçının yanındaki yola konur
+		C.HydrantAddTool = YanginMuslugu;
+		C.NewHydrantBuilding = Kitapci;
+		C.NewHydrantCell = FIntPoint(8, 3);
 		C.StartMoney = 100;
 		C.KitReward = 30;
 
@@ -121,8 +127,8 @@ namespace
 			  TEXT("Bina sapasağlam! Bütün apartman sana dua ediyor.") },
 			{ TEXT("Elif"),
 			  TEXT("Selam! Raflarımı duvara sabitledim, depremde kitaplar kimsenin başına düşmesin diye. Sen de evde yap!"),
-			  TEXT(""),
-			  TEXT("") },
+			  TEXT("Selam! Dükkân baştan aşağı kâğıt... Sokağımızda tek bir yangın musluğu bile yok, içim hiç rahat değil."),
+			  TEXT("Musluk kapımın önünde! Kitaplarım da ben de rahatladık, sağ ol.") },
 			{ TEXT("Ali Usta"),
 			  TEXT("Simitler fırından yeni çıktı!"),
 			  TEXT("Sabahtan beri fırın yanıyor kardeşim. Bir yangın çıksa belgelerim de gider, ortada kalırım."),
@@ -199,10 +205,16 @@ namespace
 			  TEXT("Yağmurda sokağı su basıyor. Su nereden akıp gitmeli?") },
 			{ AhsapEv, TEXT("Yangın"),
 			  TEXT("Ahşap evlerin sokağındaki yangın musluğu bozuk."),
-			  TEXT("Birbirine bitişik ahşap evlerin sokağındaki yangın musluğu bozuk, su vermiyor; İngiliz anahtarıyla tamir et."),
-			  YanginMuslugu, -1,
+			  TEXT("Birbirine bitişik ahşap evlerin sokağındaki yangın musluğu bozuk, su vermiyor; İngiliz anahtarıyla somununu sık."),
+			  IngilizAnahtari, -1,
 			  TEXT("Yangın muslukları bakımlı olmalı, önleri kapatılmamalı; itfaiyenin geçeceği yollar açık tutulmalı."),
 			  TEXT("Yangın çıksa itfaiye suyu nereden alacak?") },
+			{ Kitapci, TEXT("Yangın"),
+			  TEXT("Kitapçının sokağında hiç yangın musluğu yok."),
+			  TEXT("Kitapçı kâğıt dolu ama sokağında tek bir yangın musluğu yok. Yangın çıksa itfaiye suyu nereden alacak?"),
+			  YanginMuslugu, -1,
+			  TEXT("Her sokakta itfaiyenin ulaşabileceği bir yangın musluğu olmalı; önüne araç park edilmez, çevresi açık tutulur."),
+			  TEXT("Kâğıt çabuk tutuşur. Sokakta su alınacak bir yer var mı?") },
 			{ SahilEv, TEXT("Tsunami"),
 			  TEXT("Sahil evinde oturanlar sığınağın yolunu bilmiyor."),
 			  TEXT("Sahil evi denize çok yakın. Tsunami uyarısında sakinlerin nereye kaçacağını bilmesi gerekiyor."),
@@ -250,7 +262,7 @@ namespace
 			{ S::C, TEXT("Önlemler bütçeden düşer; teslim ettiğin her çanta bütçe kazandırır.") },
 			{ S::C, TEXT("Önlemi seç, isteği olan yere tıkla. Rögar kapağını su birikintisinin olduğu ızgaraya koy.") },
 			{ S::C, TEXT("Kasabalılara tıkla, dertlerini anlatsınlar. Çantayı da çekmecedeki fabrikada hazırla.") },
-			{ S::C, TEXT("Hepsi yeşil olunca kasaba hazır! Tekerlek yakınlaştırır, Q/E ya da sağ tıkla sürükle döndürür.") },
+			{ S::C, TEXT("Hepsi yeşil olunca kasaba hazır! Tekerlek yakınlaştırır, alttaki oklar tahtayı döndürür.") },
 		};
 
 		C.Comic = {

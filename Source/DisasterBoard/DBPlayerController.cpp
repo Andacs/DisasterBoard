@@ -62,13 +62,9 @@ void ADBPlayerController::SetupInputComponent()
 	Bind(TEXT("IA_Back"), { EKeys::Escape }, &ADBPlayerController::OnBack);
 	Bind(TEXT("IA_RotLeft"), { EKeys::Q }, &ADBPlayerController::OnRotLeft);
 	Bind(TEXT("IA_RotRight"), { EKeys::E }, &ADBPlayerController::OnRotRight);
-	// Sağ tık: sürüklenirse tahtayı döndürür, sürüklenmeden bırakılırsa "geri" (seçimi bırak / masayı kapat)
-	{
-		UInputAction* Rmb = NewObject<UInputAction>(this, TEXT("IA_Rmb"));
-		Mapping->MapKey(Rmb, EKeys::RightMouseButton);
-		EIC->BindAction(Rmb, ETriggerEvent::Started, this, &ADBPlayerController::OnRmbDown);
-		EIC->BindAction(Rmb, ETriggerEvent::Completed, this, &ADBPlayerController::OnRmbUp);
-	}
+	// Sağ tık: "geri" (seçimi bırak / masayı kapat / mini oyundan vazgeç). Andaç: sağ tıkla sürükleyip döndürme yok;
+	// tahta alttaki oklarla (ya da Q/E) döner.
+	Bind(TEXT("IA_Rmb"), { EKeys::RightMouseButton }, &ADBPlayerController::OnBack);
 	{
 		UInputAction* Zoom = NewObject<UInputAction>(this, TEXT("IA_Zoom"));
 		Zoom->ValueType = EInputActionValueType::Axis1D;
@@ -83,26 +79,6 @@ void ADBPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 
-	// Sağ tıkla sürükleyerek tahtayı döndür
-	if (bRmbDown)
-	{
-		float RX = 0.f, RY = 0.f;
-		if (GetMousePosition(RX, RY))
-		{
-			const float Dx = RX - RmbLastX;
-			RmbLastX = RX;
-			RmbTotal += FMath::Abs(Dx);
-			if (RmbTotal > 6.f)
-			{
-				bRmbDragged = true;
-			}
-			if (bRmbDragged && CanControlBoard())
-			{
-				GM()->World->RotateBoardView(Dx * 0.35f);
-			}
-		}
-	}
-
 	HoveredBuilding = -1;
 	bHoveredCell = false;
 	ADBGameMode* G = GM();
@@ -110,6 +86,19 @@ void ADBPlayerController::PlayerTick(float DeltaTime)
 	float MX = 0.f, MY = 0.f;
 	const bool bMouse = GetMousePosition(MX, MY);
 	bool bHand = false;
+
+	// Mini oyun: fare sol tuşu (Vazgeç'in dışında basıldıysa) ya da boşluk basılı tutulur; tahtaya tıklanmaz
+	if (G && G->Mini != EDBMini::None)
+	{
+		const bool bLmb = IsInputKeyDown(EKeys::LeftMouseButton);
+		if (!bLmb)
+		{
+			bMiniMouse = false;
+		}
+		G->bMiniHold = (bLmb && bMiniMouse) || IsInputKeyDown(EKeys::SpaceBar);
+		CurrentMouseCursor = (bMouse && H && H->IsOverButton(FVector2D(MX, MY))) ? EMouseCursor::Hand : EMouseCursor::Default;
+		return;
+	}
 	if (bMouse && H)
 	{
 		bHand = H->IsOverButton(FVector2D(MX, MY));
@@ -139,6 +128,11 @@ void ADBPlayerController::OnClick()
 	}
 	float MX = 0.f, MY = 0.f;
 	GetMousePosition(MX, MY);
+	if (G->Mini != EDBMini::None)
+	{
+		bMiniMouse = !H->HandleClick(FVector2D(MX, MY));   // Vazgeç değilse basılı tutma başlar
+		return;
+	}
 	if (H->HandleClick(FVector2D(MX, MY)))
 	{
 		return;
@@ -176,31 +170,12 @@ void ADBPlayerController::OnZoom(const FInputActionValue& Value)
 
 void ADBPlayerController::OnRotLeft()
 {
-	if (CanControlBoard()) GM()->World->RotateBoardView(-90.f);
+	if (ADBGameMode* G = GM()) G->TurnBoard(-1);
 }
 
 void ADBPlayerController::OnRotRight()
 {
-	if (CanControlBoard()) GM()->World->RotateBoardView(90.f);
-}
-
-void ADBPlayerController::OnRmbDown()
-{
-	float MX = 0.f, MY = 0.f;
-	GetMousePosition(MX, MY);
-	bRmbDown = true;
-	bRmbDragged = false;
-	RmbLastX = MX;
-	RmbTotal = 0.f;
-}
-
-void ADBPlayerController::OnRmbUp()
-{
-	bRmbDown = false;
-	if (!bRmbDragged)
-	{
-		OnBack();
-	}
+	if (ADBGameMode* G = GM()) G->TurnBoard(1);
 }
 
 void ADBPlayerController::OnBack()
@@ -360,21 +335,44 @@ void ADBPlayerController::DBTest()
 	Add([this] { Shot(TEXT("11_C_konusuyor")); });
 	Talk(6);
 	Add([this] { Shot(TEXT("12_oyun")); });
-	// Kamera: döndür ve yakınlaştır
-	Add([this] { GM()->World->RotateBoardView(90.f); GM()->World->ZoomBoardView(-90.f); });
-	Add([this] { Shot(TEXT("12b_kamera_dondu_yaklasti")); GM()->World->RotateBoardView(-90.f); GM()->World->ZoomBoardView(90.f); });
+	// Tahta: sağ okla kalkar, döner, iner (havadayken görüntü), sonra geri; tekerlekle yakınlaştır
+	Add([this]
+	{
+		GM()->TurnBoard(1);
+		GM()->World->ZoomBoardView(-60.f);
+		FTimerHandle Mid;
+		GetWorldTimerManager().SetTimer(Mid, FTimerDelegate::CreateLambda([this] { Shot(TEXT("12b_tahta_havada_donuyor")); }), 0.6f, false);
+	});
+	Add([this] { Shot(TEXT("12c_tahta_dondu")); GM()->TurnBoard(-1); GM()->World->ZoomBoardView(60.f); });
 	Add([] {});
-	// Binalar: 4 Apartman, 7 Market, 8 Öğrenci, 10 Sahil, 11 Ahşap
+	// Binalar: 4 Apartman, 5 Kitapçı, 7 Market, 8 Öğrenci, 10 Sahil, 11 Ahşap. Önlemler: 0 rögar, 1 tahliye, 2 musluk, 3 anahtar, 4 güçlendirme
 	Add([this] { GM()->ClickBuilding(11); });   // Nermin Hanım derdini anlatır
 	Add([this] { Shot(TEXT("13_kasabali_konusuyor")); });
 	Add([this] { ADBGameMode* M = GM(); M->CloseNpc(); M->SelectTool(1); M->ClickBuilding(4); });
 	Add([this] { Shot(TEXT("15_yanlis_onlem")); });
-	Add([this] { ADBGameMode* M = GM(); M->SelectTool(0); M->ClickCell(FIntPoint(7, 5)); });
-	Add([this] { Shot(TEXT("15b_rogar_izgara")); });
-	Add([this] { ADBGameMode* M = GM(); M->ClickCell(FIntPoint(8, 6)); });
-	Add([this] { ADBGameMode* M = GM(); M->SelectTool(2); M->ClickBuilding(11); });
-	Add([this] { Shot(TEXT("15c_musluk_tamir")); });
-	Add([this] { ADBGameMode* M = GM(); M->SelectTool(3); M->ClickBuilding(4); M->SelectTool(1); M->ClickBuilding(10); });
+	// Rögar: bozuk kapağı yeşil alanda 4 sn tut (test kendisi oynar)
+	Add([this] { ADBGameMode* M = GM(); M->bMiniAutoTest = true; M->SelectTool(0); M->ClickCell(FIntPoint(7, 5)); });
+	Add([this] { Shot(TEXT("15b_rogar_oyunu")); });
+	Add([] {});
+	Add([] {});
+	Add([] {});
+	Add([] {});
+	Add([this] { Shot(TEXT("15c_rogar_kondu")); GM()->ClickCell(FIntPoint(8, 6)); });
+	Add([] {});
+	Add([] {});
+	Add([] {});
+	Add([] {});
+	Add([] {});
+	// İngiliz anahtarı: somunu yeşil çizgiye kadar sık
+	Add([this] { ADBGameMode* M = GM(); M->SelectTool(3); M->ClickBuilding(11); });
+	Add([this] { Shot(TEXT("15d_somun_oyunu")); });
+	Add([] {});
+	Add([] {});
+	Add([this] { Shot(TEXT("15e_musluk_tamir")); });
+	// Yangın musluğu: kitapçının sokağına yenisi
+	Add([this] { ADBGameMode* M = GM(); M->SelectTool(2); M->ClickBuilding(5); });
+	Add([this] { Shot(TEXT("15f_yeni_musluk")); });
+	Add([this] { ADBGameMode* M = GM(); M->SelectTool(4); M->ClickBuilding(4); M->SelectTool(1); M->ClickBuilding(10); });
 	Add([this] { Shot(TEXT("16_tahliye")); });
 	Add([this] { GM()->ClickBuilding(8); });   // Can derdini anlatır, "Çantasını hazırla"
 	Add([this] { Shot(TEXT("16b_can_konusuyor")); GM()->NpcOpenFactory(); });
