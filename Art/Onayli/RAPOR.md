@@ -39,8 +39,8 @@
 | `Ikonlar/kit_ilk_yardim.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/kit_deprem.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/kit_yangin.png` | 2D | ONAYLI | 17.10 15:20 | - |
-| `Ikonlar/isaret_uyari.png` | 2D | ONAYLI | 17.10 15:17 | - |
-| `Ikonlar/isaret_tamam.png` | 2D | ONAYLI | 17.10 15:17 | - |
+| `Ikonlar/isaret_uyari.png` | 2D | ONAYLI | 18.10 00:13 | - |
+| `Ikonlar/isaret_tamam.png` | 2D | ONAYLI | 18.10 00:13 | - |
 | `Ikonlar/butce.png` | 2D | ONAYLI | 17.10 15:17 | - |
 | `Arayuz/tarayici.png` | 2D | ONAYLI | 17.10 21:43 | - |
 | `Arayuz/canta.png` | 2D | ONAYLI | 17.10 21:43 | - |
