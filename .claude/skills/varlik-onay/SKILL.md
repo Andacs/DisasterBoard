@@ -70,7 +70,7 @@ Yiğit'e sor), sonra: `python Tools/varlik_kontrol.py --karakter A "<duruş>" "<
 
 ## Durum ve teslim
 
-- `python Tools/varlik_kontrol.py --durum`: 73 dosyanın listesi (41 2D, 32 3D), hangisi onaylı, hangisi bekliyor.
+- `python Tools/varlik_kontrol.py --durum`: 85 dosyanın listesi (53 2D, 32 3D), hangisi onaylı, hangisi bekliyor.
   Tablo `Art/Onayli/RAPOR.md`.
 - **Hepsi onaylanınca** (araç "HEPSİ TAMAM" der) Yiğit'e sor: "Hepsi onaylı, Andaç'a göndereyim mi?" Evet derse:
   `python Tools/varlik_kontrol.py --teslim`. Bu, `Art/Onayli/` klasörünü commit eder, `git pull --rebase` yapar

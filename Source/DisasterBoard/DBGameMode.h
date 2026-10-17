@@ -195,6 +195,11 @@ public:
 	void QuitGame();
 	void ToggleFullscreen();
 	void CycleQuality();
+	// Revizyon 17: efekt yoğunluğu (2 Yüksek, 1 Orta, 0 Düşük): parçacık, sis, kum, damla, fare izi, konfeti
+	int32 VfxLevel = 2;
+	void CycleVfx();
+	FString VfxLabel() const { return VfxLevel == 2 ? TEXT("Yüksek") : (VfxLevel == 1 ? TEXT("Orta") : TEXT("Düşük")); }
+	bool bDebugPortraits = false;   // görsel testi: 12 kasabalı portresi tek karede
 	FString FullscreenLabel() const;
 	FString QualityLabel() const;
 

@@ -1,6 +1,6 @@
-# Onaylı varlıklar (18 / 73)
+# Onaylı varlıklar (18 / 85)
 
-2D: 18 / 41 · 3D: 0 / 32. Bu dosyayı `Tools/varlik_kontrol.py` yazar, elle değiştirme.
+2D: 18 / 53 · 3D: 0 / 32. Bu dosyayı `Tools/varlik_kontrol.py` yazar, elle değiştirme.
 
 | Dosya | Tür | Durum | Tarih | Not |
 |---|---|---|---|---|
@@ -45,6 +45,18 @@
 | `Arayuz/tarayici.png` | 2D | bekliyor | | |
 | `Arayuz/canta.png` | 2D | bekliyor | | |
 | `Arayuz/logo.png` | 2D | bekliyor | | |
+| `Karakterler/NPC_AyseTeyze.png` | 2D | bekliyor | | |
+| `Karakterler/NPC_SelmaOgretmen.png` | 2D | bekliyor | | |
+| `Karakterler/NPC_HasanAmca.png` | 2D | bekliyor | | |
+| `Karakterler/NPC_Zeynep.png` | 2D | bekliyor | | |
+| `Karakterler/NPC_KemalBey.png` | 2D | bekliyor | | |
+| `Karakterler/NPC_Elif.png` | 2D | bekliyor | | |
+| `Karakterler/NPC_AliUsta.png` | 2D | bekliyor | | |
+| `Karakterler/NPC_RizaAbi.png` | 2D | bekliyor | | |
+| `Karakterler/NPC_Can.png` | 2D | bekliyor | | |
+| `Karakterler/NPC_Deniz.png` | 2D | bekliyor | | |
+| `Karakterler/NPC_MuratAbi.png` | 2D | bekliyor | | |
+| `Karakterler/NPC_NerminHanim.png` | 2D | bekliyor | | |
 | `SM_Bina_AyseTeyze` | 3D | bekliyor | | |
 | `SM_Bina_Okul` | 3D | bekliyor | | |
 | `SM_Bina_Siginak` | 3D | bekliyor | | |

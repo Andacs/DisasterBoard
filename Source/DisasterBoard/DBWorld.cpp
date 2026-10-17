@@ -108,6 +108,7 @@ void ADBWorld::Build()
 	BuildCars();
 	BuildHydrant();
 	BuildFeedbackFx();
+	BuildLife();
 
 	for (TActorIterator<ADirectionalLight> It(GetWorld()); It; ++It)
 	{
@@ -580,7 +581,8 @@ void ADBWorld::ShowHaze(int32 Building, const FString& Hazard)
 	const int32 Tint = TintForHazard(Hazard);
 	// Denizin üstünde duman yok (Andaç: denizdeki kahverengi kalksın); tsunami pusu mavi, o denize taşabilir
 	const bool bSeaOk = Tint == TintForHazard(TEXT("Tsunami"));
-	for (int32 k = 0; k < 6; ++k)
+	const int32 NPuff = VfxLevel >= 2 ? 6 : (VfxLevel == 1 ? 3 : 0);
+	for (int32 k = 0; k < NPuff; ++k)
 	{
 		const float Ang = k * 2.f * PI / 6.f + Building;
 		FVector Base = C + FVector(FMath::Cos(Ang) * 10.f, FMath::Sin(Ang) * 10.f, 4.f + k * 2.4f);
@@ -619,6 +621,11 @@ void ADBWorld::ClearHaze(int32 Building)
 
 void ADBWorld::SpawnGrain(const FVector& At, float Up)
 {
+	static int32 Skip = 0;
+	if (VfxLevel == 0 || (VfxLevel == 1 && (++Skip & 1)))
+	{
+		return;
+	}
 	for (int32 i = 0; i < Grains.Num(); ++i)
 	{
 		if (!Grains[i].bOn)
@@ -1334,6 +1341,11 @@ void ADBWorld::BuildFeedbackFx()
 
 void ADBWorld::SpawnDrop()
 {
+	static int32 Skip = 0;
+	if (VfxLevel == 0 || (VfxLevel == 1 && (++Skip & 1)))
+	{
+		return;
+	}
 	const int32 Ix = Drops.IndexOfByPredicate([](const FDrop& D) { return !D.bOn; });
 	if (Ix == INDEX_NONE || !BoardRoot)
 	{
@@ -1429,5 +1441,89 @@ void ADBWorld::TickFeedbackFx(float Dt, float YawVel)
 		W.Theta = FMath::Clamp(W.Theta, -12.f, 12.f);
 		// Merkezden dışarı eksen etrafında döner: tepe teğet yönde (dönüş yönünde) yatar
 		W.Root->SetRelativeRotation(FQuat(FVector(W.Axis.X, W.Axis.Y, 0.f), FMath::DegreesToRadians(W.Theta)));
+	}
+
+	// Kuşlar: kasabanın üstünde geniş daireler çizer, kanat çırpar; bulut gölgeleri tahtada süzülür
+	const bool bLife = VfxLevel > 0 && bLifeVisible;
+	for (int32 i = 0; i < Birds.Num(); ++i)
+	{
+		if (Birds[i]->IsVisible() != bLife)
+		{
+			Birds[i]->SetVisibility(bLife, true);
+		}
+		if (!bLife)
+		{
+			continue;
+		}
+		const float R = 45.f + 14.f * i;
+		const float Sp = (i & 1 ? -1.f : 1.f) * (0.22f + 0.05f * i);
+		const float A = FlutterT * Sp + i * 1.9f;
+		const FVector P(FMath::Cos(A) * R, FMath::Sin(A) * R, 62.f + 9.f * i + 4.f * FMath::Sin(FlutterT * 0.9f + i));
+		const FVector Tan(-FMath::Sin(A) * Sp, FMath::Cos(A) * Sp, 0.f);
+		Birds[i]->SetRelativeLocationAndRotation(P, Tan.Rotation() + FRotator(0.f, 0.f, -18.f * FMath::Sign(Sp)));
+		const float Flap = 35.f * FMath::Sin(FlutterT * (9.f + i) + i);
+		BirdWings[2 * i]->SetRelativeRotation(FRotator(0.f, 0.f, Flap));
+		BirdWings[2 * i + 1]->SetRelativeRotation(FRotator(0.f, 0.f, -Flap));
+	}
+	for (int32 i = 0; i < CloudShadows.Num(); ++i)
+	{
+		if (CloudShadows[i]->IsVisible() != bLife)
+		{
+			CloudShadows[i]->SetVisibility(bLife);
+		}
+		const float Span = BoardCm + 80.f;
+		const float X = FMath::Fmod(FlutterT * (3.2f + i) + i * Span * 0.55f, Span) - Span * 0.5f;
+		CloudShadows[i]->SetRelativeLocation(FVector(X, -30.f + i * 55.f, BoardTopZ + 0.35f));
+	}
+}
+
+void ADBWorld::BuildLife()
+{
+	// Kuşlar: gövde + iki kanat (kanatlar omuzdan döner)
+	for (int32 i = 0; i < 4; ++i)
+	{
+		USceneComponent* B = Node(RootComponent, FVector(0.f, 0.f, 70.f));
+		Part(B, CubeMesh, FVector::ZeroVector, FVector(2.2f, 0.9f, 0.9f), RGB(70, 66, 72));
+		for (int32 s = 0; s < 2; ++s)
+		{
+			USceneComponent* Wg = Node(B, FVector(0.f, s ? 0.4f : -0.4f, 0.2f));
+			Part(Wg, CubeMesh, FVector(0.f, s ? 1.6f : -1.6f, 0.f), FVector(1.2f, 3.2f, 0.18f), RGB(90, 86, 94));
+			BirdWings.Add(Wg);
+		}
+		Birds.Add(B);
+	}
+	// Bulut gölgesi: yumuşak, çok saydam koyu leke (tahtanın üstünde süzülür; binalar içinden geçer)
+	const int32 N = 64;
+	TArray<uint8> Px;
+	Px.SetNumUninitialized(N * N * 4);
+	for (int32 y = 0; y < N; ++y)
+	{
+		for (int32 x = 0; x < N; ++x)
+		{
+			const float Dx = (x + 0.5f) / N * 2.f - 1.f, Dy = (y + 0.5f) / N * 2.f - 1.f;
+			const float R = FMath::Sqrt(Dx * Dx * 0.7f + Dy * Dy * 1.3f);
+			const float Bump = 0.88f + 0.12f * FMath::Sin(x * 0.45f) * FMath::Cos(y * 0.33f);
+			const float A = FMath::Clamp(FMath::Pow(FMath::Max(0.f, 1.f - R), 1.2f) * 0.2f * Bump, 0.f, 1.f);
+			uint8* P = &Px[(y * N + x) * 4];
+			P[0] = 40; P[1] = 34; P[2] = 30; P[3] = (uint8)FMath::RoundToInt(A * 255.f);
+		}
+	}
+	UTexture2D* Tex = UTexture2D::CreateTransient(N, N, PF_B8G8R8A8, NAME_None, TConstArrayView64<uint8>(Px.GetData(), Px.Num()));
+	Tex->UpdateResource();
+	PuffTextures.Add(Tex);
+	CloudMid = UMaterialInstanceDynamic::Create(PuffMaterial, this);
+	CloudMid->SetTextureParameterValue(TEXT("SlateUI"), Tex);
+	for (int32 i = 0; i < 2; ++i)
+	{
+		UStaticMeshComponent* C = NewObject<UStaticMeshComponent>(this);
+		C->SetMobility(EComponentMobility::Movable);
+		C->SetStaticMesh(PlaneMesh);
+		C->SetupAttachment(BoardRoot);
+		C->SetRelativeScale3D(FVector(0.55f + 0.15f * i, 0.4f, 1.f));
+		C->SetMaterial(0, CloudMid);
+		C->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		C->SetCastShadow(false);
+		C->RegisterComponent();
+		CloudShadows.Add(C);
 	}
 }

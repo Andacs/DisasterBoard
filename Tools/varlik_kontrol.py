@@ -1,7 +1,7 @@
 # DisasterBoard: modelci ve tasarımcıdan gelen dosyaları kontrol eder, oyunda dener, uygunsa onaylar.
 #
 #   python Tools/varlik_kontrol.py <dosya veya klasör> ...   kontrol et; sorun yoksa Art/Onayli/ altına koy
-#   python Tools/varlik_kontrol.py --durum                   73 dosyanın listesi: onaylı / bekleyen
+#   python Tools/varlik_kontrol.py --durum                   85 dosyanın listesi: onaylı / bekleyen
 #   python Tools/varlik_kontrol.py --teslim [--kismi]        onaylıları commit + push (hepsi bitmeden: --kismi)
 #   python Tools/varlik_kontrol.py --aktar                   (Andaç) onaylı 2D'leri Content/ altına kopyalar
 #   python Tools/varlik_kontrol.py --geri <dosya adı>        bir onayı geri alır (gözle bakınca sorun görüldüyse)
@@ -47,7 +47,8 @@ def ekranlar(yol):
              ("Karakterler/A_durus", "08_asil_fabrika"), ("Karakterler/B_goster", "08_asil_fabrika"), ("Ikonlar/esya_", "08_asil_fabrika"),
              ("Ikonlar/kit_", "08_asil_fabrika"), ("Ikonlar/butce", "08_asil_fabrika"), ("Arayuz/canta", "09_canta_bantta"),
              ("Karakterler/C_durus", "10_yigit_onlemler"), ("Karakterler/C_goster", "10b_yigit_gosteriyor"),
-             ("Ikonlar/onlem_", "10_yigit_onlemler"), ("Ikonlar/isaret_tamam", "11_tamam_isareti")]
+             ("Ikonlar/onlem_", "10_yigit_onlemler"), ("Ikonlar/isaret_tamam", "11_tamam_isareti"),
+             ("Karakterler/NPC_", "12_kasabali_portreleri")]
     return [shot for pre, shot in tablo if yol.startswith(pre)]
 
 

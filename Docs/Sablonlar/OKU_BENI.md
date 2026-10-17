@@ -1,7 +1,7 @@
 # DisasterBoard: modelci ve tasarımcı şablonları
 
 Bu klasörde oyuna girecek her 3D model ve 2D görsel için **oyundaki gerçek ölçüsünde bir şablon** var:
-21 adet 3D kutu (hitbox) ve 41 adet 2D PNG. Her şablonun üstünde **dosya adı ve ölçüsü yazılı**.
+21 adet 3D kutu (hitbox) ve 53 adet 2D PNG. Her şablonun üstünde **dosya adı ve ölçüsü yazılı**.
 Şablonun adı = teslim edeceğin dosyanın adı. Ölçüye uyarsan model/görsel oyuna dokunmadan oturur.
 
 ```
@@ -93,6 +93,18 @@ oturur. Adlar bu tablodaki gibi kalmalı.
 | `Karakterler/B_goster.png` | 320 x 512 | alt orta (ayaklar), el sağ üstte | Asil: gösterme. Duruşla aynı yerde ve boyda; ekranda sağdaki kolu yukarı-sağa kalkık, eli yeşil dairede. Üst üste konunca gövde kıpırdamamalı. |
 | `Karakterler/C_durus.png` | 320 x 512 | alt orta (ayaklar) | Yiğit: duruş. Kameraya bakıyor, iki kol aşağıda. Ayaklar alt kenarda, yatayda ortada. |
 | `Karakterler/C_goster.png` | 320 x 512 | alt orta (ayaklar), el sağ üstte | Yiğit: gösterme. Duruşla aynı yerde ve boyda; ekranda sağdaki kolu yukarı-sağa kalkık, eli yeşil dairede. Üst üste konunca gövde kıpırdamamalı. |
+| `Karakterler/NPC_AyseTeyze.png` | 256 x 256 | orta | Ayşe Teyze: konuşma balonundaki portre. Omuzdan yukarı, kameraya bakıyor, daire içine sığsın. Şeffaf arka plan. |
+| `Karakterler/NPC_SelmaOgretmen.png` | 256 x 256 | orta | Selma Öğretmen: konuşma balonundaki portre. Omuzdan yukarı, kameraya bakıyor, daire içine sığsın. Şeffaf arka plan. |
+| `Karakterler/NPC_HasanAmca.png` | 256 x 256 | orta | Hasan Amca: konuşma balonundaki portre. Omuzdan yukarı, kameraya bakıyor, daire içine sığsın. Şeffaf arka plan. |
+| `Karakterler/NPC_Zeynep.png` | 256 x 256 | orta | Zeynep: konuşma balonundaki portre. Omuzdan yukarı, kameraya bakıyor, daire içine sığsın. Şeffaf arka plan. |
+| `Karakterler/NPC_KemalBey.png` | 256 x 256 | orta | Kemal Bey: konuşma balonundaki portre. Omuzdan yukarı, kameraya bakıyor, daire içine sığsın. Şeffaf arka plan. |
+| `Karakterler/NPC_Elif.png` | 256 x 256 | orta | Elif: konuşma balonundaki portre. Omuzdan yukarı, kameraya bakıyor, daire içine sığsın. Şeffaf arka plan. |
+| `Karakterler/NPC_AliUsta.png` | 256 x 256 | orta | Ali Usta: konuşma balonundaki portre. Omuzdan yukarı, kameraya bakıyor, daire içine sığsın. Şeffaf arka plan. |
+| `Karakterler/NPC_RizaAbi.png` | 256 x 256 | orta | Rıza Abi: konuşma balonundaki portre. Omuzdan yukarı, kameraya bakıyor, daire içine sığsın. Şeffaf arka plan. |
+| `Karakterler/NPC_Can.png` | 256 x 256 | orta | Can: konuşma balonundaki portre. Omuzdan yukarı, kameraya bakıyor, daire içine sığsın. Şeffaf arka plan. |
+| `Karakterler/NPC_Deniz.png` | 256 x 256 | orta | Deniz: konuşma balonundaki portre. Omuzdan yukarı, kameraya bakıyor, daire içine sığsın. Şeffaf arka plan. |
+| `Karakterler/NPC_MuratAbi.png` | 256 x 256 | orta | Murat Abi: konuşma balonundaki portre. Omuzdan yukarı, kameraya bakıyor, daire içine sığsın. Şeffaf arka plan. |
+| `Karakterler/NPC_NerminHanim.png` | 256 x 256 | orta | Nermin Hanım: konuşma balonundaki portre. Omuzdan yukarı, kameraya bakıyor, daire içine sığsın. Şeffaf arka plan. |
 
 ### Çizgi roman (oyunun açılış hikâyesi)
 | Dosya (`Content/` altında) | Piksel | Pivot | Ne |

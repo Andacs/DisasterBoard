@@ -113,6 +113,10 @@ void ADBGameMode::Tick(float Dt)
 	}
 	TickBelt(Dt);
 	TickMini(Dt);
+	if (World)
+	{
+		World->bLifeVisible = IsBoardPhase();
+	}
 
 	switch (Phase)
 	{
@@ -396,6 +400,12 @@ void ADBGameMode::ToggleFullscreen()
 		GS->SetFullscreenMode(bWindowed ? EWindowMode::WindowedFullscreen : EWindowMode::Windowed);
 		GS->ApplySettings(false);
 	}
+}
+
+void ADBGameMode::CycleVfx()
+{
+	VfxLevel = (VfxLevel + 2) % 3;   // Yüksek → Orta → Düşük → Yüksek
+	World->VfxLevel = VfxLevel;
 }
 
 void ADBGameMode::CycleQuality()

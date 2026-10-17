@@ -27,7 +27,7 @@ Kontrolü Claude yapar; sen dosyayı atarsın, o yerleştirir, oyunda dener, sor
   - Görseller için oyun kendiliğinden açılır, ~1 dk oynar, kapanır. Pencereye dokunma.
   - Rehber karakterler (Mert = A, Asil = B, Yiğit = C) **iki poz** gelir: duruş + kolu kalkık. İkisini birlikte at.
 - Claude "RED" derse sebebini çizere aynen ilet; düzeltip tekrar göndersin.
-- `kaç tane kaldı` → onaylı / bekleyen listesi (toplam 73: 41 görsel, 32 model).
+- `kaç tane kaldı` → onaylı / bekleyen listesi (toplam 85: 53 görsel, 32 model).
 - Hepsi bitince (ya da Andaç isterse) `teslim et` → Claude onaylıları repoya gönderir (önce sana sorar).
 
 Ölçüler ve dosya adları: `Docs/Sablonlar/OKU_BENI.md` (çizerlere şablon ZIP'iyle birlikte gönder).

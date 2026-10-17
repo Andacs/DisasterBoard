@@ -293,7 +293,7 @@ FBox2D ADBHUD::DrawerHandleRect() const
 	return Rect(P.Min.X - 46.f * S, P.GetCenter().Y - 100.f * S, 48.f * S, 200.f * S);
 }
 
-FBox2D ADBHUD::BottomBarRect() const { return Rect(W * 0.5f - 325.f * S, H - 182.f * S, 650.f * S, 164.f * S); }
+FBox2D ADBHUD::BottomBarRect() const { return Rect(W * 0.5f - 325.f * S, H - 192.f * S, 650.f * S, 174.f * S); }
 FBox2D ADBHUD::ScannerRect() const { return Rect(178.f * S, H - 200.f * S, 84.f * S, 150.f * S); }
 FBox2D ADBHUD::MoneyRect() const { return Rect(W * 0.5f - 140.f * S, 16.f * S, 280.f * S, 58.f * S); }
 
@@ -440,6 +440,7 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 		else if (Id == TEXT("NpcBag")) GM->NpcOpenFactory();
 		else if (Id == TEXT("NpcClose")) GM->CloseNpc();
 		else if (Id == TEXT("Music")) GM->ToggleMusic();
+		else if (Id == TEXT("Vfx")) GM->CycleVfx();
 		else if (Id == TEXT("Menu")) GM->Restart(false);
 		else if (Id == TEXT("Turn")) GM->TurnBoard(Ix);
 		else if (Id == TEXT("Marker")) GM->ClickBuilding(Ix);
@@ -614,6 +615,10 @@ void ADBHUD::DrawHUD()
 		DrawMenuButton();
 	}
 	DrawEventFx();
+	if (GM->bDebugPortraits)
+	{
+		DrawPortraitGallery();
+	}
 	if (GM->bMenuConfirm)
 	{
 		DrawMenuConfirm();
@@ -730,15 +735,18 @@ void ADBHUD::DrawSubPage(bool bEnabled)
 	float Y = BandH + 3.f * U1;
 	if (bSettings)
 	{
-		Button(TEXT("Fullscreen"), -1, Rect(W * 0.15f, Y, W * 0.7f, 14.f * U1),
-			FString::Printf(TEXT("Ekran: %s"), *GM->FullscreenLabel()), 6.5f * U1, CardC, DarkK, Ink, bEnabled);
-		Y += 18.f * U1;
-		Button(TEXT("Quality"), -1, Rect(W * 0.15f, Y, W * 0.7f, 14.f * U1),
-			FString::Printf(TEXT("Grafik: %s"), *GM->QualityLabel()), 6.5f * U1, CardC, DarkK, Ink, bEnabled);
-		Y += 18.f * U1;
-		Button(TEXT("Music"), -1, Rect(W * 0.15f, Y, W * 0.7f, 14.f * U1),
-			FString::Printf(TEXT("Müzik: %s"), *GM->MusicLabel()), 6.5f * U1, CardC, DarkK, Ink, bEnabled);
-		Y += 17.f * U1;
+		Button(TEXT("Fullscreen"), -1, Rect(W * 0.15f, Y, W * 0.7f, 12.f * U1),
+			FString::Printf(TEXT("Ekran: %s"), *GM->FullscreenLabel()), 6.f * U1, CardC, DarkK, Ink, bEnabled);
+		Y += 14.5f * U1;
+		Button(TEXT("Quality"), -1, Rect(W * 0.15f, Y, W * 0.7f, 12.f * U1),
+			FString::Printf(TEXT("Grafik: %s"), *GM->QualityLabel()), 6.f * U1, CardC, DarkK, Ink, bEnabled);
+		Y += 14.5f * U1;
+		Button(TEXT("Vfx"), -1, Rect(W * 0.15f, Y, W * 0.7f, 12.f * U1),
+			FString::Printf(TEXT("Efektler: %s"), *GM->VfxLabel()), 6.f * U1, CardC, DarkK, Ink, bEnabled);
+		Y += 14.5f * U1;
+		Button(TEXT("Music"), -1, Rect(W * 0.15f, Y, W * 0.7f, 12.f * U1),
+			FString::Printf(TEXT("Müzik: %s"), *GM->MusicLabel()), 6.f * U1, CardC, DarkK, Ink, bEnabled);
+		Y += 14.f * U1;
 		Txt(TEXT("Esc / sağ tık: geri  ·  F5: baştan  ·  M: müzik"), CX, Y, 4.4f * U1, DarkK, 1);
 	}
 	else
@@ -941,7 +949,7 @@ void ADBHUD::DrawBottomBar()
 	const float X = BR.Min.X + 20.f * S;
 	const float Y = BR.Min.Y + 40.f * S;
 	Txt(TEXT("Şehir önlemleri"), X, BR.Min.Y + 10.f * S, 19.f * S, DarkK);
-	TgTools = Rect(X, Y, 5.f * 112.f * S + 4.f * 10.f * S, 112.f * S);
+	TgTools = Rect(X, Y, 5.f * 112.f * S + 4.f * 10.f * S, 122.f * S);
 	if (GM->IsTalking(C.PanelIntroC, 1))
 	{
 		Glow(TgTools);
@@ -949,7 +957,7 @@ void ADBHUD::DrawBottomBar()
 	for (int32 t = 0; t < C.Tools.Num() && t < 5; ++t)
 	{
 		const FDBToolDef& T = C.Tools[t];
-		const FBox2D R = Rect(X + t * 122.f * S, Y, 112.f * S, 112.f * S);
+		const FBox2D R = Rect(X + t * 122.f * S, Y, 112.f * S, 122.f * S);
 		const bool bSel = GM->SelTool == t;
 		const bool bHov = bPlay && Hover(R);
 		const FBox2D RR = (bSel || bHov) ? R.ShiftBy(FVector2D(0.f, -5.f * S)) : R;
@@ -958,8 +966,9 @@ void ADBHUD::DrawBottomBar()
 		{
 			Frame(RR.ExpandBy(3.f * S), Teal, 4.f * S);
 		}
-		ToolIcon(t, FVector2D(RR.GetCenter().X, RR.Min.Y + 28.f * S), 20.f * S);
-		float LY = RR.Min.Y + 52.f * S;
+		// Revizyon 15: ikonlar büyük ve okunur
+		ToolIcon(t, FVector2D(RR.GetCenter().X, RR.Min.Y + 34.f * S), 27.f * S);
+		float LY = RR.Min.Y + 66.f * S;
 		for (const FString& L : Wrap(T.Name, 15.f * S, 102.f * S))
 		{
 			Txt(L, RR.GetCenter().X, LY, 15.f * S, Ink, 1);
@@ -1920,9 +1929,11 @@ void ADBHUD::DrawNpc()
 	}
 	const FString Text = GM->NpcText();
 	const bool bBag = GM->NpcWantsBag();
-	const float BW = 430.f * S;
-	const TArray<FString> Lines = Wrap(Text, 20.f * S, BW - 40.f * S);
-	const float BH = 50.f * S + Lines.Num() * 26.f * S + 58.f * S;
+	// Revizyon 14: konuşmada kasabalının portresi (çizimi varsa Content/Karakterler/NPC_<Ad>.png, yoksa yer tutucu)
+	const float BW = 540.f * S;
+	const float PortW = 110.f * S;
+	const TArray<FString> Lines = Wrap(Text, 20.f * S, BW - 40.f * S - PortW);
+	const float BH = FMath::Max(50.f * S + Lines.Num() * 26.f * S + 58.f * S, 160.f * S);
 	FVector2D Pos(A.X - 70.f * S, A.Y - 34.f * S - BH);
 	Pos.X = FMath::Clamp(Pos.X, 20.f * S, W - BW - 20.f * S);
 	Pos.Y = FMath::Max(Pos.Y, 84.f * S);
@@ -1933,22 +1944,23 @@ void ADBHUD::DrawNpc()
 	Line(T0, A, 2.5f * S, Ink);
 	Line(T0 + FVector2D(40.f * S, 0.f), A, 2.5f * S, Ink);
 	Blockers.Add(R);
-	Disc(FVector2D(R.Min.X + 26.f * S, R.Min.Y + 26.f * S), 9.f * S, GM->NpcKind == 2 ? Green : (GM->NpcKind == 1 ? Coral : Teal));
-	Txt(C.Residents[B].Name, R.Min.X + 42.f * S, R.Min.Y + 13.f * S, 22.f * S, Ink);
+	DrawPortrait(B, FVector2D(R.Min.X + 62.f * S, R.Min.Y + 70.f * S), 46.f * S);
+	Disc(FVector2D(R.Min.X + PortW + 26.f * S, R.Min.Y + 26.f * S), 9.f * S, GM->NpcKind == 2 ? Green : (GM->NpcKind == 1 ? Coral : Teal));
+	Txt(C.Residents[B].Name, R.Min.X + PortW + 42.f * S, R.Min.Y + 13.f * S, 22.f * S, Ink);
 	const int32 Shown = FMath::FloorToInt(Age * 50.f);
 	int32 Left = Shown;
 	float Y = R.Min.Y + 46.f * S;
 	for (const FString& L : Lines)
 	{
 		if (Left <= 0) break;
-		Txt(Left >= L.Len() ? L : L.Left(Left), R.Min.X + 20.f * S, Y, 20.f * S, Ink);
+		Txt(Left >= L.Len() ? L : L.Left(Left), R.Min.X + PortW + 20.f * S, Y, 20.f * S, Ink);
 		Left -= L.Len() + 1;
 		Y += 26.f * S;
 	}
 	const float BY = R.Max.Y - 50.f * S;
 	if (bBag)
 	{
-		Button(TEXT("NpcBag"), -1, Rect(R.Min.X + 18.f * S, BY, 230.f * S, 38.f * S), TEXT("Çantasını hazırla"), 19.f * S, Coral, Ink, Paper);
+		Button(TEXT("NpcBag"), -1, Rect(R.Min.X + PortW + 18.f * S, BY, 230.f * S, 38.f * S), TEXT("Çantasını hazırla"), 19.f * S, Coral, Ink, Paper);
 	}
 	Button(TEXT("NpcClose"), -1, Rect(R.Max.X - 128.f * S, BY, 110.f * S, 38.f * S), TEXT("Tamam"), 19.f * S, CardC, DarkK, Ink);
 }
@@ -2146,8 +2158,13 @@ void ADBHUD::AddClickFx(const FVector2D& P)
 void ADBHUD::DrawCursorFx()
 {
 	const float Now = FxNow;
+	if (GM->VfxLevel == 0)
+	{
+		Trail.Reset();
+		ClickFxs.RemoveAll([Now](const FClickFx& C) { return Now - C.T > 0.4f; });
+	}
 	// Fare izi: son 0,3 sn'deki konumlar, sona doğru incelip söner
-	if (Trail.Num() == 0 || FVector2D::Distance(Trail.Last().P, Mouse) > 3.f)
+	if (GM->VfxLevel > 0 && (Trail.Num() == 0 || FVector2D::Distance(Trail.Last().P, Mouse) > 3.f))
 	{
 		Trail.Add({ Mouse, Now });
 	}
@@ -2190,7 +2207,7 @@ void ADBHUD::DrawWind()
 	// Kamera takvime yaklaşırken (Ayarlar / Emeği Geçenler) soldan sağa geçen ince rüzgar çizgileri ve kâğıt kırıntıları
 	const float Age = GM->Now - GM->WindTime;
 	const float Life = 1.7f;
-	if (Age < 0.f || Age > Life)
+	if (Age < 0.f || Age > Life || GM->VfxLevel == 0)
 	{
 		return;
 	}
@@ -2385,7 +2402,8 @@ void ADBHUD::DrawEventFx()
 			PlayerOwner->ProjectWorldLocationToScreen(GM->World->MarkerAnchor(GM->FxBuilding), P);
 		}
 		const FLinearColor Pal[] = { Coral, Teal, Green, U(255, 214, 90), U(172, 152, 204), U(132, 176, 212) };
-		for (int32 i = 0; i < 40; ++i)
+		const int32 NConf = GM->VfxLevel == 2 ? 40 : (GM->VfxLevel == 1 ? 15 : 0);
+		for (int32 i = 0; i < NConf; ++i)
 		{
 			const float Ang = FMath::FRandRange(-PI, 0.f);
 			const float Sp = FMath::FRandRange(220.f, 520.f) * S;
@@ -2468,6 +2486,11 @@ void ADBHUD::DrawTexUV(UTexture2D* T, const FBox2D& R, const FVector2D& UV0, con
 void ADBHUD::Sparkles(const FBox2D& Area, int32 N, float T, float Alpha, uint32 Seed)
 {
 	// Yavaşça yükselen, yanıp sönen küçük ışıltılar (tohumlu: her karede aynı parçacıklar sürekli hareket eder)
+	if (GM->VfxLevel == 0)
+	{
+		return;
+	}
+	N = GM->VfxLevel == 1 ? N / 2 : N;
 	FRandomStream Rs(Seed);
 	const FVector2D Sz = Area.GetSize();
 	for (int32 i = 0; i < N; ++i)
@@ -2485,7 +2508,7 @@ void ADBHUD::Sparkles(const FBox2D& Area, int32 N, float T, float Alpha, uint32 
 void ADBHUD::Fountain(const FVector2D& Origin, float Age, int32 N, const FLinearColor& Col, uint32 Seed)
 {
 	// Yukarı fışkırıp yay çizerek düşen damlalar (yaş 0-1,2 sn)
-	if (Age < 0.f || Age > 1.2f)
+	if (Age < 0.f || Age > 1.2f || GM->VfxLevel == 0)
 	{
 		return;
 	}
@@ -2503,5 +2526,73 @@ void ADBHUD::Fountain(const FVector2D& Origin, float Age, int32 N, const FLinear
 		const FVector2D P = Origin + FVector2D(FMath::Cos(Ang), FMath::Sin(Ang)) * Sp * T + FVector2D(0.f, 900.f * S * T * T);
 		const float A = FMath::Clamp(1.f - T / 1.f, 0.f, 1.f);
 		Disc(P, (3.f + 3.f * A) * S, WithA(Col, A), 10);
+	}
+}
+
+// ---------------------------------------------------------------- kasabalı portresi
+
+namespace
+{
+	// Tools/sablon_listesi.py KASABALILAR ile aynı sıra (DBData C.Residents sırası)
+	const TCHAR* ResidentKeys[] = { TEXT("AyseTeyze"), TEXT("SelmaOgretmen"), TEXT("HasanAmca"), TEXT("Zeynep"), TEXT("KemalBey"), TEXT("Elif"),
+		TEXT("AliUsta"), TEXT("RizaAbi"), TEXT("Can"), TEXT("Deniz"), TEXT("MuratAbi"), TEXT("NerminHanim") };
+}
+
+void ADBHUD::DrawPortrait(int32 Resident, const FVector2D& C, float R)
+{
+	Disc(C, R + 3.f * S, Ink);
+	Disc(C, R, U(244, 232, 208));
+	if (Resident >= 0 && Resident < UE_ARRAY_COUNT(ResidentKeys))
+	{
+		if (UTexture2D* T = LoadPng(FString::Printf(TEXT("Karakterler/NPC_%s.png"), ResidentKeys[Resident])))
+		{
+			DrawTex(T, FBox2D(C - FVector2D(R), C + FVector2D(R)), 0.f, FVector2D(0.5f, 0.5f));
+			return;
+		}
+	}
+	// Yer tutucu: tahtadaki figürle aynı gömlek rengi, yüz ve saç (çizim gelince yerine oturur)
+	const FLinearColor Shirts[] = { U(232, 128, 104), U(96, 170, 164), U(236, 188, 86), U(172, 152, 204), U(120, 180, 110), U(132, 176, 212) };
+	const FLinearColor Shirt = Shirts[FMath::Max(0, Resident) % 6];
+	// Gömlek: dairenin alt yayına oturan şekil (taşmaz): omuz çizgisi + alt yay, merkezden yelpaze
+	{
+		TArray<FVector2D> Pts;
+		Pts.Add(C + FVector2D(-R * 0.66f, R * 0.52f));
+		Pts.Add(C + FVector2D(R * 0.66f, R * 0.52f));
+		for (int32 k = 0; k <= 16; ++k)
+		{
+			const float A = FMath::DegreesToRadians(FMath::Lerp(38.f, 142.f, k / 16.f));
+			Pts.Add(C + FVector2D(FMath::Cos(A), FMath::Sin(A)) * R * 0.98f);
+		}
+		const FVector2D First = Pts[0];   // Pts.Add(Pts[0]) dizi büyürken kendi elemanını okuyup çöküyordu
+		Pts.Add(First);
+		const FVector2D Fc = C + FVector2D(0.f, R * 0.74f);
+		for (int32 k = 0; k + 1 < Pts.Num(); ++k)
+		{
+			Tri(Fc, Pts[k], Pts[k + 1], Shirt);
+		}
+		Disc(C + FVector2D(-R * 0.5f, R * 0.6f), R * 0.17f, Shirt);
+		Disc(C + FVector2D(R * 0.5f, R * 0.6f), R * 0.17f, Shirt);
+	}
+	Disc(C + FVector2D(0.f, R * 0.02f), R * 0.52f, (Resident & 1) ? U(70, 50, 36) : U(200, 200, 205));
+	Disc(C + FVector2D(0.f, R * 0.12f), R * 0.46f, U(240, 200, 160));
+	Disc(C + FVector2D(-R * 0.17f, R * 0.08f), R * 0.06f, Ink, 10);
+	Disc(C + FVector2D(R * 0.17f, R * 0.08f), R * 0.06f, Ink, 10);
+	Line(C + FVector2D(-R * 0.14f, R * 0.3f), C + FVector2D(0.f, R * 0.36f), 2.f * S, Ink);
+	Line(C + FVector2D(0.f, R * 0.36f), C + FVector2D(R * 0.14f, R * 0.3f), 2.f * S, Ink);
+}
+
+void ADBHUD::DrawPortraitGallery()
+{
+	// Görsel testi: 12 kasabalı portresi tek karede (hepsi LoadPng'den geçer, rapora girer)
+	const FDBContent& C = FDBContent::Get();
+	Box(0.f, 0.f, W, H, U(40, 30, 22, 200));
+	for (int32 i = 0; i < 12; ++i)
+	{
+		const FVector2D P(W * 0.5f + ((i % 6) - 2.5f) * 230.f * S, H * 0.5f + ((i / 6) - 0.5f) * 280.f * S);
+		DrawPortrait(i, P, 80.f * S);
+		if (C.Residents.IsValidIndex(i))
+		{
+			Txt(C.Residents[i].Name, P.X, P.Y + 96.f * S, 20.f * S, Paper, 1);
+		}
 	}
 }

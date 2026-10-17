@@ -333,7 +333,12 @@ void ADBPlayerController::DBTest()
 	// Oyun hikâyeyle açılır (menüden önce)
 	Add([this] { Shot(TEXT("00a_hikaye_1")); });
 	Add([this] { GM()->SkipComic(); });
-	Add([this] { Shot(TEXT("01_menu")); GM()->ClickPlay(); });
+	Add([this] { Shot(TEXT("01_menu")); GM()->OpenMenuPage(EDBMenuPage::Settings); });
+	Add([] {});
+	Add([this] { Shot(TEXT("01b_ayarlar")); GM()->CloseMenuPage(); });
+	Add([] {});
+	Add([] {});
+	Add([this] { GM()->ClickPlay(); });
 	Add([] {});
 	Add([] {});
 	Talk(2);
@@ -538,6 +543,10 @@ void ADBPlayerController::DBVarlikTest()
 	Add([this] { ADBGameMode* M = GM(); M->SelectTool(4); M->ClickBuilding(4); });
 	Add([this] { GM()->CloseNpc(); });
 	Add([VShot] { VShot(TEXT("11_tamam_isareti")); });
+	// Kasabalı portreleri (Karakterler/NPC_*): 12'si tek karede
+	Add([this] { GM()->bDebugPortraits = true; });
+	Add([this, VShot] { VShot(TEXT("12_kasabali_portreleri")); });
+	Add([this] { GM()->bDebugPortraits = false; });
 	Add([] {});
 	Add([this]
 	{

@@ -116,6 +116,8 @@ public:
 	// Oyuncu tahtayı döndürür: alttaki oklar / Q-E → tahta masadan kalkar, 90° döner, yerine iner (kamera sabit)
 	void TurnBoard(int32 Dir);
 	UPROPERTY() TObjectPtr<UDBSfxWave> SfxWave;      // GameMode verir: tahta sesleri
+	bool bLifeVisible = true;   // kuşlar yalnızca tahta görünümünde (takvimde kameranın önünden geçiyordu)
+	int32 VfxLevel = 2;   // GameMode ayarlar (Düşük: sis / kum / damla / kuş / bulut yok)
 	void Shake(float Amount) { ShakeAmp = FMath::Max(ShakeAmp, Amount); }
 	float ShakeAmp = 0.f;
 	void Gust(float Strength) { GustAmp = FMath::Max(GustAmp, Strength); }   // takvim sayfasına rüzgar
@@ -199,6 +201,11 @@ private:
 	UPROPERTY() TArray<TObjectPtr<USceneComponent>> TreeRoots;
 	float PrevYaw = 0.f;
 	void BuildFeedbackFx();
+	void BuildLife();       // revizyon 16: kuşlar ve bulut gölgeleri
+	UPROPERTY() TArray<TObjectPtr<USceneComponent>> Birds;
+	UPROPERTY() TArray<TObjectPtr<USceneComponent>> BirdWings;
+	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> CloudShadows;
+	UPROPERTY() TObjectPtr<UMaterialInstanceDynamic> CloudMid;
 	void TickFeedbackFx(float Dt, float YawVel);
 	void SpawnDrop();
 	float SeaStartY() const { return -GridN * CellCm * 0.5f + (GridN - 2) * CellCm; }   // yerel Y: deniz buradan başlar

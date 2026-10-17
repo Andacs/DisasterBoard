@@ -73,6 +73,11 @@ ASSETS_2D += [
 # Kasabalı figürleri tek tek teslim edilir: SM_Kasabali_<Ad> (sıra DBData.cpp C.Residents ile aynı)
 KASABALILAR = ["AyseTeyze", "SelmaOgretmen", "HasanAmca", "Zeynep", "KemalBey", "Elif", "AliUsta", "RizaAbi", "Can", "Deniz",
                "MuratAbi", "NerminHanim"]
+KASABALI_ADLARI = ["Ayşe Teyze", "Selma Öğretmen", "Hasan Amca", "Zeynep", "Kemal Bey", "Elif", "Ali Usta", "Rıza Abi", "Can",
+                   "Deniz", "Murat Abi", "Nermin Hanım"]
+# Revizyon 14: konuşma balonunda kasabalı portresi (256x256, daire içinde, omuzdan yukarı)
+for _k, _ad in zip(KASABALILAR, KASABALI_ADLARI):
+    ASSETS_2D.append((f"Karakterler/NPC_{_k}.png", 256, 256, "Portre", f"{_ad}: konuşma balonundaki portre. Omuzdan yukarı, kameraya bakıyor, daire içine sığsın. Şeffaf arka plan.", "daire"))
 
 
 def teslim_listesi():
