@@ -41,6 +41,16 @@ namespace
 		static const TMap<FString, FString> Names = {
 			{ TEXT("Okul"), TEXT("SM_Bina_Okul") },
 			{ TEXT("Ayşe Teyze'nin evi"), TEXT("SM_Bina_AyseTeyze") },
+			{ TEXT("Yılmazların evi"), TEXT("SM_Bina_Yilmazlar") },
+			{ TEXT("Kitapçı"), TEXT("SM_Bina_Kitapci") },
+			{ TEXT("Fırın"), TEXT("SM_Bina_Firin") },
+			{ TEXT("Market"), TEXT("SM_Bina_Market") },
+			{ TEXT("Sahil evi"), TEXT("SM_Bina_SahilEvi") },
+			{ TEXT("Ahşap evler"), TEXT("SM_Bina_AhsapEvler") },
+			{ TEXT("Eski apartman"), TEXT("SM_Bina_EskiApartman") },
+			{ TEXT("Öğrenci evi"), TEXT("SM_Bina_OgrenciEvi") },
+			{ TEXT("Sığınak"), TEXT("SM_Bina_Siginak") },
+			{ TEXT("Park"), TEXT("SM_Bina_Park") },   // DasToasty "Low Poly Park", CC BY 4.0
 		};
 		const FString* N = Names.Find(BuildingName);
 		return N ? TeamMesh(*N) : nullptr;
@@ -195,7 +205,13 @@ void ADBWorld::BuildBoard()
 	const float Plateau = GridN * CellCm;
 	UStaticMeshComponent* BoardBase = Part(B, CubeMesh, FVector(0, 0, 3.6f), FVector(BoardCm, BoardCm, 10.2f), RGB(176, 132, 90), FRotator::ZeroRotator, true);
 	UStaticMeshComponent* BoardBevel = Part(B, CubeMesh, FVector(0, 0, 10.35f), FVector(BoardCm - 10.f, BoardCm - 10.f, 3.3f), RGB(196, 154, 108), FRotator::ZeroRotator, true);
-	if (UStaticMesh* M = TeamMesh(TEXT("SM_Tahta")))
+	// YEREL DENEME (Yiğit, commit edilmez): Yiğit'in kendi renkli tahtası (tabla #A05535) ve modelin üstündeki 13×13
+	// yeşil dama karolara (#91A03D / #7CA019). Izgara oyunun 8 cm'i kalır.
+	UStaticMesh* YerelTahta = LoadObject<UStaticMesh>(nullptr, TEXT("/Game/DisasterBoard/Meshes/Deneme/SM_Tahta_Yerel.SM_Tahta_Yerel"), nullptr, LOAD_NoWarn | LOAD_Quiet);
+	const FLinearColor LandLight = YerelTahta ? RGB(145, 160, 61) : RGB(236, 218, 182);
+	const FLinearColor LandDark = YerelTahta ? RGB(124, 160, 25) : RGB(226, 204, 164);
+	const FLinearColor Groove = YerelTahta ? RGB(93, 120, 19) : RGB(150, 112, 78);   // karo araları: koyu yeşilin gölgesi
+	if (UStaticMesh* M = YerelTahta ? YerelTahta : TeamMesh(TEXT("SM_Tahta")))
 	{
 		// Ekip modeli: 128 × 128, tabanı masada (Z = 0), üstü 12 cm'de oluklu düzlüğün altında biter. Karolar,
 		// deniz ve yollar koddan kalır. Eski kutular çarpışma için durur, görünmez.
@@ -203,7 +219,7 @@ void ADBWorld::BuildBoard()
 		BoardBase->SetHiddenInGame(true);
 		BoardBevel->SetHiddenInGame(true);
 	}
-	Part(B, CubeMesh, FVector(0, 0, 12.5f), FVector(Plateau + 2.f, Plateau + 2.f, 1.f), RGB(150, 112, 78), FRotator::ZeroRotator, true);
+	Part(B, CubeMesh, FVector(0, 0, 12.5f), FVector(Plateau + 2.f, Plateau + 2.f, 1.f), Groove, FRotator::ZeroRotator, true);
 	const float TileH = BoardTopZ - 13.f;
 	for (int32 X = 0; X < GridN; ++X)
 	{
@@ -231,7 +247,7 @@ void ADBWorld::BuildBoard()
 				}
 				continue;
 			}
-			Part(B, CubeMesh, C, FVector(TileCm, TileCm, TileH), bDark ? RGB(226, 204, 164) : RGB(236, 218, 182), FRotator::ZeroRotator, true);
+			Part(B, CubeMesh, C, FVector(TileCm, TileCm, TileH), bDark ? LandDark : LandLight, FRotator::ZeroRotator, true);
 		}
 	}
 
@@ -250,7 +266,16 @@ void ADBWorld::BuildBoard()
 		PuddleCells.Add(Fc);
 		// Bozuk rögar: delik açık, kapak yanına kaymış ve eğik duruyor
 		BrokenCovers.Add(Part(B, CylinderMesh, CellLocal(Fc) + FVector(0, 0, 0.32f), FVector(4.2f, 4.2f, 0.06f), RGB(34, 36, 42)));
-		BrokenCovers.Add(Part(B, CylinderMesh, CellLocal(Fc) + FVector(2.2f, 1.6f, 0.9f), FVector(5.4f, 5.4f, 0.5f), RGB(78, 80, 88), FRotator(0.f, 0.f, 16.f)));
+		if (UStaticMesh* M = TeamMesh(TEXT("SM_RogarKapagi")))   // YEREL DENEME (Yiğit): yerinden oynamış kapak = ekip modeli
+		{
+			UStaticMeshComponent* Cv = TeamPart(B, M, CellLocal(Fc) + FVector(2.2f, 1.6f, 0.6f));
+			Cv->SetRelativeRotation(FRotator(0.f, 0.f, 16.f));
+			BrokenCovers.Add(Cv);
+		}
+		else
+		{
+			BrokenCovers.Add(Part(B, CylinderMesh, CellLocal(Fc) + FVector(2.2f, 1.6f, 0.9f), FVector(5.4f, 5.4f, 0.5f), RGB(78, 80, 88), FRotator(0.f, 0.f, 16.f)));
+		}
 	}
 
 	const FDBContent& Content = FDBContent::Get();
@@ -296,8 +321,15 @@ void ADBWorld::BuildBoard()
 	for (int32 k = 0; k < 4; ++k)
 	{
 		USceneComponent* Wk = Node(B, FVector(0, 0, BoardTopZ));
-		Part(Wk, CylinderMesh, FVector(0, 0, 2.2f), FVector(2.4f, 2.4f, 4.4f), Shirts[k]);
-		Part(Wk, SphereMesh, FVector(0, 0, 5.6f), FVector(2.6f, 2.6f, 2.6f), RGB(240, 200, 160));
+		if (UStaticMesh* M = TeamMesh(TEXT("SM_TahliyeKisi")))   // YEREL DENEME (Yiğit)
+		{
+			TeamPart(Wk, M, FVector::ZeroVector)->SetRelativeRotation(FRotator(0.f, 45.f, 0.f));
+		}
+		else
+		{
+			Part(Wk, CylinderMesh, FVector(0, 0, 2.2f), FVector(2.4f, 2.4f, 4.4f), Shirts[k]);
+			Part(Wk, SphereMesh, FVector(0, 0, 5.6f), FVector(2.6f, 2.6f, 2.6f), RGB(240, 200, 160));
+		}
 		Wk->SetVisibility(false, true);
 		Walkers.Add(Wk);
 	}
@@ -307,8 +339,16 @@ void ADBWorld::BuildTree(USceneComponent* Parent, const FVector& Loc, float Scal
 {
 	// Kendi kökü var: tahta dönerken ve hafif esintide sallanır (TickFeedbackFx)
 	USceneComponent* T = Node(Parent, Loc);
-	Part(T, CylinderMesh, FVector(0, 0, 3.f * Scale), FVector(2.4f, 2.4f, 6.f) * Scale, RGB(140, 100, 66));
-	Part(T, SphereMesh, FVector(0, 0, 10.f * Scale), FVector(11.f, 11.f, 10.f) * Scale, RGB(120, 170, 100));
+	if (UStaticMesh* M = TeamMesh(TEXT("SM_Agac")))   // YEREL DENEME (Yiğit): louieoliva "Low Poly Tree Pack", CC BY 4.0
+	{
+		// Şablon ölçüsü (9,1 cm) tasarımdaki ağacın BuildingScale katı: model gerçek cm, Scale / BuildingScale
+		TeamPart(T, M, FVector::ZeroVector, Scale / BuildingScale)->SetRelativeRotation(FRotator(0.f, FMath::Fmod(FMath::Abs(Loc.X * 7.f + Loc.Y * 13.f), 360.f), 0.f));
+	}
+	else
+	{
+		Part(T, CylinderMesh, FVector(0, 0, 3.f * Scale), FVector(2.4f, 2.4f, 6.f) * Scale, RGB(140, 100, 66));
+		Part(T, SphereMesh, FVector(0, 0, 10.f * Scale), FVector(11.f, 11.f, 10.f) * Scale, RGB(120, 170, 100));
+	}
 	TreeRoots.Add(T);
 }
 
@@ -329,13 +369,27 @@ void ADBWorld::BuildBuilding(int32 Index)
 	{
 		const FLinearColor Shirts[] = { RGB(232, 128, 104), RGB(96, 170, 164), RGB(236, 188, 86), RGB(172, 152, 204), RGB(120, 180, 110), RGB(132, 176, 212) };
 		USceneComponent* Fig = Node(Root, FVector(-15.f, 7.f, 0.f));
-		Part(Fig, CylinderMesh, FVector(0, 0, 4.5f), FVector(5.f, 5.f, 9.f), Shirts[Index % 6], FRotator::ZeroRotator, true);
-		Part(Fig, SphereMesh, FVector(0, 0, 11.f), FVector(5.4f, 5.4f, 5.4f), RGB(240, 200, 160), FRotator::ZeroRotator, true);
-		Part(Fig, SphereMesh, FVector(0.6f, 0, 12.2f), FVector(5.6f, 5.6f, 3.6f), (Index & 1) ? RGB(70, 50, 36) : RGB(200, 200, 205), FRotator::ZeroRotator, true);
+		// YEREL DENEME (Yiğit): ekip figürü SM_Kasabali_<Ad> (sıra C.Residents / bina sırasıyla aynı)
+		static const TCHAR* ResidentKeys[] = { TEXT("AyseTeyze"), TEXT("SelmaOgretmen"), TEXT("HasanAmca"), TEXT("Zeynep"),
+			TEXT("KemalBey"), TEXT("Elif"), TEXT("AliUsta"), TEXT("RizaAbi"), TEXT("Can"), TEXT("Deniz"), TEXT("MuratAbi"), TEXT("NerminHanim") };
+		UStaticMesh* FigMesh = Index < UE_ARRAY_COUNT(ResidentKeys) ? TeamMesh(FString(TEXT("SM_Kasabali_")) + ResidentKeys[Index]) : nullptr;
+		if (FigMesh)
+		{
+			// Düz karton figür: yüzü kameraya (-X, -Y köşegeni) dönük (135° yandan görünüyordu, ölçüldü: 45°)
+			TeamPart(Fig, FigMesh, FVector::ZeroVector, 1.f / BuildingScale)->SetRelativeRotation(FRotator(0.f, 45.f, 0.f));
+			// Tıklama için görünmez kutu (eski figür boyunda)
+			Part(Fig, CubeMesh, FVector(0, 0, 6.5f), FVector(5.f, 5.f, 13.f), FLinearColor::White, FRotator::ZeroRotator, true)->SetHiddenInGame(true);
+		}
+		else
+		{
+			Part(Fig, CylinderMesh, FVector(0, 0, 4.5f), FVector(5.f, 5.f, 9.f), Shirts[Index % 6], FRotator::ZeroRotator, true);
+			Part(Fig, SphereMesh, FVector(0, 0, 11.f), FVector(5.4f, 5.4f, 5.4f), RGB(240, 200, 160), FRotator::ZeroRotator, true);
+			Part(Fig, SphereMesh, FVector(0.6f, 0, 12.2f), FVector(5.6f, 5.6f, 3.6f), (Index & 1) ? RGB(70, 50, 36) : RGB(200, 200, 205), FRotator::ZeroRotator, true);
+		}
 		ResidentRoots.Add(Fig);
 	}
 
-	if (D.bPark)
+	if (D.bPark && !TeamBuildingMesh(D.Name))   // park modeli varsa aşağıdaki modelli bina yolu kurar
 	{
 		Part(Root, CubeMesh, FVector(0, 0, 1.f), FVector(24.f, 24.f, 2.f), D.Body, FRotator::ZeroRotator, true);
 		BuildTree(Root, FVector(-5.f, -5.f, 2.f), 0.8f);
@@ -349,11 +403,15 @@ void ADBWorld::BuildBuilding(int32 Index)
 	{
 		// Ekipten gelen onaylı model: gerçek ölçüsünde (cm, şablon 14,6 × 14,6) ve kendi tabanı var, plaka ve yer
 		// tutucu kutular kurulmaz. Kök BuildingScale ile küçüldüğü için model 1 / BuildingScale ile büyütülür.
-		TeamPart(Root, M, FVector::ZeroVector, 1.f / BuildingScale);
-		// Tıklama için görünmez kutu: imleç izi binaya bağlı bileşeni arar
+		// FBX içe aktarma Y'yi çeviriyor: Blender'da -Y'ye bakan ön yüz Unreal'da +Y'ye düşer, kameraya (-X, -Y) arkası
+		// görünür. 180° döndürülür (yerelde ölçüldü, YEREL DENEME: Yiğit).
+		UStaticMeshComponent* MeshC = TeamPart(Root, M, FVector::ZeroVector, 1.f / BuildingScale);
+		MeshC->SetRelativeRotation(FRotator(0.f, 180.f, 0.f));
+		// Tıklama için görünmez kutu: imleç izi binaya bağlı bileşeni arar (merkez de 180° döner)
 		const FBox Box = M->GetBoundingBox();
 		const FVector SizeDesign = Box.GetSize() / BuildingScale;
-		UStaticMeshComponent* HitBox = Part(Root, CubeMesh, Box.GetCenter() / BuildingScale, SizeDesign, FLinearColor::White, FRotator::ZeroRotator, true);
+		const FVector Center = FVector(-Box.GetCenter().X, -Box.GetCenter().Y, Box.GetCenter().Z) / BuildingScale;
+		UStaticMeshComponent* HitBox = Part(Root, CubeMesh, Center, SizeDesign, FLinearColor::White, FRotator::ZeroRotator, true);
 		HitBox->SetHiddenInGame(true);
 		BuildingHeights.Add(SizeDesign.Z);
 		return;
@@ -414,6 +472,16 @@ void ADBWorld::BuildBuilding(int32 Index)
 void ADBWorld::BuildCalendar()
 {
 	// Takvim X duvarında, odaya (-X) bakar. Yerel eksenler: X = genişlik, -Y = duvardan odaya, Z = yukarı.
+	// YEREL DENEME (Yiğit, commit edilmez): tam takvim modeli (levha + spiral tel). Şablon derinliği 2 cm'e
+	// sığmadığı için onaysız, yalnız bu bilgisayarda Meshes/Deneme'de. Kod sayfaları modelin sayfalarının yerine
+	// geçer, tel sayfaların üst şeridindeki deliklerden geçer.
+	UStaticMesh* Tam = LoadObject<UStaticMesh>(nullptr, TEXT("/Game/DisasterBoard/Meshes/Deneme/SM_Takvim_Tam.SM_Takvim_Tam"), nullptr, LOAD_NoWarn | LOAD_Quiet);
+	const float BoardH = 74.3f;   // model levhası 96,5 × 74,3, pivot taban ortası
+	if (Tam)
+	{
+		// En dış delikler ±45 cm: sayfa 92 genişliğe, doku oranı (1024:744) korunarak büyür
+		CalendarSize = FVector2D(92.f, 92.f * 744.f / 1024.f);
+	}
 	const float W = CalendarSize.X;
 	const float H = CalendarSize.Y;
 	CalendarRoot = Node(RootComponent, FVector(WallX, CalendarYZ.X, CalendarYZ.Y));
@@ -421,7 +489,24 @@ void ADBWorld::BuildCalendar()
 	USceneComponent* R = CalendarRoot;
 
 	const FLinearColor Paper = RGB(248, 240, 224);
-	if (UStaticMesh* M = TeamMesh(TEXT("SM_Takvim")))
+	// Yerel Y/Z: levha -2..0 (model y -1..1, kök -1 kaydırır), model z 0 = yerel -BoardH/2.
+	// Model sayfa düzlemleri (ölçüldü): arka sayfa y -1,49..-1,99, ön sayfa -2,49..-2,99 → yerel -2,74 / -3,74 merkez.
+	const float UnderY = Tam ? -2.74f : -2.5f;
+	const float HingeY = Tam ? -3.74f : -4.f;
+	const float PageZ = Tam ? (72.f - BoardH * 0.5f) - H * 0.5f : 0.f;   // sayfa üstü model z 72'de (deliklerin ~3 cm üstü)
+	float MirrorX = 1.f;
+	if (Tam)
+	{
+		UStaticMeshComponent* C = TeamPart(R, Tam, FVector(0, -1.f, -BoardH * 0.5f));
+		// İçe aktarma Y'yi çevirebiliyor: daha çok taşan taraf (telin önü) odaya (-Y) baksın
+		const FBox B = Tam->GetBoundingBox();
+		if (B.Max.Y > -B.Min.Y)
+		{
+			C->SetRelativeRotation(FRotator(0.f, 180.f, 0.f));
+			MirrorX = -1.f;
+		}
+	}
+	else if (UStaticMesh* M = TeamMesh(TEXT("SM_Takvim")))
 	{
 		// Ekip modeli: delikli arka levha, 96,5 × 2 × 74,3 (= W + 8, H + 10); pivot taban ortası, ÖN -Y odaya.
 		// Sayfalar, yazılar ve spiral eskisi gibi koddan.
@@ -432,19 +517,35 @@ void ADBWorld::BuildCalendar()
 		Part(R, CubeMesh, FVector(0, -1.f, 0), FVector(W + 8.f, 2.f, H + 10.f), RGB(150, 108, 72));
 	}
 	// Alttaki sayfa (Ayarlar / Emeği Geçenler buraya yazılır)
-	Part(R, CubeMesh, FVector(0, -2.5f, 0), FVector(W, 0.6f, H), Paper);
+	Part(R, CubeMesh, FVector(0, UnderY, PageZ), FVector(W, 0.6f, H), Paper);
 	const FVector2D TexSize = PageTextureSize();
 	TopRT = UKismetRenderingLibrary::CreateRenderTarget2D(this, int32(TexSize.X), int32(TexSize.Y), RTF_RGBA16f, FLinearColor(FColor(248, 240, 224)) * PageGain);
 	UnderRT = UKismetRenderingLibrary::CreateRenderTarget2D(this, int32(TexSize.X), int32(TexSize.Y), RTF_RGBA16f, FLinearColor(FColor(248, 240, 224)) * PageGain);
-	UnderPagePlane = PagePlane(R, FVector(0, -2.85f, 0), UnderRT);
+	UnderPagePlane = PagePlane(R, FVector(0, UnderY - 0.35f, PageZ), UnderRT);
 
 	// Üstteki sayfa: menteşe üst kenarda, sayfa aşağı sarkar
-	PageHinge = Node(R, FVector(0, -4.f, H * 0.5f));
+	PageHinge = Node(R, FVector(0, HingeY, PageZ + H * 0.5f));
 	Part(PageHinge, CubeMesh, FVector(0, 0, -H * 0.5f), FVector(W, 0.6f, H), Paper);
 	TopPagePlane = PagePlane(PageHinge, FVector(0, -0.35f, -H * 0.5f), TopRT);
 
+	if (Tam)
+	{
+		// Telin sayfa düzlemlerini kestiği noktalar (Blender'da ölçüldü, model x ve z): koyu delikler. Üst sayfanın
+		// delikleri menteşeye bağlı, sayfayla birlikte kalkar.
+		const float UnderX[16] = { -44.93f, -38.96f, -32.98f, -27.01f, -21.04f, -15.07f, -9.09f, -3.12f, 2.85f, 8.83f, 14.8f, 20.77f, 26.75f, 32.72f, 38.69f, 44.67f };
+		const float TopX[16] = { -45.28f, -39.3f, -33.33f, -27.36f, -21.39f, -15.41f, -9.44f, -3.47f, 2.51f, 8.48f, 14.45f, 20.43f, 26.4f, 32.37f, 38.35f, 44.32f };
+		const float UnderHoleZ = 68.52f - BoardH * 0.5f;
+		const float TopHoleZ = 69.14f - BoardH * 0.5f;
+		const FLinearColor Hole = RGB(52, 44, 40);
+		for (int32 i = 0; i < 16; ++i)
+		{
+			Part(R, CylinderMesh, FVector(UnderX[i] * MirrorX, UnderY - 0.38f, UnderHoleZ), FVector(1.3f, 1.3f, 0.04f), Hole, FRotator(0, 0, 90.f));
+			Part(PageHinge, CylinderMesh, FVector(TopX[i] * MirrorX, -0.38f, TopHoleZ - (PageZ + H * 0.5f)), FVector(1.3f, 1.3f, 0.04f), Hole, FRotator(0, 0, 90.f));
+		}
+	}
+
 	// Spiral halkalar
-	const int32 Rings = 22;
+	const int32 Rings = Tam ? 0 : 22; // tam modelde spiral telden gelir
 	for (int32 i = 0; i < Rings; ++i)
 	{
 		const float X = -W * 0.5f + 3.f + i * (W - 6.f) / (Rings - 1);
@@ -807,11 +908,18 @@ void ADBWorld::PlaceManhole(FIntPoint Cell)
 	}
 	Manholes.Add(Cell);
 	const FVector C = CellLocal(Cell);
-	Part(BoardRoot, CylinderMesh, C + FVector(0, 0, 0.25f), FVector(5.4f, 5.4f, 0.5f), RGB(64, 66, 72));
-	Part(BoardRoot, CylinderMesh, C + FVector(0, 0, 0.35f), FVector(4.2f, 4.2f, 0.5f), RGB(96, 98, 106));
-	for (int32 k = -1; k <= 1; ++k)
+	if (UStaticMesh* M = TeamMesh(TEXT("SM_RogarKapagi")))   // YEREL DENEME (Yiğit): ekip modeli
 	{
-		Part(BoardRoot, CubeMesh, C + FVector(k * 1.1f, 0, 0.62f), FVector(0.4f, 3.2f, 0.1f), RGB(56, 58, 64));
+		TeamPart(BoardRoot, M, C);
+	}
+	else
+	{
+		Part(BoardRoot, CylinderMesh, C + FVector(0, 0, 0.25f), FVector(5.4f, 5.4f, 0.5f), RGB(64, 66, 72));
+		Part(BoardRoot, CylinderMesh, C + FVector(0, 0, 0.35f), FVector(4.2f, 4.2f, 0.5f), RGB(96, 98, 106));
+		for (int32 k = -1; k <= 1; ++k)
+		{
+			Part(BoardRoot, CubeMesh, C + FVector(k * 1.1f, 0, 0.62f), FVector(0.4f, 3.2f, 0.1f), RGB(56, 58, 64));
+		}
 	}
 	const int32 Ix = PuddleCells.IndexOfByKey(Cell);
 	if (Ix != INDEX_NONE)
@@ -837,6 +945,15 @@ USceneComponent* ADBWorld::MakeHydrant(int32 Building, FIntPoint Cell, bool bCol
 	const FVector Local = CellLocal(Cell) + FVector(2.4f, 0.f, 0.f);
 	USceneComponent* Hy = Node(Root, (Local - Root->GetRelativeLocation()) / BuildingScale);
 	Hy->SetRelativeScale3D(FVector(1.f / BuildingScale));
+	if (UStaticMesh* M = TeamMesh(TEXT("SM_YanginMuslugu")))   // YEREL DENEME (Yiğit): ekip modeli
+	{
+		TeamPart(Hy, M, FVector::ZeroVector)->SetRelativeRotation(FRotator(0.f, 180.f, 0.f));
+		if (bCollide)
+		{
+			Part(Hy, CubeMesh, FVector(0, 0, 2.5f), FVector(3.2f, 3.2f, 5.f), FLinearColor::White, FRotator::ZeroRotator, true)->SetHiddenInGame(true);
+		}
+		return Hy;
+	}
 	const FLinearColor Red = RGB(214, 64, 52);
 	Part(Hy, CylinderMesh, FVector(0, 0, 2.2f), FVector(2.4f, 2.4f, 4.4f), Red, FRotator::ZeroRotator, bCollide);
 	Part(Hy, SphereMesh, FVector(0, 0, 4.5f), FVector(2.6f, 2.6f, 2.f), RGB(180, 48, 40), FRotator::ZeroRotator, bCollide);
@@ -924,12 +1041,19 @@ void ADBWorld::BuildCars()
 	for (const FRoute& Rt : Routes)
 	{
 		USceneComponent* Car = Node(BoardRoot, CellLocal(Rt.From));
-		Part(Car, CubeMesh, FVector(0, 0, 1.4f), FVector(6.f, 3.f, 1.6f), Rt.Color);
-		Part(Car, CubeMesh, FVector(-0.4f, 0, 2.7f), FVector(3.4f, 2.6f, 1.3f), Rt.Color);
-		Part(Car, CubeMesh, FVector(-0.4f, 0, 2.75f), FVector(3.5f, 2.2f, 0.9f), RGB(176, 214, 236));
-		for (int32 w = 0; w < 4; ++w)
+		if (UStaticMesh* M = TeamMesh(TEXT("SM_Araba")))   // YEREL DENEME (Yiğit): BetelgeuseMan "Low Poly Car Set", CC BY 4.0
 		{
-			Part(Car, CylinderMesh, FVector((w & 1) ? 1.9f : -1.9f, (w & 2) ? 1.5f : -1.5f, 0.7f), FVector(1.4f, 1.4f, 0.6f), RGB(40, 40, 44), FRotator(0.f, 0.f, 90.f));
+			TeamPart(Car, M, FVector::ZeroVector);   // burnu +X (gidiş yönü); renk modelin kendi paletinden
+		}
+		else
+		{
+			Part(Car, CubeMesh, FVector(0, 0, 1.4f), FVector(6.f, 3.f, 1.6f), Rt.Color);
+			Part(Car, CubeMesh, FVector(-0.4f, 0, 2.7f), FVector(3.4f, 2.6f, 1.3f), Rt.Color);
+			Part(Car, CubeMesh, FVector(-0.4f, 0, 2.75f), FVector(3.5f, 2.2f, 0.9f), RGB(176, 214, 236));
+			for (int32 w = 0; w < 4; ++w)
+			{
+				Part(Car, CylinderMesh, FVector((w & 1) ? 1.9f : -1.9f, (w & 2) ? 1.5f : -1.5f, 0.7f), FVector(1.4f, 1.4f, 0.6f), RGB(40, 40, 44), FRotator(0.f, 0.f, 90.f));
+			}
 		}
 		CarRoots.Add(Car);
 		CarHonkT.Add(-100.f);
@@ -1932,8 +2056,13 @@ void ADBWorld::PlaceBraces(int32 Building)
 	}
 	// Güçlendirme: kameraya bakan iki yüzde (-X, -Y) çelik çaprazlar + kat kirişleri, köşelerde sarı plakalar
 	const FDBBuildingDef& D = C.Buildings[Building];
-	const FVector S(FMath::Min(D.Size.X, 20.f), FMath::Min(D.Size.Y, 20.f), D.Size.Z);
+	FVector S(FMath::Min(D.Size.X, 20.f), FMath::Min(D.Size.Y, 20.f), D.Size.Z);
 	const float Base = 1.f;
+	if (TeamBuildingMesh(D.Name) && BuildingHeights.IsValidIndex(Building))
+	{
+		// Ekip modeli tasarım ölçüsünden alçak olabilir: çelikler modelin duvarına (çatı/korkuluk payı hariç) kadar
+		S.Z = FMath::Min(S.Z, (BuildingHeights[Building] - Base) * 0.88f);
+	}
 	USceneComponent* Br = Node(BuildingRoots[Building], FVector::ZeroVector);
 	const FLinearColor Steel = RGB(84, 92, 110);
 	const FLinearColor Plate = RGB(246, 196, 64);

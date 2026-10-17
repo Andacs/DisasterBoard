@@ -269,7 +269,7 @@ namespace
 			TEXT("Yiğit: arayüz, tasarım"),
 			TEXT(""),
 			TEXT("Unreal Engine 5.8 (Epic Games)"),
-			TEXT("Low Poly Building: A.S.D. (CC BY 4.0)"),   // Sketchfab, bina modeli: lisans atıf istiyor
+			TEXT("Modeller (CC BY): A.S.D., louieoliva, BetelgeuseMan, Das Toasty"),   // Sketchfab: bina, ağaç, araba, park; lisans atıf istiyor
 			TEXT("Kod yardımı: Claude (Anthropic)"),
 			TEXT("CIVIL GAME JAM 2026"),
 		};

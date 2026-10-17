@@ -804,7 +804,7 @@ void ADBHUD::DrawMainPage(bool bEnabled)
 	const float BandH = H * 0.18f;
 	Box(0.f, 0.f, W, H, U(248, 240, 224));
 	Box(0.f, 0.f, W, BandH, U(232, 128, 104));
-	Txt(TEXT("EKİM 2026"), CX, BandH * 0.5f - 4.5f * U1, 9.f * U1, Paper, 1);
+	Txt(TEXT("EKİM 2026"), CX, BandH * 0.5f - 1.5f * U1, 8.f * U1, Paper, 1);   // takvimin spiral teli üst %7'yi kapatıyor
 	if (UTexture2D* Logo = LoadPng(TEXT("Arayuz/logo.png")))
 	{
 		DrawTex(Logo, Rect(CX - 30.f * U1, BandH + 1.5f * U1, 60.f * U1, 15.f * U1), 0.f, FVector2D(0.5f, 0.5f));
@@ -831,7 +831,7 @@ void ADBHUD::DrawSubPage(bool bEnabled)
 	const bool bSettings = GM->MenuPage != EDBMenuPage::Credits;
 	Box(0.f, 0.f, W, H, U(248, 240, 224));
 	Box(0.f, 0.f, W, BandH, U(96, 170, 164));
-	Txt(bSettings ? TEXT("AYARLAR") : TEXT("EMEĞİ GEÇENLER"), CX, BandH * 0.5f - 4.5f * U1, 9.f * U1, Paper, 1);
+	Txt(bSettings ? TEXT("AYARLAR") : TEXT("EMEĞİ GEÇENLER"), CX, BandH * 0.5f - 1.5f * U1, 8.f * U1, Paper, 1);
 	float Y = BandH + 3.f * U1;
 	if (bSettings)
 	{
