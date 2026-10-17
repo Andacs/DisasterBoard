@@ -222,6 +222,24 @@ sırt çantası.
   (sürüklemeden bırakılan sağ tık eskisi gibi "geri"). Kamera bir duvarın arkasına geçince o duvar (ve takvim)
   gizlenir: ilk denemede ekranda yalnızca duvarın gölgedeki arkası görünüyordu.
 
+**17 Ekim ~08.10, Andaç'ın kararları (uygulandı, ekranda görüldü):**
+- **Yollar:** arsaların arasındaki karolar (sütun/satır 2, 5, 8) asfalt, düz yolda kesik orta çizgi
+  (`ADBWorld::IsRoad`). **3 araba** yollarda gidip gelir (sağ şerit).
+- **Rögar kapağı ızgaraya konur:** marketin önündeki yolda iki su birikintisi (`C.FloodCells` (7,5), (8,6)).
+  Rögar seçiliyken birikintiler mavi noktalı halkayla, imleçteki karo yeşil/beyaz halkayla gösterilir. Kapak başı
+  15 TL; ikisi kapanınca sel sorunu çözülür. Yol olmayan / birikintisiz karoya konmaz (ceza yok, ipucu verir).
+  İlk yerde (6,8)/(7,8) apartmanın arkasında kalıyordu, taşındı.
+- **İngiliz Anahtarı:** ahşap evlerin sokağındaki yangın musluğu eğik ve sızdırıyor; anahtar seçip binaya
+  (ya da musluğa) tıklayınca doğrulur, sızıntı kaybolur (`RepairHydrant`). Önlemlerin "yapıldı" yerine kendi
+  cümlesi var (`FDBToolDef::Done`).
+- **Deniz haritaya gömülü:** karanın altında, tahtanın içinde, kıyıda beyaz köpük çizgisi; dalga sürüyor.
+- **Kasabalılar konuşur, samimi:** her binanın önünde bir kasabalı figürü; binaya ya da kişiye tıklayınca
+  konuşma balonu (selam / dert / teşekkür, `C.Residents`). Derdi çantaysa balonda "Çantasını hazırla" fabrikayı
+  o siparişle açar. Sorun çözülünce kasabalı kendiliğinden teşekkür eder (5 sn). Bildirimler alt panelin üstüne
+  taşındı (balonlarla çakışıyordu).
+- **Fabrika öğreticisi:** ilk doğru teslime kadar seçilmesi gereken kit ve eşyalar parlar; yanlış teslimde de
+  parlamaya devam eder (`bFactoryTutorial`).
+
 **Test:** `UnrealEditor.exe <tam yol>\DisasterBoard.uproject /Game/DisasterBoard/Maps/L_Ana -game -windowed
 -ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~110 sn oynar, 18 görüntü; fabrikada 5 sipariş (1 bilerek yanlış), kamera döndürme, 9/9 → sonuç (90 TL, 2 hata). `-DBGainTest` ile sayfa parlaklığını 5 değerde çeker
 `Saved/Screenshots/WindowsEditor/DB_*.png`, kendisi kapanır. Test tıklama işlevlerini doğrudan çağırıyor.

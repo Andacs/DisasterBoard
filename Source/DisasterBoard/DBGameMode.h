@@ -87,6 +87,18 @@ public:
 	static float StationCenter(int32 K) { return 0.14f + K * 0.21f; }
 	static float StationHalf() { return 0.085f; }
 	int32 OrderProblem = -1;     // hazırlanan sipariş (çanta isteyen sorun)
+	bool bFactoryTutorial = true; // ilk doğru teslime kadar seçilmesi gerekenler parlar (hatada da sürer)
+
+	// --- Kasabalılarla konuşma ---
+	int32 NpcBuilding = -1;
+	int32 NpcKind = 0;           // 0 selam, 1 dert, 2 teşekkür
+	float NpcTime = -100.f;
+	FString NpcText() const;
+	bool NpcWantsBag() const;    // derdi çanta: balonda "Çantasını hazırla"
+	void ShowNpc(int32 Building);
+	void CloseNpc() { NpcBuilding = -1; }
+	void NpcOpenFactory();
+	void ClickCell(FIntPoint Cell);
 	float BagT = 0.f;            // 0 tepe, 1 teslim
 	bool bBagOnBelt = false;
 	int32 BagKit = -1;

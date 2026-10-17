@@ -344,6 +344,8 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 		else if (Id == TEXT("Bag")) GM->SelectBag(Ix);
 		else if (Id == TEXT("Again")) GM->Restart(true);
 		else if (Id == TEXT("Skip")) GM->SkipComic();
+		else if (Id == TEXT("NpcBag")) GM->NpcOpenFactory();
+		else if (Id == TEXT("NpcClose")) GM->CloseNpc();
 		else if (Id == TEXT("Music")) GM->ToggleMusic();
 		else if (Id == TEXT("Menu")) GM->Restart(false);
 	};
@@ -430,6 +432,7 @@ void ADBHUD::DrawHUD()
 
 	if (GM->Phase != EDBPhase::Result)
 	{
+		DrawCellHints();
 		DrawMarkers();
 		DrawScannerAndA();
 		DrawBottomBar();
@@ -450,7 +453,11 @@ void ADBHUD::DrawHUD()
 	{
 		DrawDrawerHandle();
 	}
-	if (GM->Phase != EDBPhase::Talk && GM->Phase != EDBPhase::Result)
+	if (GM->Phase == EDBPhase::Play)
+	{
+		DrawNpc();
+	}
+	if (GM->Phase != EDBPhase::Talk && GM->Phase != EDBPhase::Result && GM->NpcBuilding < 0)
 	{
 		DrawTooltip();
 		DrawSelectionCursor();
@@ -950,6 +957,16 @@ void ADBHUD::DrawPanel()
 			{
 				Hit(TEXT("Station"), K * 10 + B, BR);
 			}
+			if (GM->bFactoryTutorial && Ord >= 0)
+			{
+				const FDBProblemDef& TP = C.Problems[Ord];
+				const bool bRight = (K == 0) ? (B == TP.Kit) : TP.Personal.Contains(C.Stations[K - 1].Items[B]);
+				const bool bDone = (K == 0) ? (GM->BagKit == TP.Kit) : GM->BagPersonal.Contains(C.Stations[K - 1].Items[B]);
+				if (bRight && !(GM->bBagOnBelt && bDone))
+				{
+					Glow(BR);
+				}
+			}
 		}
 	}
 	if (GM->IsTalking(C.BagIntroB, 2)) Glow(TgKitStation);
@@ -1051,8 +1068,10 @@ void ADBHUD::DrawToast()
 	{
 		TW = FMath::Max(TW, Measure(L, Px).X);
 	}
-	const float Y0 = 92.f * S;
-	const FBox2D R = Rect(W * 0.5f - (TW + 48.f * S) * 0.5f, Y0, TW + 48.f * S, Lines.Num() * Px * 1.25f + 26.f * S);
+	// Alt panelin üstünde: yukarıda kasabalı konuşma balonlarıyla çakışıyordu
+	const float TH = Lines.Num() * Px * 1.25f + 26.f * S;
+	const float Y0 = H - 196.f * S - TH;
+	const FBox2D R = Rect(W * 0.5f - (TW + 48.f * S) * 0.5f, Y0, TW + 48.f * S, TH);
 	Card(R, WithA(GM->bToastBad ? U(250, 222, 212) : U(236, 246, 228), A), WithA(GM->bToastBad ? Red : Green, A), 6.f);
 	float Y = R.Min.Y + 13.f * S;
 	for (const FString& L : Lines)
@@ -1544,4 +1563,96 @@ void ADBHUD::DrawComic()
 	Box(Rect(P.Min.X, P.Max.Y + 12.f * S, P.GetSize().X * Pr, 5.f * S), U(236, 188, 86));
 	Txt(TEXT("tıkla: sonraki sahne"), P.Min.X, P.Max.Y + 34.f * S, 18.f * S, U(220, 200, 170));
 	Button(TEXT("Skip"), -1, Rect(P.Max.X - 150.f * S, P.Max.Y + 26.f * S, 150.f * S, 46.f * S), TEXT("Geç"), 22.f * S, CardC, Ink, Ink);
+}
+
+// ---------------------------------------------------------------- kasabalı konuşması, ızgara ipuçları
+
+void ADBHUD::DotRing(const FVector2D& C, float R, const FLinearColor& Col)
+{
+	const int32 N = 14;
+	for (int32 i = 0; i < N; ++i)
+	{
+		const float A = (i + GM->Now * 1.5f) * 2.f * PI / N;
+		Disc(C + FVector2D(FMath::Cos(A), FMath::Sin(A) * 0.55f) * R, 3.2f * S, Col, 10);
+	}
+}
+
+void ADBHUD::DrawCellHints()
+{
+	const FDBContent& C = FDBContent::Get();
+	if (GM->Phase != EDBPhase::Play || GM->SelTool < 0 || GM->SelTool != C.FloodTool)
+	{
+		return;
+	}
+	// Rögar seçiliyken su birikintileri halkalanır, imlecin altındaki karo gösterilir
+	const float Pulse = 1.f + 0.12f * FMath::Sin(GM->Now * 6.f);
+	for (const FIntPoint& F : C.FloodCells)
+	{
+		FVector2D P;
+		if (!GM->World->HasManhole(F) && PlayerOwner->ProjectWorldLocationToScreen(GM->World->CellWorld(F), P))
+		{
+			DotRing(P, 26.f * S * Pulse, U(70, 150, 230));
+		}
+	}
+	const ADBPlayerController* PC = Cast<ADBPlayerController>(PlayerOwner);
+	FVector2D Hp;
+	if (PC && PC->bHoveredCell && GM->World->IsRoad(PC->HoveredCell) && PlayerOwner->ProjectWorldLocationToScreen(GM->World->CellWorld(PC->HoveredCell), Hp))
+	{
+		const bool bGood = C.FloodCells.Contains(PC->HoveredCell) && !GM->World->HasManhole(PC->HoveredCell);
+		DotRing(Hp, 20.f * S, bGood ? Green : U(250, 243, 228));
+	}
+}
+
+void ADBHUD::DrawNpc()
+{
+	const FDBContent& C = FDBContent::Get();
+	const int32 B = GM->NpcBuilding;
+	if (!C.Residents.IsValidIndex(B))
+	{
+		return;
+	}
+	const float Age = GM->Now - GM->NpcTime;
+	if (GM->NpcKind == 2 && Age > 5.f)
+	{
+		GM->CloseNpc();   // teşekkür kısa sürer
+		return;
+	}
+	FVector2D A;
+	if (!PlayerOwner->ProjectWorldLocationToScreen(GM->World->ResidentWorld(B), A))
+	{
+		return;
+	}
+	const FString Text = GM->NpcText();
+	const bool bBag = GM->NpcWantsBag();
+	const float BW = 430.f * S;
+	const TArray<FString> Lines = Wrap(Text, 20.f * S, BW - 40.f * S);
+	const float BH = 50.f * S + Lines.Num() * 26.f * S + 58.f * S;
+	FVector2D Pos(A.X - 70.f * S, A.Y - 34.f * S - BH);
+	Pos.X = FMath::Clamp(Pos.X, 20.f * S, W - BW - 20.f * S);
+	Pos.Y = FMath::Max(Pos.Y, 84.f * S);
+	const FBox2D R = Rect(Pos.X, Pos.Y, BW, BH);
+	const FVector2D T0(FMath::Clamp(A.X, R.Min.X + 30.f * S, R.Max.X - 70.f * S), R.Max.Y - 2.f);
+	Card(R, Paper, Ink, 6.f);
+	Tri(T0, T0 + FVector2D(40.f * S, 0.f), A, Paper);
+	Line(T0, A, 2.5f * S, Ink);
+	Line(T0 + FVector2D(40.f * S, 0.f), A, 2.5f * S, Ink);
+	Blockers.Add(R);
+	Disc(FVector2D(R.Min.X + 26.f * S, R.Min.Y + 26.f * S), 9.f * S, GM->NpcKind == 2 ? Green : (GM->NpcKind == 1 ? Coral : Teal));
+	Txt(C.Residents[B].Name, R.Min.X + 42.f * S, R.Min.Y + 13.f * S, 22.f * S, Ink);
+	const int32 Shown = FMath::FloorToInt(Age * 50.f);
+	int32 Left = Shown;
+	float Y = R.Min.Y + 46.f * S;
+	for (const FString& L : Lines)
+	{
+		if (Left <= 0) break;
+		Txt(Left >= L.Len() ? L : L.Left(Left), R.Min.X + 20.f * S, Y, 20.f * S, Ink);
+		Left -= L.Len() + 1;
+		Y += 26.f * S;
+	}
+	const float BY = R.Max.Y - 50.f * S;
+	if (bBag)
+	{
+		Button(TEXT("NpcBag"), -1, Rect(R.Min.X + 18.f * S, BY, 230.f * S, 38.f * S), TEXT("Çantasını hazırla"), 19.f * S, Coral, Ink, Paper);
+	}
+	Button(TEXT("NpcClose"), -1, Rect(R.Max.X - 128.f * S, BY, 110.f * S, 38.f * S), TEXT("Tamam"), 19.f * S, CardC, DarkK, Ink);
 }

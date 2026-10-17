@@ -104,6 +104,8 @@ void ADBWorld::Build()
 	BuildCalendar();
 	BuildCameras();
 	BuildFx();
+	BuildCars();
+	BuildHydrant();
 
 	for (TActorIterator<ADirectionalLight> It(GetWorld()); It; ++It)
 	{
@@ -159,21 +161,41 @@ void ADBWorld::BuildBoard()
 			const FVector C(-Plateau * 0.5f + (X + 0.5f) * CellCm, -Plateau * 0.5f + (Y + 0.5f) * CellCm, 13.f + TileH * 0.5f);
 			if (Y >= GridN - 2)
 			{
-				// Sahil: son iki sıra deniz (dalgalanır). Altında mavi taban var: dalgada kahverengi görünmesin (ekip, 17 Ekim)
-				UStaticMeshComponent* Sea = Part(B, CubeMesh, C + FVector(0, 0, 0.6f), FVector(CellCm + 0.2f, CellCm + 0.2f, TileH),
+				// Sahil: son iki sıra deniz, karanın biraz altında (haritaya gömülü), dalgalanır
+				UStaticMeshComponent* Sea = Part(B, CubeMesh, C - FVector(0, 0, 0.6f), FVector(CellCm + 0.2f, CellCm + 0.2f, TileH),
 					bDark ? RGB(96, 160, 204) : RGB(110, 174, 214), FRotator::ZeroRotator, true);
 				SeaTiles.Add(Sea);
+				continue;
+			}
+			if (IsRoad(FIntPoint(X, Y)))
+			{
+				// Yol: arsaların arasındaki karolar asfalt, düz yolda kesik orta çizgi
+				Part(B, CubeMesh, C, FVector(CellCm, CellCm, TileH), RGB(98, 100, 110), FRotator::ZeroRotator, true);
+				const bool bV = IsStreetIndex(X) && !IsStreetIndex(Y);
+				const bool bH = IsStreetIndex(Y) && !IsStreetIndex(X);
+				if (bV || bH)
+				{
+					Part(B, CubeMesh, C + FVector(0, 0, TileH * 0.5f + 0.05f), bV ? FVector(0.5f, 3.2f, 0.1f) : FVector(3.2f, 0.5f, 0.1f), RGB(236, 230, 210));
+				}
 				continue;
 			}
 			Part(B, CubeMesh, C, FVector(TileCm, TileCm, TileH), bDark ? RGB(226, 204, 164) : RGB(236, 218, 182), FRotator::ZeroRotator, true);
 		}
 	}
 
-	// Deniz tabanı: deniz sıralarının altı ve o kenardaki çerçeve mavi; deniz tahtanın kenarına kadar uzanır
+	// Deniz tabanı (karanın altında, tahtanın içinde) ve kıyıda köpük çizgisi: deniz haritaya gömülü
 	{
 		const float SeaY0 = -Plateau * 0.5f + (GridN - 2) * CellCm;
-		const float SeaY1 = BoardCm * 0.5f;
-		Part(B, CubeMesh, FVector(0.f, (SeaY0 + SeaY1) * 0.5f, 13.2f), FVector(BoardCm, SeaY1 - SeaY0, 1.6f), RGB(80, 140, 190), FRotator::ZeroRotator, true);
+		const float SeaY1 = Plateau * 0.5f;
+		Part(B, CubeMesh, FVector(0.f, (SeaY0 + SeaY1) * 0.5f, 12.6f), FVector(Plateau + 0.4f, SeaY1 - SeaY0, 0.8f), RGB(80, 140, 190), FRotator::ZeroRotator, true);
+		Part(B, CubeMesh, FVector(0.f, SeaY0 + 0.5f, 13.55f), FVector(Plateau, 1.0f, 0.35f), RGB(240, 246, 250));
+	}
+
+	// Su birikintileri (sel): rögar kapağı konunca kaybolur
+	for (const FIntPoint& Fc : FDBContent::Get().FloodCells)
+	{
+		PuddleComps.Add(Part(B, CubeMesh, CellLocal(Fc) + FVector(0, 0, 0.15f), FVector(CellCm - 0.8f, CellCm - 0.8f, 0.3f), RGB(104, 164, 218)));
+		PuddleCells.Add(Fc);
 	}
 
 	const FDBContent& Content = FDBContent::Get();
@@ -220,6 +242,16 @@ void ADBWorld::BuildBuilding(int32 Index)
 	BuildingRoots.Add(Root);
 	PopTime.Add(0.f);
 	FallRot.Add(FRotator((Index & 1) ? 26.f : -26.f, 0.f, (Index & 2) ? 20.f : -20.f));
+
+	// Kasabalı: plakanın ön köşesinde, yol kenarında (tasarım birimi)
+	{
+		const FLinearColor Shirts[] = { RGB(232, 128, 104), RGB(96, 170, 164), RGB(236, 188, 86), RGB(172, 152, 204), RGB(120, 180, 110), RGB(132, 176, 212) };
+		USceneComponent* Fig = Node(Root, FVector(-15.f, 7.f, 0.f));
+		Part(Fig, CylinderMesh, FVector(0, 0, 4.5f), FVector(5.f, 5.f, 9.f), Shirts[Index % 6], FRotator::ZeroRotator, true);
+		Part(Fig, SphereMesh, FVector(0, 0, 11.f), FVector(5.4f, 5.4f, 5.4f), RGB(240, 200, 160), FRotator::ZeroRotator, true);
+		Part(Fig, SphereMesh, FVector(0.6f, 0, 12.2f), FVector(5.6f, 5.6f, 3.6f), (Index & 1) ? RGB(70, 50, 36) : RGB(200, 200, 205), FRotator::ZeroRotator, true);
+		ResidentRoots.Add(Fig);
+	}
 
 	if (D.bPark)
 	{
@@ -609,6 +641,130 @@ void ADBWorld::UpdateBoardCam(float Dt)
 	}
 }
 
+// ---------------------------------------------------------------- ızgara: yol, rögar, musluk, araçlar
+
+FVector ADBWorld::CellLocal(FIntPoint Cell) const
+{
+	const float Min = -GridN * CellCm * 0.5f;
+	return FVector(Min + (Cell.X + 0.5f) * CellCm, Min + (Cell.Y + 0.5f) * CellCm, BoardTopZ);
+}
+
+FVector ADBWorld::CellWorld(FIntPoint Cell) const
+{
+	return BoardRoot ? BoardRoot->GetComponentTransform().TransformPosition(CellLocal(Cell)) : CellLocal(Cell);
+}
+
+bool ADBWorld::CellFromWorld(const FVector& WorldLoc, FIntPoint& OutCell) const
+{
+	if (!BoardRoot)
+	{
+		return false;
+	}
+	const FVector L = BoardRoot->GetComponentTransform().InverseTransformPosition(WorldLoc);
+	const float Min = -GridN * CellCm * 0.5f;
+	OutCell = FIntPoint(FMath::FloorToInt((L.X - Min) / CellCm), FMath::FloorToInt((L.Y - Min) / CellCm));
+	return OutCell.X >= 0 && OutCell.Y >= 0 && OutCell.X < GridN && OutCell.Y < GridN && L.Z > BoardTopZ - 3.f;
+}
+
+FVector ADBWorld::ResidentWorld(int32 Building) const
+{
+	return ResidentRoots.IsValidIndex(Building) ? ResidentRoots[Building]->GetComponentTransform().TransformPosition(FVector(0, 0, 16.f)) : MarkerAnchor(Building);
+}
+
+void ADBWorld::PlaceManhole(FIntPoint Cell)
+{
+	if (Manholes.Contains(Cell))
+	{
+		return;
+	}
+	Manholes.Add(Cell);
+	const FVector C = CellLocal(Cell);
+	Part(BoardRoot, CylinderMesh, C + FVector(0, 0, 0.25f), FVector(5.4f, 5.4f, 0.5f), RGB(64, 66, 72));
+	Part(BoardRoot, CylinderMesh, C + FVector(0, 0, 0.35f), FVector(4.2f, 4.2f, 0.5f), RGB(96, 98, 106));
+	for (int32 k = -1; k <= 1; ++k)
+	{
+		Part(BoardRoot, CubeMesh, C + FVector(k * 1.1f, 0, 0.62f), FVector(0.4f, 3.2f, 0.1f), RGB(56, 58, 64));
+	}
+	const int32 Ix = PuddleCells.IndexOfByKey(Cell);
+	if (Ix != INDEX_NONE)
+	{
+		PuddleComps[Ix]->SetVisibility(false);
+		const FVector W = CellLocal(Cell) + FVector(0, 0, 2.f);
+		for (int32 i = 0; i < 6; ++i)
+		{
+			SpawnGrain(W + FVector(FMath::FRandRange(-3.f, 3.f), FMath::FRandRange(-3.f, 3.f), 0.f), FMath::FRandRange(20.f, 35.f));
+		}
+	}
+}
+
+void ADBWorld::BuildHydrant()
+{
+	const FDBContent& C = FDBContent::Get();
+	if (!BuildingRoots.IsValidIndex(C.HydrantBuilding))
+	{
+		return;
+	}
+	// Musluk binaya bağlı (tıklanınca o binanın sorunu), ölçeği geri alınır: çocukları cm ile kurulur
+	USceneComponent* Root = BuildingRoots[C.HydrantBuilding];
+	const FVector Local = CellLocal(C.HydrantCell) + FVector(2.4f, 0.f, 0.f);
+	HydrantRoot = Node(Root, (Local - Root->GetRelativeLocation()) / BuildingScale);
+	HydrantRoot->SetRelativeScale3D(FVector(1.f / BuildingScale));
+	const FLinearColor Red = RGB(214, 64, 52);
+	Part(HydrantRoot, CylinderMesh, FVector(0, 0, 2.2f), FVector(2.4f, 2.4f, 4.4f), Red, FRotator::ZeroRotator, true);
+	Part(HydrantRoot, SphereMesh, FVector(0, 0, 4.5f), FVector(2.6f, 2.6f, 2.f), RGB(180, 48, 40), FRotator::ZeroRotator, true);
+	Part(HydrantRoot, CylinderMesh, FVector(0, 0, 2.8f), FVector(1.f, 1.f, 4.f), Red, FRotator(0.f, 0.f, 90.f), true);
+	Part(HydrantRoot, CylinderMesh, FVector(0, 0, 0.3f), FVector(3.2f, 3.2f, 0.6f), RGB(150, 150, 156), FRotator::ZeroRotator, true);
+	// Bozuk: eğik duruyor, dibinde su sızıntısı
+	HydrantRoot->SetRelativeRotation(FRotator(0.f, 0.f, 24.f));
+	HydrantLeak = Part(BoardRoot, CylinderMesh, Local + FVector(0, 1.6f, 0.12f), FVector(6.f, 7.f, 0.2f), RGB(104, 164, 218));
+}
+
+void ADBWorld::RepairHydrant()
+{
+	HydrantFixT = 0.f;
+	if (HydrantLeak)
+	{
+		HydrantLeak->SetVisibility(false);
+	}
+	if (HydrantRoot)
+	{
+		const FVector W = BoardRoot->GetComponentTransform().InverseTransformPosition(HydrantRoot->GetComponentLocation());
+		for (int32 i = 0; i < 10; ++i)
+		{
+			SpawnGrain(W + FVector(0, 0, 5.f), FMath::FRandRange(35.f, 60.f));
+		}
+	}
+}
+
+void ADBWorld::BuildCars()
+{
+	// Üç araba yollarda gidip gelir (sağ şeritten)
+	struct FRoute { FIntPoint From, To; FLinearColor Color; float Speed; };
+	const FRoute Routes[] = {
+		{ FIntPoint(0, 5), FIntPoint(12, 5), RGB(232, 128, 104), 13.f },
+		{ FIntPoint(5, 0), FIntPoint(5, 10), RGB(96, 170, 164), 10.f },
+		{ FIntPoint(12, 2), FIntPoint(0, 2), RGB(236, 188, 86), 11.f },
+	};
+	for (const FRoute& Rt : Routes)
+	{
+		USceneComponent* Car = Node(BoardRoot, CellLocal(Rt.From));
+		Part(Car, CubeMesh, FVector(0, 0, 1.4f), FVector(6.f, 3.f, 1.6f), Rt.Color);
+		Part(Car, CubeMesh, FVector(-0.4f, 0, 2.7f), FVector(3.4f, 2.6f, 1.3f), Rt.Color);
+		Part(Car, CubeMesh, FVector(-0.4f, 0, 2.75f), FVector(3.5f, 2.2f, 0.9f), RGB(176, 214, 236));
+		for (int32 w = 0; w < 4; ++w)
+		{
+			Part(Car, CylinderMesh, FVector((w & 1) ? 1.9f : -1.9f, (w & 2) ? 1.5f : -1.5f, 0.7f), FVector(1.4f, 1.4f, 0.6f), RGB(40, 40, 44), FRotator(0.f, 0.f, 90.f));
+		}
+		CarRoots.Add(Car);
+		FCar Cr;
+		Cr.A = CellLocal(Rt.From);
+		Cr.B = CellLocal(Rt.To);
+		Cr.Speed = Rt.Speed;
+		Cr.T = CarRoots.Num() * 0.27f;
+		Cars.Add(Cr);
+	}
+}
+
 void ADBWorld::StartEvacuation(int32 FromBuilding, int32 ToBuilding)
 {
 	const FDBContent& C = FDBContent::Get();
@@ -822,12 +978,45 @@ void ADBWorld::Tick(float Dt)
 		GrainComps[i]->SetRelativeLocation(G.P);
 	}
 
+	// Arabalar: sona varınca dönüp geri gelir
+	for (int32 i = 0; i < Cars.Num(); ++i)
+	{
+		FCar& Cr = Cars[i];
+		const float Len = FMath::Max(1.f, FVector::Dist(Cr.A, Cr.B));
+		Cr.T += Cr.Speed * Dt / Len;
+		if (Cr.T >= 1.f)
+		{
+			Cr.T = 0.f;
+			Cr.bFwd = !Cr.bFwd;
+		}
+		const FVector From = Cr.bFwd ? Cr.A : Cr.B;
+		const FVector To = Cr.bFwd ? Cr.B : Cr.A;
+		const FVector Dir = (To - From).GetSafeNormal();
+		const FVector Right(-Dir.Y, Dir.X, 0.f);
+		CarRoots[i]->SetRelativeLocationAndRotation(FMath::Lerp(From, To, Cr.T) + Right * 1.7f, Dir.Rotation());
+	}
+
+	// Musluk tamiri: doğrulur
+	if (HydrantFixT >= 0.f && HydrantRoot)
+	{
+		HydrantFixT += Dt;
+		const float F = FMath::Clamp(HydrantFixT / 0.6f, 0.f, 1.f);
+		HydrantRoot->SetRelativeRotation(FRotator(0.f, 0.f, FMath::Lerp(24.f, 0.f, F) + FMath::Sin(HydrantFixT * 30.f) * 4.f * (1.f - F)));
+	}
+
+	// Kasabalılar hafifçe sallanır
+	for (int32 i = 0; i < ResidentRoots.Num(); ++i)
+	{
+		const FVector L = ResidentRoots[i]->GetRelativeLocation();
+		ResidentRoots[i]->SetRelativeLocation(FVector(L.X, L.Y, FMath::Abs(FMath::Sin(WaveT * 2.5f + i)) * 0.8f));
+	}
+
 	// Deniz dalgalanır
 	WaveT += Dt;
 	for (int32 i = 0; i < SeaTiles.Num(); ++i)
 	{
 		const FVector L = SeaTiles[i]->GetRelativeLocation();
-		SeaTiles[i]->SetRelativeLocation(FVector(L.X, L.Y, 14.3f + 0.35f * FMath::Sin(WaveT * 2.2f + L.X * 0.12f + L.Y * 0.05f)));
+		SeaTiles[i]->SetRelativeLocation(FVector(L.X, L.Y, 12.8f + 0.2f * FMath::Sin(WaveT * 2.2f + L.X * 0.12f + L.Y * 0.05f)));
 	}
 
 	// Tahliye: sakinler sırayla yola çıkar, sığınağın önünde toplanır

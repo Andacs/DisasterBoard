@@ -104,6 +104,7 @@ void ADBPlayerController::PlayerTick(float DeltaTime)
 	}
 
 	HoveredBuilding = -1;
+	bHoveredCell = false;
 	ADBGameMode* G = GM();
 	ADBHUD* H = GetHUD<ADBHUD>();
 	float MX = 0.f, MY = 0.f;
@@ -119,6 +120,9 @@ void ADBPlayerController::PlayerTick(float DeltaTime)
 			{
 				HoveredBuilding = G->World->BuildingFromComponent(Hit.GetComponent());
 				bHand |= (HoveredBuilding >= 0 && G->Phase == EDBPhase::Play);
+				// Bina değilse tahtanın hangi karosu (rögar kapağı ızgaraya konur)
+				bHoveredCell = HoveredBuilding < 0 && G->World->CellFromWorld(Hit.ImpactPoint, HoveredCell);
+				bHand |= bHoveredCell && G->SelTool >= 0 && G->SelTool == FDBContent::Get().FloodTool && G->World->IsRoad(HoveredCell);
 			}
 		}
 	}
@@ -142,6 +146,14 @@ void ADBPlayerController::OnClick()
 	if (HoveredBuilding >= 0)
 	{
 		G->ClickBuilding(HoveredBuilding);
+	}
+	else if (bHoveredCell)
+	{
+		G->ClickCell(HoveredCell);
+	}
+	else
+	{
+		G->CloseNpc();
 	}
 }
 
@@ -353,12 +365,19 @@ void ADBPlayerController::DBTest()
 	Add([this] { Shot(TEXT("12b_kamera_dondu_yaklasti")); GM()->World->RotateBoardView(-90.f); GM()->World->ZoomBoardView(90.f); });
 	Add([] {});
 	// Binalar: 4 Apartman, 7 Market, 8 Öğrenci, 10 Sahil, 11 Ahşap
-	Add([this] { ADBGameMode* M = GM(); M->SelectTool(1); M->ClickBuilding(4); });
+	Add([this] { GM()->ClickBuilding(11); });   // Nermin Hanım derdini anlatır
+	Add([this] { Shot(TEXT("13_kasabali_konusuyor")); });
+	Add([this] { ADBGameMode* M = GM(); M->CloseNpc(); M->SelectTool(1); M->ClickBuilding(4); });
 	Add([this] { Shot(TEXT("15_yanlis_onlem")); });
-	Add([this] { ADBGameMode* M = GM(); M->SelectTool(3); M->ClickBuilding(4); M->SelectTool(0); M->ClickBuilding(7); M->SelectTool(2); M->ClickBuilding(11); M->SelectTool(1); M->ClickBuilding(10); });
+	Add([this] { ADBGameMode* M = GM(); M->SelectTool(0); M->ClickCell(FIntPoint(7, 5)); });
+	Add([this] { Shot(TEXT("15b_rogar_izgara")); });
+	Add([this] { ADBGameMode* M = GM(); M->ClickCell(FIntPoint(8, 6)); });
+	Add([this] { ADBGameMode* M = GM(); M->SelectTool(2); M->ClickBuilding(11); });
+	Add([this] { Shot(TEXT("15c_musluk_tamir")); });
+	Add([this] { ADBGameMode* M = GM(); M->SelectTool(3); M->ClickBuilding(4); M->SelectTool(1); M->ClickBuilding(10); });
 	Add([this] { Shot(TEXT("16_tahliye")); });
-	// Öğrenci evine tıkla: fabrika o siparişle açılır
-	Add([this] { GM()->ClickBuilding(8); });
+	Add([this] { GM()->ClickBuilding(8); });   // Can derdini anlatır, "Çantasını hazırla"
+	Add([this] { Shot(TEXT("16b_can_konusuyor")); GM()->NpcOpenFactory(); });
 	Add([] {});
 	Add([this] { Shot(TEXT("17_binadan_siparis")); });
 	Add([this, Fab] { Fab(1, { 15, 13 }); GM()->SetBagT(0.999f); });

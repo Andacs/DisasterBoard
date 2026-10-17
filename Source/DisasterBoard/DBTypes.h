@@ -57,6 +57,7 @@ struct FDBToolDef
 	FLinearColor Color;
 	int32 Cost = 0;
 	FString Hazard;        // Sel / Tsunami / Yangın / Deprem
+	FString Done;          // uygulanınca söylenen ("Yangın musluğu tamir edildi")
 };
 
 struct FDBBuildingDef
@@ -83,6 +84,15 @@ struct FDBProblemDef
 	TArray<int32> Personal; // çanta siparişi: temel kitin üstüne kişiye özel eşyalar
 };
 
+// Kasabalı: binasının önünde durur, tıklayınca samimi konuşur
+struct FDBResident
+{
+	FString Name;
+	FString Hello;   // derdi yoksa / tanışma
+	FString Ask;     // derdini anlatır (sorun bulunduysa)
+	FString Thanks;  // çözülünce
+};
+
 struct FDBLine
 {
 	EDBSpeaker Who;
@@ -98,6 +108,12 @@ struct FDBContent
 	TArray<FDBBuildingDef> Buildings;
 	TArray<FDBProblemDef> Problems;
 	int32 ShelterBuilding = -1;
+	TArray<FDBResident> Residents;   // bina sırasıyla
+	int32 FloodTool = -1;            // rögar kapağı: ızgaraya konur
+	int32 FloodProblem = -1;         // su birikintileri kapanınca çözülür
+	TArray<FIntPoint> FloodCells;    // 13×13 tahtada su biriken yol karoları
+	int32 HydrantBuilding = -1;      // bozuk yangın musluğu bu binanın sokağında
+	FIntPoint HydrantCell = FIntPoint(-1, -1);
 	int32 EvacuateTool = -1;   // bu önlem uygulanınca sakinler sığınağa yürür
 
 	int32 StartMoney = 100;

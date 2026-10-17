@@ -426,6 +426,101 @@ void ADBGameMode::OpenPanel()
 	}
 }
 
+// ---------------------------------------------------------------- kasabalılar ve ızgara
+
+void ADBGameMode::ShowNpc(int32 Building)
+{
+	const FDBContent& C = FDBContent::Get();
+	if (!C.Residents.IsValidIndex(Building))
+	{
+		return;
+	}
+	const int32 P = ProblemOfBuilding(Building);
+	NpcBuilding = Building;
+	NpcTime = Now;
+	if (P != INDEX_NONE && Solved[P]) NpcKind = 2;
+	else if (P != INDEX_NONE && Revealed[P]) NpcKind = 1;
+	else NpcKind = 0;
+}
+
+FString ADBGameMode::NpcText() const
+{
+	const FDBContent& C = FDBContent::Get();
+	if (!C.Residents.IsValidIndex(NpcBuilding)) return FString();
+	const FDBResident& R = C.Residents[NpcBuilding];
+	const FString& T = NpcKind == 1 ? R.Ask : (NpcKind == 2 ? R.Thanks : R.Hello);
+	return T.IsEmpty() ? R.Hello : T;
+}
+
+bool ADBGameMode::NpcWantsBag() const
+{
+	const int32 P = ProblemOfBuilding(NpcBuilding);
+	return NpcKind == 1 && P != INDEX_NONE && FDBContent::Get().Problems[P].Kit >= 0 && !Solved[P];
+}
+
+void ADBGameMode::NpcOpenFactory()
+{
+	const int32 P = ProblemOfBuilding(NpcBuilding);
+	if (P != INDEX_NONE)
+	{
+		SelectOrder(P);
+		bPanelOpen = true;
+	}
+	CloseNpc();
+}
+
+void ADBGameMode::ClickCell(FIntPoint Cell)
+{
+	if (Phase != EDBPhase::Play)
+	{
+		return;
+	}
+	CloseNpc();
+	const FDBContent& C = FDBContent::Get();
+	if (SelTool < 0 || SelTool != C.FloodTool)
+	{
+		return;
+	}
+	if (!World->IsRoad(Cell))
+	{
+		ShowToast(TEXT("Rögar kapağı yola konur."), false);
+		return;
+	}
+	if (World->HasManhole(Cell))
+	{
+		ShowToast(TEXT("Burada zaten rögar kapağı var."), false);
+		return;
+	}
+	if (!C.FloodCells.Contains(Cell))
+	{
+		ShowToast(TEXT("Burada su birikmiyor. Mavi su birikintilerini bul."), false);
+		return;
+	}
+	const int32 Cost = C.Tools[C.FloodTool].Cost;
+	if (Money < Cost)
+	{
+		ShowToast(FString::Printf(TEXT("Rögar kapağı %d TL, bütçede %d TL var. Çanta teslim ederek bütçe kazan."), Cost, Money), true);
+		return;
+	}
+	Money -= Cost;
+	World->PlaceManhole(Cell);
+	int32 Covered = 0;
+	for (const FIntPoint& F : C.FloodCells)
+	{
+		Covered += World->HasManhole(F) ? 1 : 0;
+	}
+	const int32 FP = C.FloodProblem;
+	if (Covered == C.FloodCells.Num() && Solved.IsValidIndex(FP) && Revealed[FP] && !Solved[FP])
+	{
+		ShowToast(FString::Printf(TEXT("Rögar kapakları tamam (-%d TL). Su artık akıp gidiyor!"), Cost), false, C.Problems[FP].Building);
+		Solve(FP, C.Problems[FP].Building);
+	}
+	else
+	{
+		ShowToast(FString::Printf(TEXT("Rögar kapağı kondu (-%d TL). %d su birikintisi kaldı."), Cost, C.FloodCells.Num() - Covered), false);
+	}
+}
+
 // ---------------------------------------------------------------- çanta fabrikası
 
 TArray<int32> ADBGameMode::PendingOrders() const
@@ -550,6 +645,7 @@ void ADBGameMode::DeliverBag()
 	if (BagKit == Pr.Kit && Missing.Num() == 0 && Extra.Num() == 0)
 	{
 		bDeliverOk = true;
+		bFactoryTutorial = false;
 		Money += C.KitReward;
 		ShowToast(FString::Printf(TEXT("%s teslim edildi: %s aldı (+%d TL)."), *C.Kits[Pr.Kit].Name, *Name, C.KitReward), false, Pr.Building);
 		const int32 P = OrderProblem;
@@ -774,27 +870,28 @@ void ADBGameMode::ClickBuilding(int32 Building)
 	const FString& Name = C.Buildings[Building].Name;
 	const int32 P = ProblemOfBuilding(Building);
 
-	if (P == INDEX_NONE || !Revealed[P])
+	if (P == INDEX_NONE || !Revealed[P] || Solved[P])
 	{
-		ShowToast(FString::Printf(TEXT("%s: tarayıcı burada sorun bulmadı."), *Name), false, Building);
-		return;
-	}
-	if (Solved[P])
-	{
-		ShowToast(FString::Printf(TEXT("%s zaten hazır."), *Name), false, Building);
+		if (SelTool < 0)
+		{
+			ShowNpc(Building);
+		}
+		else
+		{
+			ShowToast(FString::Printf(TEXT("%s: burada bir sorun yok."), *Name), false, Building);
+		}
 		return;
 	}
 	const FDBProblemDef& Prob = C.Problems[P];
 
 	if (SelTool < 0 && SelBag < 0)
 	{
-		if (Prob.Kit >= 0)
-		{
-			SelectOrder(P);
-			bPanelOpen = true;
-			return;
-		}
-		ShowToast(Prob.Note, false, Building);
+		ShowNpc(Building);
+		return;
+	}
+	if (SelTool >= 0 && SelTool == C.FloodTool && Prob.Tool == C.FloodTool)
+	{
+		ShowToast(TEXT("Rögar kapağını binaya değil, su birikintisinin olduğu yol ızgarasına koy."), false, Building);
 		return;
 	}
 
@@ -810,7 +907,7 @@ void ADBGameMode::ClickBuilding(int32 Building)
 				return;
 			}
 			Money -= Tool.Cost;
-			ShowToast(FString::Printf(TEXT("%s: %s yapıldı (-%d TL). %s riskine hazır!"), *Name, *Tool.Name, Tool.Cost, *Prob.Hazard), false, Building);
+			ShowToast(FString::Printf(TEXT("%s: %s (-%d TL). %s riskine hazır!"), *Name, *Tool.Done, Tool.Cost, *Prob.Hazard), false, Building);
 			Solve(P, Building);
 		}
 		else if (Prob.Tool < 0)
@@ -856,6 +953,14 @@ void ADBGameMode::Solve(int32 Problem, int32 Building)
 	SelTool = -1;
 	World->PopBuilding(Building);
 	World->ClearHaze(Building);
+	if (Building == FDBContent::Get().HydrantBuilding)
+	{
+		World->RepairHydrant();
+	}
+	// Kasabalı teşekkür eder
+	NpcBuilding = Building;
+	NpcKind = 2;
+	NpcTime = Now;
 	const FDBContent& C = FDBContent::Get();
 	if (C.Problems[Problem].Tool >= 0 && C.Problems[Problem].Tool == C.EvacuateTool)
 	{
@@ -901,7 +1006,11 @@ void ADBGameMode::Back()
 	case EDBPhase::MenuPage: CloseMenuPage(); break;
 	case EDBPhase::BagPrep: ClosePanel(); break;
 	case EDBPhase::Play:
-		if (SelTool >= 0 || SelBag >= 0)
+		if (NpcBuilding >= 0)
+		{
+			CloseNpc();
+		}
+		else if (SelTool >= 0 || SelBag >= 0)
 		{
 			ClearSelection();
 		}

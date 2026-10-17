@@ -93,6 +93,16 @@ public:
 	void StartEvacuation(int32 FromBuilding, int32 ToBuilding);   // tsunami: sakinler sokaklardan sığınağa yürür
 	// Atmosfer: riskli binanın çevresinde afetine göre renkli sis; çözülünce dağılır, kum savrulur
 	void ShowHaze(int32 Building, const FString& Hazard);
+
+	// Izgara: yol karoları, rögar kapakları, yangın musluğu
+	static bool IsStreetIndex(int32 I) { return I == 2 || I == 5 || I == 8; }
+	bool IsRoad(FIntPoint Cell) const { return Cell.Y >= 0 && Cell.Y < GridN - 2 && Cell.X >= 0 && Cell.X < GridN && (IsStreetIndex(Cell.X) || IsStreetIndex(Cell.Y)); }
+	bool CellFromWorld(const FVector& WorldLoc, FIntPoint& OutCell) const;
+	FVector CellWorld(FIntPoint Cell) const;        // karonun üst yüzünün ortası (dünya)
+	void PlaceManhole(FIntPoint Cell);
+	bool HasManhole(FIntPoint Cell) const { return Manholes.Contains(Cell); }
+	void RepairHydrant();
+	FVector ResidentWorld(int32 Building) const;    // kasabalının başının üstü (konuşma balonu buraya bağlanır)
 	void ClearHaze(int32 Building);
 	void ApplyExposure(float EV100);
 
@@ -125,6 +135,25 @@ private:
 	UPROPERTY() TObjectPtr<UStaticMeshComponent> UnderPagePlane;
 	UPROPERTY() TArray<TObjectPtr<USceneComponent>> Walkers;
 	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> SeaTiles;
+	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> PuddleComps;
+	TArray<FIntPoint> PuddleCells;
+	TSet<FIntPoint> Manholes;
+	UPROPERTY() TObjectPtr<USceneComponent> HydrantRoot;
+	UPROPERTY() TObjectPtr<UStaticMeshComponent> HydrantLeak;
+	float HydrantFixT = -1.f;
+	UPROPERTY() TArray<TObjectPtr<USceneComponent>> CarRoots;
+	struct FCar
+	{
+		FVector A, B;
+		float T = 0.f;
+		float Speed = 12.f;
+		bool bFwd = true;
+	};
+	TArray<FCar> Cars;
+	UPROPERTY() TArray<TObjectPtr<USceneComponent>> ResidentRoots;
+	FVector CellLocal(FIntPoint Cell) const;
+	void BuildCars();
+	void BuildHydrant();
 	UPROPERTY() TObjectPtr<UMaterialInterface> PuffMaterial;
 	UPROPERTY() TArray<TObjectPtr<UTexture2D>> PuffTextures;
 	UPROPERTY() TArray<TObjectPtr<UMaterialInstanceDynamic>> PuffMids;

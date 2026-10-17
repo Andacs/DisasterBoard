@@ -19,6 +19,8 @@ public:
 	virtual void PlayerTick(float DeltaTime) override;
 
 	int32 HoveredBuilding = -1;
+	bool bHoveredCell = false;
+	FIntPoint HoveredCell = FIntPoint(-1, -1);
 
 	// Konsol (~)
 	UFUNCTION(Exec) void DBTest();                 // akışı baştan sona otomatik oynar, ekran görüntüsü alır, kapanır

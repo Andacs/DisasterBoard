@@ -66,12 +66,18 @@ namespace
 
 		// Alt panel sırası çizimdeki gibi: rögar kapağı, tahliye, yangın musluğu, bina güçlendirme
 		C.Tools = {
-			{ TEXT("Rögar Kapağı"), TEXT("RK"), RGB(80, 84, 92), 30, TEXT("Sel") },
-			{ TEXT("Tahliye"), TEXT("TH"), Sky, 30, TEXT("Tsunami") },
-			{ TEXT("Yangın Musluğu"), TEXT("YM"), RGB(214, 76, 66), 40, TEXT("Yangın") },
-			{ TEXT("Bina Güçlendirme"), TEXT("BG"), Teal, 60, TEXT("Deprem") },
+			{ TEXT("Rögar Kapağı"), TEXT("RK"), RGB(80, 84, 92), 15, TEXT("Sel"), TEXT("Rögar kapakları kondu") },
+			{ TEXT("Tahliye"), TEXT("TH"), Sky, 30, TEXT("Tsunami"), TEXT("Sığınağın yolu öğretildi") },
+			{ TEXT("İngiliz Anahtarı"), TEXT("İA"), RGB(214, 76, 66), 40, TEXT("Yangın"), TEXT("Yangın musluğu tamir edildi") },
+			{ TEXT("Bina Güçlendirme"), TEXT("BG"), Teal, 60, TEXT("Deprem"), TEXT("Bina güçlendirildi") },
 		};
 		C.EvacuateTool = Tahliye;
+		// Sel: marketin altındaki yolda iki karo su birikintisi; rögar kapakları ızgaraya konur (kapak başı 15 TL)
+		C.FloodTool = Rogar;
+		C.FloodCells = { FIntPoint(7, 5), FIntPoint(8, 6) };
+		// Yangın: ahşap evlerin sokağındaki musluk bozuk; İngiliz anahtarıyla tamir edilir
+		C.HydrantBuilding = AhsapEv;
+		C.HydrantCell = FIntPoint(8, 9);
 		C.StartMoney = 100;
 		C.KitReward = 30;
 
@@ -90,6 +96,58 @@ namespace
 			{ TEXT("Ahşap evler"), FIntPoint(3, 3), FVector(20, 18, 20), Kraft, DarkKraft },
 		};
 		C.ShelterBuilding = Siginak;
+
+		// Kasabalılar: samimi konuşur (ekip, 17 Ekim). Sıra C.Buildings ile aynı.
+		C.Residents = {
+			{ TEXT("Ayşe Teyze"),
+			  TEXT("Hoş geldin yavrum, otur bir çay iç!"),
+			  TEXT("Gel yavrum gel! İlaçlarım, gözlüğüm hep ortada... Gece bir şey olsa elim ayağıma dolaşır. Bir çanta hazırlasak?"),
+			  TEXT("Allah razı olsun evladım, içim rahatladı. Çayın hep hazır, bekliyorum!") },
+			{ TEXT("Selma Öğretmen"),
+			  TEXT("Merhaba! Teneffüs zili çalmak üzere."),
+			  TEXT("Merhaba canım! Revirdeki ilk yardım çantası bomboş. Bir de astımlı öğrencimiz var, spreyi hep yanında olmalı."),
+			  TEXT("Çocuklar adına çok teşekkür ederim, sen bir harikasın!") },
+			{ TEXT("Hasan Amca"),
+			  TEXT("Ben sığınağın bekçisiyim evlat. Dev dalga gelirse herkes buraya, yokuş yukarı! Kapım hep açık."),
+			  TEXT(""),
+			  TEXT("") },
+			{ TEXT("Zeynep"),
+			  TEXT("Şşş, bebek yeni uyudu!"),
+			  TEXT("Şşş, bebek yeni uyudu... Deprem olsa ne kapıp çıkacağımızı bilmiyoruz. Mamasıyla bezini de unutmamak lazım."),
+			  TEXT("Çok sağ ol! Çanta kapının yanında, artık gözüm arkada kalmaz.") },
+			{ TEXT("Kemal Bey"),
+			  TEXT("Apartman yöneticisiyim, aidatları sorma!"),
+			  TEXT("Şu kolonlardaki çatlaklara bak... Her gece içim titriyor. Binaya bir el atılsa?"),
+			  TEXT("Bina sapasağlam! Bütün apartman sana dua ediyor.") },
+			{ TEXT("Elif"),
+			  TEXT("Selam! Raflarımı duvara sabitledim, depremde kitaplar kimsenin başına düşmesin diye. Sen de evde yap!"),
+			  TEXT(""),
+			  TEXT("") },
+			{ TEXT("Ali Usta"),
+			  TEXT("Simitler fırından yeni çıktı!"),
+			  TEXT("Sabahtan beri fırın yanıyor kardeşim. Bir yangın çıksa belgelerim de gider, ortada kalırım."),
+			  TEXT("Eline sağlık! Al şu sıcak simidi, benden!") },
+			{ TEXT("Rıza Abi"),
+			  TEXT("Bakkal Rıza, her şey var!"),
+			  TEXT("Her yağmurda dükkânın önü göle dönüyor! Şu su birikintilerine rögar kapağı lazım."),
+			  TEXT("Ayaklarımız kupkuru, eline sağlık! Gel bir gazoz ısmarlayayım.") },
+			{ TEXT("Can"),
+			  TEXT("Selam! Sınav haftası, kafam dolu."),
+			  TEXT("Selam! Telefonum hep şarjsız, kedim Pamuk da var. Depremde ikimize de bir çanta lazım."),
+			  TEXT("Pamuk da teşekkür ediyor: miyav!") },
+			{ TEXT("Deniz"),
+			  TEXT("Parkta oynamak çok güzel! Büyükler deprem olursa toplanma alanının burası olduğunu söyledi."),
+			  TEXT(""),
+			  TEXT("") },
+			{ TEXT("Murat Abi"),
+			  TEXT("Bugün deniz çok sakin."),
+			  TEXT("Deniz şuracıkta... Dev dalga gelse çocukları nereye götüreceğimi bilmiyorum."),
+			  TEXT("Sığınağın yolunu öğrendik, çocuklar da biliyor artık. Sağ ol!") },
+			{ TEXT("Nermin Hanım"),
+			  TEXT("Bahçemdeki güllere bak!"),
+			  TEXT("Sokağımızdaki yangın musluğu bozuk, su vermiyor! Ahşap evler bunlar, bir kıvılcım yeter."),
+			  TEXT("Musluk şırıl şırıl! Bu akşam yemeğe bekliyorum, hayır demek yok.") },
+		};
 
 		C.Problems = {
 			{ AyseEv, TEXT("İlk yardım"),
@@ -134,16 +192,16 @@ namespace
 			  TEXT("Riskli binalar uzman incelemesiyle güçlendirilmeli ya da yenilenmeli. Kolon kesmek, taşıyıcı duvar yıkmak hayati tehlikedir."),
 			  TEXT("Kolonlarda çatlaklar var. Bina sarsıntıya dayanabilir mi?") },
 			{ Market, TEXT("Sel"),
-			  TEXT("Yağmurda marketin sokağını su basıyor; rögar kapaksız."),
-			  TEXT("Her yağmurda marketin önündeki sokağı su basıyor; rögar tıkalı ve kapağı yok."),
+			  TEXT("Marketin önündeki yolda su birikiyor; rögar yok."),
+			  TEXT("Her yağmurda marketin önündeki yolda su birikiyor. Su birikintilerinin olduğu ızgaralara rögar kapağı koy."),
 			  Rogar, -1,
 			  TEXT("Sele karşı rögar ve kanallar temiz tutulmalı. Su basan yerde elektriği kapat, akan suya girme, yüksek bir yere çık."),
 			  TEXT("Yağmurda sokağı su basıyor. Su nereden akıp gitmeli?") },
 			{ AhsapEv, TEXT("Yangın"),
-			  TEXT("Ahşap evlerin sokağında yangın musluğu yok."),
-			  TEXT("Birbirine bitişik ahşap evlerin sokağında yangın musluğu yok; yangın hızla yayılabilir."),
+			  TEXT("Ahşap evlerin sokağındaki yangın musluğu bozuk."),
+			  TEXT("Birbirine bitişik ahşap evlerin sokağındaki yangın musluğu bozuk, su vermiyor; İngiliz anahtarıyla tamir et."),
 			  YanginMuslugu, -1,
-			  TEXT("Yangın musluklarının önü kapatılmamalı, itfaiyenin geçeceği yollar açık tutulmalı."),
+			  TEXT("Yangın muslukları bakımlı olmalı, önleri kapatılmamalı; itfaiyenin geçeceği yollar açık tutulmalı."),
 			  TEXT("Yangın çıksa itfaiye suyu nereden alacak?") },
 			{ SahilEv, TEXT("Tsunami"),
 			  TEXT("Sahil evinde oturanlar sığınağın yolunu bilmiyor."),
@@ -154,6 +212,8 @@ namespace
 		};
 
 		// Ekip notu (17 Ekim): yalnızca Mert, Asil ve Yiğit konuşur (A, B, C); 5. kişi oyuncu
+		C.FloodProblem = C.Problems.IndexOfByPredicate([&C](const FDBProblemDef& P) { return P.Tool == C.FloodTool; });
+
 		C.SpeakerName[0] = TEXT("Mert");
 		C.SpeakerRole[0] = TEXT("Tarayıcı");
 		C.SpeakerColor[0] = Mustard;
@@ -179,7 +239,7 @@ namespace
 			{ S::B, TEXT("Ben Asil. Burası çanta fabrikası; bant yukarıdan aşağı akar, durmaz!") },
 			{ S::B, TEXT("Üstteki kartta hazırlanacak çanta ve tarifi yazıyor.") },
 			{ S::B, TEXT("Çanta gelince önce temel kiti seç: içindekiler kendiliğinden eklenir.") },
-			{ S::B, TEXT("Sonra çanta önlerinden geçerken kişiye özel eşyaları ekle.") },
+			{ S::B, TEXT("Sonra çanta önlerinden geçerken kişiye özel eşyaları ekle. İlk çantada doğru olanlar parlar!") },
 			{ S::B, TEXT("En alta inince teslim edilir. Yanlışsa çanta baştan gelir.") },
 			{ S::B, TEXT("Bitince masayı kapat.") },
 		};
@@ -188,8 +248,8 @@ namespace
 			{ S::C, TEXT("Ben Yiğit. Şehir önlemleri bende.") },
 			{ S::C, TEXT("Sel, tsunami, yangın ve deprem için önlemler burada.") },
 			{ S::C, TEXT("Önlemler bütçeden düşer; teslim ettiğin her çanta bütçe kazandırır.") },
-			{ S::C, TEXT("Önlemi seç, sonra isteği olan yere tıkla.") },
-			{ S::C, TEXT("Çanta isteyen bir yere tıkla ya da çekmeceyi çek: fabrika açılır.") },
+			{ S::C, TEXT("Önlemi seç, isteği olan yere tıkla. Rögar kapağını su birikintisinin olduğu ızgaraya koy.") },
+			{ S::C, TEXT("Kasabalılara tıkla, dertlerini anlatsınlar. Çantayı da çekmecedeki fabrikada hazırla.") },
 			{ S::C, TEXT("Hepsi yeşil olunca kasaba hazır! Tekerlek yakınlaştırır, Q/E ya da sağ tıkla sürükle döndürür.") },
 		};
 

@@ -58,6 +58,9 @@ private:
 		TgBackpack = FBox2D(ForceInit), TgDrawer = FBox2D(ForceInit),
 		TgOrder = FBox2D(ForceInit), TgKitStation = FBox2D(ForceInit), TgStations = FBox2D(ForceInit), TgDeliver = FBox2D(ForceInit);
 	void DrawBagIcon(const FVector2D& C, float Sc, int32 Kit, const TArray<int32>& Personal);
+	void DrawNpc();
+	void DrawCellHints();
+	void DotRing(const FVector2D& C, float R, const FLinearColor& Col);
 	UPROPERTY() TMap<FString, TObjectPtr<UTexture2D>> PngCache;
 	UTexture2D* LoadPng(const FString& Rel);
 	void DrawTex(UTexture2D* T, const FBox2D& R, float RotDeg, const FVector2D& Pivot);
