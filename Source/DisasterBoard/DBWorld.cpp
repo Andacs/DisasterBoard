@@ -126,11 +126,10 @@ void ADBWorld::BuildBoard()
 	BoardRoot = Node(RootComponent, FVector::ZeroVector);
 	USceneComponent* B = BoardRoot;
 
-	// Kaide: duvarların köşesine dayalı blok, üstü Z=0 (tahta onunla birlikte sallanır)
-	const float PlinthBack = FMath::Min(WallX, WallY);
-	const float PlinthFront = -102.f;
-	Part(B, CubeMesh, FVector((PlinthBack + PlinthFront) * 0.5f, (PlinthBack + PlinthFront) * 0.5f, FloorZ * 0.5f),
-		FVector(PlinthBack - PlinthFront, PlinthBack - PlinthFront, -FloorZ), RGB(158, 110, 72));
+	// Masa bütün zemini kaplar (üstü Z=0): tahtanın çevresi her açıdan masa yüzeyi, arayüz bunun üstüne
+	const float Far = 1300.f;
+	Part(RootComponent, CubeMesh, FVector((WallX - Far) * 0.5f, (WallY - Far) * 0.5f, FloorZ * 0.5f),
+		FVector(WallX + Far, WallY + Far, -FloorZ), RGB(196, 150, 104));
 
 	// Tahta (blend: Cube.002): taban, pahlı kenar, oluklu düzlük
 	const float Plateau = GridN * CellCm;

@@ -39,6 +39,7 @@ private:
 	FVector2D Mouse = FVector2D::ZeroVector;
 	UPROPERTY() TObjectPtr<UFont> Font;
 	float FontBaseH = 1.f;
+	float PanelSlide = 0.f;   // hazırlık masası çekmecesi: 0 kapalı (sağ kenarda kulp), 1 açık
 
 	// Çizim yardımcıları (piksel)
 	void Box(float X, float Y, float BW, float BH, const FLinearColor& C);
@@ -79,6 +80,8 @@ private:
 	void ToolIcon(int32 Tool, const FVector2D& C, float R);
 
 	FBox2D PanelRect() const;
+	FBox2D DrawerHandleRect() const;
+	void DrawDrawerHandle();
 	FBox2D BottomBarRect() const;
 	FBox2D ScannerRect() const;
 };

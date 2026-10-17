@@ -37,10 +37,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "DB|Takvim") FVector2D CalendarYZ = FVector2D(-2.4f, 88.9f);   // duvarda merkez
 	UPROPERTY(EditAnywhere, Category = "DB|Takvim") FVector2D CalendarSize = FVector2D(88.5f, 64.3f); // yatay
 	UPROPERTY(EditAnywhere, Category = "DB|Takvim") float PageFlipDegPerSec = 300.f;
-	UPROPERTY(EditAnywhere, Category = "DB|Kamera") FVector MenuCamLoc = FVector(-250.f, 15.f, 85.f);  // yatay: takvim + tahta
-	UPROPERTY(EditAnywhere, Category = "DB|Kamera") FVector MenuCamLookAt = FVector(100.f, -5.f, 55.f);
+	UPROPERTY(EditAnywhere, Category = "DB|Kamera") FVector MenuCamLoc = FVector(-245.f, -130.f, 115.f);  // Blender görüntüsü: köşeye çapraz, solda takvim, sağda yan duvar
+	UPROPERTY(EditAnywhere, Category = "DB|Kamera") FVector MenuCamLookAt = FVector(60.f, 30.f, 60.f);
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float CalendarCamDistance = 200.f;                 // Ayarlar / Emeği Geçenler
-	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float MenuCamFov = 50.f;
+	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float MenuCamFov = 55.f;
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") FVector BoardFocus = FVector(-8.f, -8.f, 10.f);
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float BoardCamDistance = 330.f;
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float BoardCamPitch = -50.f;

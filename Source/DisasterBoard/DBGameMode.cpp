@@ -146,15 +146,19 @@ void ADBGameMode::Tick(float Dt)
 	}
 
 	case EDBPhase::Play:
-		TimeLeft -= Dt;
 		if (AllSolvedAt >= 0.f && Now - AllSolvedAt > 1.4f)
 		{
-			BeginQuake();
-		}
-		else if (TimeLeft <= 0.f)
-		{
-			TimeLeft = 0.f;
-			BeginQuake();
+			if (bQuakeAtEnd)
+			{
+				BeginQuake();
+			}
+			else
+			{
+				bWon = true;
+				bPanelOpen = false;
+				ClearSelection();
+				SetPhase(EDBPhase::Result);
+			}
 		}
 		break;
 
@@ -483,8 +487,8 @@ void ADBGameMode::ShowToast(const FString& Text, bool bBad, int32 Building)
 
 void ADBGameMode::Penalty(const FString& Why, int32 Building)
 {
-	TimeLeft = FMath::Max(0.f, TimeLeft - WrongPenaltySeconds);
-	ShowToast(FString::Printf(TEXT("%s (-%d sn)"), *Why, FMath::RoundToInt(WrongPenaltySeconds)), true, Building);
+	++Mistakes;
+	ShowToast(Why, true, Building);
 }
 
 void ADBGameMode::ClickBuilding(int32 Building)

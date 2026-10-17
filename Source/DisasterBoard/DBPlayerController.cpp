@@ -202,7 +202,7 @@ void ADBPlayerController::DBTest()
 	Add([this] { Shot(TEXT("10_cantalar_hazir")); });
 	Add([this] { GM()->ClosePanel(); });
 	Add([this] { Shot(TEXT("11_C_konusuyor")); });
-	Talk(5);
+	Talk(6);
 	Add([this] { Shot(TEXT("12_oyun")); });
 	Add([this] { ADBGameMode* M = GM(); M->SelectBag(0); M->ClickBuilding(0); });
 	Add([this] { Shot(TEXT("13_ayse_tamam")); });
@@ -214,10 +214,11 @@ void ADBPlayerController::DBTest()
 	Add([this] { ADBGameMode* M = GM(); M->SelectTool(1); M->ClickBuilding(4); M->SelectTool(2); M->ClickBuilding(5); });
 	Add([this] { GM()->ClickBuilding(6); });
 	Add([this] { Shot(TEXT("16_park_notu")); });
-	Add([this] { GM()->ForceQuake(); });
-	Add([] {});
-	Add([this] { Shot(TEXT("17_deprem")); });
-	Add([] {});
+	// Çekmeceyi aç, öğrenci evine eksiksiz çanta, parka toplanma alanı → hepsi hazır → sonuç
+	Add([this] { GM()->TogglePanel(); });
+	Add([this] { Shot(TEXT("17_cekmece_acik")); ADBGameMode* M = GM(); M->AddItem(1); M->AddItem(0); M->AddItem(2); M->PackBag(); });
+	Add([this] { GM()->TogglePanel(); });
+	Add([this] { Shot(TEXT("17b_cekmece_kapali")); ADBGameMode* M = GM(); M->SelectBag(0); M->ClickBuilding(3); M->SelectTool(0); M->ClickBuilding(6); });
 	Add([] {});
 	Add([this] { Shot(TEXT("18_sonuc")); });
 	Add([this] { UE_LOG(LogDBInput, Log, TEXT("DB_TEST DONE")); });

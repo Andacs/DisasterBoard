@@ -228,8 +228,19 @@ void ADBHUD::ToolIcon(int32 Tool, const FVector2D& C, float R)
 	Txt(D.Icon, C.X, C.Y - R * 0.45f, R * 0.9f, Paper, 1);
 }
 
-FBox2D ADBHUD::PanelRect() const { return Rect(W - 724.f * S, 22.f * S, 700.f * S, H - 236.f * S); }
-FBox2D ADBHUD::BottomBarRect() const { return Rect(W * 0.5f - 470.f * S, H - 182.f * S, 940.f * S, 164.f * S); }
+// Çekmece sağ ortada; açılınca sola kayar (çizim 5). Kapalıyken yalnızca kulp görünür.
+FBox2D ADBHUD::PanelRect() const
+{
+	const float PW = 700.f * S;
+	const float X = W - 24.f * S - PW + (1.f - PanelSlide) * (PW + 30.f * S);
+	return Rect(X, H * 0.45f - 300.f * S, PW, 600.f * S);
+}
+FBox2D ADBHUD::DrawerHandleRect() const
+{
+	const FBox2D P = PanelRect();
+	return Rect(P.Min.X - 46.f * S, P.GetCenter().Y - 100.f * S, 48.f * S, 200.f * S);
+}
+FBox2D ADBHUD::BottomBarRect() const { return Rect(W * 0.5f - 380.f * S, H - 182.f * S, 760.f * S, 164.f * S); }
 FBox2D ADBHUD::ScannerRect() const { return Rect(178.f * S, H - 200.f * S, 84.f * S, 150.f * S); }
 
 // ---------------------------------------------------------------- giriş
@@ -273,7 +284,7 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 		else if (Id == TEXT("Quality")) GM->CycleQuality();
 		else if (Id == TEXT("Scanner")) GM->StartScan();
 		else if (Id == TEXT("PanelClose")) GM->ClosePanel();
-		else if (Id == TEXT("PanelOpen")) GM->OpenPanel();
+		else if (Id == TEXT("Drawer")) GM->TogglePanel();
 		else if (Id == TEXT("Item")) GM->AddItem(Ix);
 		else if (Id == TEXT("Draft")) GM->RemoveDraftAt(Ix);
 		else if (Id == TEXT("Pack")) GM->PackBag();
@@ -336,10 +347,19 @@ void ADBHUD::DrawHUD()
 		DrawScannerAndA();
 		DrawBottomBar();
 	}
-	DrawTimer();
-	if (GM->bPanelOpen)
+	const float Dt = GetWorld()->GetDeltaSeconds();
+	PanelSlide = FMath::FInterpTo(PanelSlide, GM->bPanelOpen ? 1.f : 0.f, Dt, 10.f);
+	if (FMath::Abs(PanelSlide - (GM->bPanelOpen ? 1.f : 0.f)) < 0.002f)
+	{
+		PanelSlide = GM->bPanelOpen ? 1.f : 0.f;
+	}
+	if (PanelSlide > 0.001f)
 	{
 		DrawPanel();
+	}
+	if ((GM->bPanelOpen || GM->bPlayStarted || PanelSlide > 0.001f) && GM->Phase != EDBPhase::Result)
+	{
+		DrawDrawerHandle();
 	}
 	if (GM->Phase != EDBPhase::Talk && GM->Phase != EDBPhase::Result && GM->Phase != EDBPhase::Quake)
 	{
@@ -612,8 +632,33 @@ void ADBHUD::DrawBottomBar()
 		}
 	}
 
-	Button(TEXT("PanelOpen"), -1, Rect(BX + 216.f * S, Y + 12.f * S, 196.f * S, 88.f * S), TEXT("Hazırlık masası"), 20.f * S,
-		Teal, Ink, Paper, bPlay && !GM->bPanelOpen);
+}
+
+void ADBHUD::DrawDrawerHandle()
+{
+	const FBox2D R = DrawerHandleRect();
+	const bool bCan = GM->Phase == EDBPhase::Play || GM->Phase == EDBPhase::BagPrep;
+	if (GM->IsTalking(FDBContent::Get().PanelIntroC, 4))
+	{
+		Glow(R);
+	}
+	const bool bHov = bCan && Hover(R);
+	const FBox2D RR = bHov ? R.ShiftBy(FVector2D(-5.f * S, 0.f)) : R;
+	Card(RR, U(206, 160, 112), Ink, 5.f);
+	Box(Rect(RR.Min.X + 10.f * S, RR.Min.Y + 14.f * S, 6.f * S, RR.GetSize().Y - 28.f * S), U(120, 84, 56));
+	const TCHAR* Word = TEXT("HAZIRLIK");
+	const float LetterPx = 17.f * S;
+	float Y = RR.GetCenter().Y - 8.f * LetterPx * 0.55f;
+	for (int32 i = 0; Word[i]; ++i)
+	{
+		Txt(FString::Chr(Word[i]), RR.GetCenter().X + 5.f * S, Y, LetterPx, Ink, 1);
+		Y += LetterPx * 1.1f;
+	}
+	Blockers.Add(R);
+	if (bCan)
+	{
+		Hit(TEXT("Drawer"), -1, R);
+	}
 }
 
 void ADBHUD::DrawPanel()
@@ -622,7 +667,7 @@ void ADBHUD::DrawPanel()
 	const FBox2D P = PanelRect();
 	Card(P, U(244, 230, 204), DarkK, 10.f);
 	Blockers.Add(P);
-	const bool bEdit = GM->CanEditBags();
+	const bool bEdit = GM->CanEditBags() && PanelSlide > 0.97f;
 	const float X0 = P.Min.X + 24.f * S;
 	const float Y0 = P.Min.Y;
 
@@ -696,7 +741,7 @@ void ADBHUD::DrawPanel()
 		CardC, DarkK, Ink, bEdit && GM->Draft.Num() > 0);
 
 	// Alt: hazır çantalar (sol) ve not kağıdı (sağ alt)
-	const float AY = BY + 32.f * S + 94.f * S + 24.f * S;
+	const float AY = BY + 32.f * S + 94.f * S + 20.f * S;
 	const float NoteW = 420.f * S;
 	Txt(TEXT("Hazır çantalar"), X0, AY, 20.f * S, Ink);
 	float LY = AY + 30.f * S;
@@ -714,10 +759,12 @@ void ADBHUD::DrawPanel()
 			Names.Add(C.Items[It].Name);
 		}
 		const FString L = FString::Printf(TEXT("%d. %s%s"), b + 1, Bag.bUsed ? TEXT("(kullanıldı) ") : TEXT(""), *FString::Join(Names, TEXT(", ")));
-		LY = Para(L, X0, LY, 15.f * S, ListW, Bag.bUsed ? U(140, 128, 110) : Ink, 1.2f, -1, P.Max.Y - 16.f * S) + 6.f * S;
+		LY = Para(L, X0, LY, 15.f * S, ListW, Bag.bUsed ? U(140, 128, 110) : Ink, 1.2f, -1, P.Max.Y + 200.f * S) + 6.f * S;
 	}
 
-	const FBox2D NR = Rect(P.Max.X - 24.f * S - NoteW, AY - 6.f * S, NoteW, P.Max.Y - 18.f * S - (AY - 6.f * S));
+	// Not kağıdı panelin altına bantla tutturulmuş, aşağı sarkar (çizim 5)
+	const FBox2D NR = Rect(P.Max.X - 24.f * S - NoteW, AY - 6.f * S, NoteW, 350.f * S);
+	Blockers.Add(NR);
 	if (GM->IsTalking(C.BagIntroB, 1))
 	{
 		Glow(NR);
@@ -826,7 +873,7 @@ void ADBHUD::DrawToast()
 	{
 		TW = FMath::Max(TW, Measure(L, Px).X);
 	}
-	const float Y0 = GM->IsTimerVisible() ? 112.f * S : 30.f * S;
+	const float Y0 = 30.f * S;
 	const FBox2D R = Rect(W * 0.5f - (TW + 48.f * S) * 0.5f, Y0, TW + 48.f * S, Lines.Num() * Px * 1.25f + 26.f * S);
 	Card(R, WithA(GM->bToastBad ? U(250, 222, 212) : U(236, 246, 228), A), WithA(GM->bToastBad ? Red : Green, A), 6.f);
 	float Y = R.Min.Y + 13.f * S;
@@ -915,9 +962,7 @@ void ADBHUD::DrawQuake()
 	const float Shake = FMath::Sin(GM->Now * 47.f) * 8.f * S;
 	Txt(TEXT("DEPREM!"), W * 0.5f + Shake + 4.f * S, 128.f * S + 5.f * S, 96.f * S, U(0, 0, 0, 120), 1);
 	Txt(TEXT("DEPREM!"), W * 0.5f + Shake, 128.f * S, 96.f * S, Red, 1);
-	const FBox2D R = Rect(W * 0.5f - 260.f * S, 250.f * S, 520.f * S, 56.f * S);
-	Card(R, Paper, Ink, 6.f);
-	Txt(TEXT("ÇÖK  ·  KAPAN  ·  TUTUN"), R.GetCenter().X, R.Min.Y + 12.f * S, 30.f * S, Ink, 1);
+
 }
 
 void ADBHUD::DrawResult()
@@ -930,9 +975,10 @@ void ADBHUD::DrawResult()
 	Card(R, Paper, DarkK, 10.f);
 
 	const bool bWon = GM->bWon;
-	Txt(bWon ? TEXT("Kasaba depreme hazırdı!") : TEXT("Deprem kasabayı hazırlıksız yakaladı"), R.GetCenter().X, R.Min.Y + 28.f * S, 44.f * S,
+	Txt(bWon ? TEXT("Kasaba depreme hazır!") : TEXT("Deprem kasabayı hazırlıksız yakaladı"), R.GetCenter().X, R.Min.Y + 28.f * S, 44.f * S,
 		bWon ? Green : Red, 1);
-	Txt(FString::Printf(TEXT("Hazır bina: %d / %d"), GM->NumSolved(), GM->Solved.Num()), R.GetCenter().X, R.Min.Y + 86.f * S, 26.f * S, Ink, 1);
+	Txt(FString::Printf(TEXT("Hazır bina: %d / %d   ·   Yanlış deneme: %d"), GM->NumSolved(), GM->Solved.Num(), GM->Mistakes),
+		R.GetCenter().X, R.Min.Y + 86.f * S, 26.f * S, Ink, 1);
 
 	float Y = R.Min.Y + 140.f * S;
 	const float TextX = R.Min.X + 84.f * S;

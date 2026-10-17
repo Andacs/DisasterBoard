@@ -29,8 +29,8 @@ public:
 	virtual bool PlayerCanRestart_Implementation(APlayerController* Player) override { return false; } // piyon yok, yalnızca kamera
 
 	// --- Ayarlar ---
-	UPROPERTY(EditAnywhere, Category = "DB") float QuakeSeconds = 150.f;
-	UPROPERTY(EditAnywhere, Category = "DB") float WrongPenaltySeconds = 10.f;
+	UPROPERTY(EditAnywhere, Category = "DB") bool bQuakeAtEnd = false;    // 17 Ekim: oyunda deprem sahnesi ve süre yok
+	UPROPERTY(EditAnywhere, Category = "DB") float QuakeSeconds = 150.f;  // yalnızca bQuakeAtEnd açıksa
 	UPROPERTY(EditAnywhere, Category = "DB") int32 BagCapacity = 4;
 	UPROPERTY(EditAnywhere, Category = "DB") int32 MaxBags = 4;
 	UPROPERTY(EditAnywhere, Category = "DB") float CameraBlendSeconds = 2.2f;
@@ -66,6 +66,7 @@ public:
 	int32 ToastBuilding = -1;
 
 	bool bWon = false;
+	int32 Mistakes = 0;
 
 	UPROPERTY() TObjectPtr<ADBWorld> World;
 
@@ -109,6 +110,7 @@ public:
 	void ClickBuilding(int32 Building);
 	void Restart(bool bDirect);
 	void Back();          // Esc
+	void TogglePanel() { if (bPanelOpen) ClosePanel(); else OpenPanel(); }
 
 	// Test / ayar
 	void SetTimeLeft(float Seconds) { TimeLeft = Seconds; }

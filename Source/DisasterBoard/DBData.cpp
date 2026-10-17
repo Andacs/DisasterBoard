@@ -130,7 +130,8 @@ namespace
 			{ S::C, TEXT("Soldaki kutular şehir araçları: bunlar eve değil, binaya ve mahalleye yapılan düzenlemeler.") },
 			{ S::C, TEXT("Sağdaki sırt çantasında senin hazırladığın çantalar duruyor.") },
 			{ S::C, TEXT("Bir araç ya da çanta seç, sonra uyarı işaretli binaya tıkla. Doğruysa bina güvene alınır.") },
-			{ S::C, TEXT("Acele et, deprem her an gelebilir!") },
+			{ S::C, TEXT("Yeni çanta gerekirse sağdaki çekmeceyi çek: hazırlık masası açılır.") },
+			{ S::C, TEXT("Bütün binalar hazır olunca kasaba depreme hazır demektir. Kolay gelsin!") },
 		};
 
 		C.Credits = {

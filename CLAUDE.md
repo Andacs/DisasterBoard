@@ -136,15 +136,23 @@ konuşmalar atlanır) / Menü.
   `DBExposure <EV>`, `DBTime <sn>`, `DBQuake`.
 
 **Sahne = `Art/Sahne/AnaMenu_OyunAlani.blend` ölçüleri (17 Ekim ~03.20, Andaç'ın Blender görüntülerine göre):**
-Blender x → UE −X, y → Y, kaide üstü Z=0. Takvim duvarı X=100,7, yan duvar Y=100,7, zemin −160,7. Kaide köşeye
-dayalı 2 m blok. Tahta 128 cm, 13×13 oluk (8 cm), pahlı kenar, karo üstü Z=13,8. Takvim yatay 88,5×64,3 cm,
+Blender x → UE −X, y → Y, masa üstü Z=0. Takvim duvarı X=100,7, yan duvar Y=100,7. **Masa bütün zemini
+kaplar** (Andaç: arayüz çizimlerdeki gibi masanın üstünde duracak). Tahta 128 cm, 13×13 oluk (8 cm), pahlı kenar, karo üstü Z=13,8. Takvim yatay 88,5×64,3 cm,
 merkez (Y −2,4, Z 88,9). DBData'daki 5×5 arsa → tahtada 2×2 karo (`LotOrigin` 0,3,6,9,11), binalar ×0,62.
-**Üç kamera:** menü (yatay, üstte takvim altta tahta; `MenuCamLoc` / `MenuCamLookAt`) · takvim yakın plan
+**Üç kamera:** menü (Blender görüntüsündeki gibi köşeye çapraz: sol üstte takvim, sağda yan duvar, altta tahta;
+`MenuCamLoc` / `MenuCamLookAt` / FOV 55) · takvim yakın plan
 (Ayarlar / Emeği Geçenler: kamera 0,9 sn'de yaklaşır, sonra sayfa kalkar; Geri: sayfa iner, kamera menü
 açısına döner) · tahta (330 cm, −50°, yaw 45°). Pozlama sabit EV100 1,9.
 
+**17 Ekim ~03.50, Andaç'ın kararları:** oyunda **süre yok**, **deprem sahnesi ve "çök-kapan-tutun" yok**. Bütün
+binalar hazır olunca 1,4 sn sonra sonuç kartı ("Kasaba depreme hazır!", yanlış deneme sayısı, her bina için doğru
+bilgi). Yanlış uygulama süre değil `Mistakes` sayar. Eski deprem kodu `bQuakeAtEnd` (kapalı) arkasında duruyor.
+**Hazırlık masası = sağ ortada çekmece** (çizim 4–5): kapalıyken sağ kenarda "HAZIRLIK" kulpu, tıklayınca sola
+kayarak açılır (`ADBHUD::PanelSlide`); not kağıdı panelin altına sarkar. Alt panelde yalnızca şehir araçları +
+sırt çantası.
+
 **Test:** `UnrealEditor.exe <tam yol>\DisasterBoard.uproject /Game/DisasterBoard/Maps/L_Ana -game -windowed
--ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~90 sn oynar, 21 görüntü
+-ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~95 sn oynar, 22 görüntü, 7/7 hazırlayıp sonuç kartına varır
 `Saved/Screenshots/WindowsEditor/DB_*.png`, kendisi kapanır. Test tıklama işlevlerini doğrudan çağırıyor.
 
 **Derlendi, ekranda görülmedi:** gerçek fareyle tıklama/hover (imleç, tooltip), Ayarlar'daki tam ekran ve
