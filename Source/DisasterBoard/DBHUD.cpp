@@ -1340,7 +1340,7 @@ FString ADBHUD::PngReport() const
 	return Out;
 }
 
-void ADBHUD::DrawTex(UTexture2D* T, const FBox2D& R, float RotDeg, const FVector2D& Pivot, const FLinearColor& Tint)
+void ADBHUD::DrawTex(UTexture2D* T, const FBox2D& R, float RotDeg, const FVector2D& Pivot, const FLinearColor& Tint, bool bFlipX)
 {
 	if (!T || !T->GetResource())
 	{
@@ -1350,6 +1350,11 @@ void ADBHUD::DrawTex(UTexture2D* T, const FBox2D& R, float RotDeg, const FVector
 	It.BlendMode = SE_BLEND_Translucent;
 	It.Rotation = FRotator(0.f, RotDeg, 0.f);
 	It.PivotPoint = Pivot;
+	if (bFlipX)
+	{
+		It.UV0 = FVector2D(1.f, 0.f);
+		It.UV1 = FVector2D(0.f, 1.f);
+	}
 	Canvas->DrawItem(It);
 }
 
@@ -1425,23 +1430,22 @@ void ADBHUD::DrawGuide(int32 Who, const FVector2D& Feet, float Height)
 		Ang = 80.f;                                          // kol aşağıda
 	}
 
-	const FString Body = FString::Printf(TEXT("Karakterler/%s_govde.png"), Letters[Who]);
-	const FString Arm = FString::Printf(TEXT("Karakterler/%s_kol.png"), Letters[Who]);
-	UTexture2D* BodyTex = LoadPng(Body);
-	UTexture2D* ArmTex = LoadPng(Arm);
+	// Ekip görseli iki poz (Mert'in çizimi gibi, 17 Ekim): duruş ve bir şeyi gösterirken kol kaldırılmış. İkisi aynı
+	// çerçevede, aynı hizada (Content/Karakterler/BENIOKU.md). Hedef soldaysa aynalanır. El noktası çerçevenin
+	// %90 sağı, %45 aşağısı: Mert'in çiziminden ölçüldü, şablonda yeşil daire.
+	UTexture2D* IdleTex = LoadPng(FString::Printf(TEXT("Karakterler/%s_durus.png"), Letters[Who]));
+	UTexture2D* ShowTex = LoadPng(FString::Printf(TEXT("Karakterler/%s_goster.png"), Letters[Who]));
+	UTexture2D* PoseTex = (bPoint && ShowTex) ? ShowTex : (IdleTex ? IdleTex : ShowTex);
+	const bool bFlip = bPoint && Target.X < Base.X;
+	FVector2D HandPt = FVector2D::ZeroVector;
 	Box(Rect(Feet.X - 30.f * K, Feet.Y - 4.f * K, 60.f * K, 7.f * K), U(60, 40, 25, 70));
-	if (BodyTex)
+	if (PoseTex)
 	{
-		// Ekip görseli: gövde ayaklardan yukarı, kol omuzdan döner (Docs/KARAKTER_GORSEL.md)
-		const float Hh = Height;
-		const float Ww = Hh * BodyTex->GetSizeX() / FMath::Max(1, BodyTex->GetSizeY());
-		DrawTex(BodyTex, Rect(Base.X - Ww * 0.5f, Base.Y - Hh, Ww, Hh), 0.f, FVector2D(0.5f, 0.5f));
-		if (ArmTex)
-		{
-			const float Al = Reach * 1.25f;
-			const float Ah = Al * ArmTex->GetSizeY() / FMath::Max(1, ArmTex->GetSizeX());
-			DrawTex(ArmTex, Rect(Shoulder.X, Shoulder.Y - Ah * 0.5f, Al, Ah), Ang, FVector2D(0.f, 0.5f));
-		}
+		const float Hh = Height * 1.15f;   // karakter çerçevenin ~%87'si: çizilen boy ≈ Height
+		const float Ww = Hh * PoseTex->GetSizeX() / FMath::Max(1, PoseTex->GetSizeY());
+		const FBox2D R = Rect(Base.X - Ww * 0.5f, Base.Y - Hh, Ww, Hh);
+		DrawTex(PoseTex, R, 0.f, FVector2D(0.5f, 0.5f), FLinearColor::White, bFlip);
+		HandPt = FVector2D(R.Min.X + Ww * (bFlip ? 0.10f : 0.90f), R.Min.Y + Hh * 0.45f);
 	}
 	else
 	{
@@ -1481,7 +1485,8 @@ void ADBHUD::DrawGuide(int32 Who, const FVector2D& Feet, float Height)
 	// Oyunda (konuşma yokken) elden hedefe kayan noktalı iz: neyi gösterdiği açık olsun
 	if (bPoint && !GM->CurrentLine())
 	{
-		const FVector2D From = Shoulder + (Target - Shoulder).GetSafeNormal() * (Reach + 20.f * K);
+		const FVector2D From = PoseTex ? HandPt + (Target - HandPt).GetSafeNormal() * 10.f * K
+		                               : Shoulder + (Target - Shoulder).GetSafeNormal() * (Reach + 20.f * K);
 		const float Len = FVector2D::Distance(From, Target) - 34.f * S;
 		const FVector2D Dir = (Target - From).GetSafeNormal();
 		for (float D = FMath::Fmod(T * 60.f * S, 26.f * S); D < Len; D += 26.f * S)

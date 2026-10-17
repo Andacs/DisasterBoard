@@ -47,6 +47,12 @@ Her şeyi `Tools/varlik_kontrol.py` yapar; elle dosya kopyalama, ölçü hesapla
 
 Aynı adla yeni dosya gelirse (tasarımcı düzeltti) aynı komutla tekrar kontrol et; onaylıysa eskisinin yerine geçer.
 
+**Rehber karakterler (A = Mert, B = Asil, C = Yiğit) iki poz olarak gelir:** duruş ve gösterme (kolu kalkık). Büyük
+tuvale çizilmiş, adı farklı olabilir. Hangisinin duruş hangisinin gösterme olduğunu resme bakıp anla (emin değilsen
+Yiğit'e sor), sonra: `python Tools/varlik_kontrol.py --karakter A "<duruş>" "<gösterme>"`. Araç ikisini aynı kesimle
+320x512'ye oturtur, adlarını koyar ve kontrol eder. "Arka plan siyah" derse: dosya mesajla fotoğraf olarak gelmiş,
+şeffaflık kaybolmuş; Yiğit çizerden orijinal PNG'yi dosya/belge olarak istesin.
+
 ## Durum ve teslim
 
 - `python Tools/varlik_kontrol.py --durum`: 73 dosyanın listesi (41 2D, 32 3D), hangisi onaylı, hangisi bekliyor.

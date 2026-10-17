@@ -16,6 +16,7 @@ __pycache__/
 
 # varlık onayı: deneme klasörü, reddedilenler (yerel), test paketi
 Art/_deneme/
+Art/_hazir/
 Art/Reddedildi/
 Build/TestKiti/
 *.blend1

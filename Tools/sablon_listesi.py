@@ -35,7 +35,7 @@ ASSETS_3D = [
 ]
 
 # 2D: piksel. (dosya yolu Content/ altında, genişlik, yükseklik, kategori, açıklama, ek işaret)
-# ek işaret: "ayak" = pivot alt orta (ayaklar), "omuz" = pivot sol orta (kol döner), "altyazi" = sol alt boş bırak, "daire" = ikon daire içinde
+# ek işaret: "ayak" = pivot alt orta (ayaklar), "el" = ayaklar + elin yeri (gösterme pozu), "altyazi" = sol alt boş bırak, "daire" = ikon daire içinde
 ITEMS = [
     ("sargi_bezi", "Sargı Bezi"), ("antiseptik", "Antiseptik"), ("yara_bandi", "Yara Bandı"), ("su", "Su"),
     ("el_feneri", "El Feneri"), ("duduk", "Düdük"), ("yangin_tupu", "Yangın Tüpü"), ("duman_maskesi", "Duman Maskesi"),
@@ -49,8 +49,9 @@ KITS = [("ilk_yardim", "İlk Yardım Çantası"), ("deprem", "Deprem Çantası")
 
 ASSETS_2D = []
 for who, name in (("A", "Mert"), ("B", "Asil"), ("C", "Yiğit")):
-    ASSETS_2D.append((f"Karakterler/{who}_govde.png", 320, 512, "Karakter", f"{name}: gösteren kol HARİÇ bütün figür, ayakta, kameraya bakıyor. Ayaklar alt kenarda, yatayda ortada.", "ayak"))
-    ASSETS_2D.append((f"Karakterler/{who}_kol.png", 256, 96, "Karakter", f"{name}: gösteren kol, yatay, SAĞA uzanmış, işaret parmağı sağ uçta. Omuz sol kenarın ortasında (oyun buradan döndürür).", "omuz"))
+    # İki poz (Andaç, 17 Ekim, Mert'in çizimine göre): duruş + gösterme; aynı tuvalde, aynı hizada
+    ASSETS_2D.append((f"Karakterler/{who}_durus.png", 320, 512, "Karakter", f"{name}: duruş. Kameraya bakıyor, iki kol aşağıda. Ayaklar alt kenarda, yatayda ortada.", "ayak"))
+    ASSETS_2D.append((f"Karakterler/{who}_goster.png", 320, 512, "Karakter", f"{name}: gösterme. Duruşla aynı yerde ve boyda; ekranda sağdaki kolu yukarı-sağa kalkık, eli yeşil dairede. Üst üste konunca gövde kıpırdamamalı.", "el"))
 for i, cap in enumerate(["Beş arkadaş kasabada geziyor", "Oyuncakçının vitrininde tozlu kutu: DisasterBoard",
                          "Kutudan minik kasaba çıkıyor, kartta: Afet gelmeden kasabayı hazırla", "Masaya oturuyorlar: Sıra sende!"], 1):
     ASSETS_2D.append((f"Cizgiroman/sahne{i}.png", 1280, 720, "Hikaye", f"Sahne {i}: {cap}. Altyazıyı oyun yazar, resme yazı koyma.", "altyazi"))

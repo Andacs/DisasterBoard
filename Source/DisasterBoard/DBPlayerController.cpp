@@ -456,7 +456,9 @@ void ADBPlayerController::DBVarlikTest()
 	// Uyarı işaretleri (Ikonlar/isaret_uyari)
 	Add([VShot] { VShot(TEXT("07_uyari_isaretleri")); });
 	Talk(1);
-	// Asil (B) ve fabrika: sipariş kartı, kit düğmeleri, eşya ikonları, bütçe (Karakterler/B_*, Ikonlar/esya_*, kit_*, butce, Arayuz/canta)
+	// Asil (B) kendini tanıtır: duruş pozu (Karakterler/B_durus)
+	Add([VShot] { VShot(TEXT("08a_asil_durus")); });
+	// Asil temel kiti gösterir, Mert bekler (B_goster, A_durus), fabrika: eşya / kit ikonları, bütçe, çanta
 	Talk(2);
 	Add([VShot] { VShot(TEXT("08_asil_fabrika")); });
 	Talk(4);
@@ -465,9 +467,11 @@ void ADBPlayerController::DBVarlikTest()
 	Add([this] { GM()->SetBagT(0.999f); });
 	Add([] {});
 	Add([this] { GM()->ClosePanel(); });
-	// Yiğit (C) ve şehir önlemleri (Karakterler/C_*, Ikonlar/onlem_*)
+	// Yiğit (C) kendini tanıtır (C_durus), önlem ikonları (Ikonlar/onlem_*); sonra önlemleri gösterir (C_goster)
 	Add([VShot] { VShot(TEXT("10_yigit_onlemler")); });
-	Talk(6);
+	Talk(1);
+	Add([VShot] { VShot(TEXT("10b_yigit_gosteriyor")); });
+	Talk(5);
 	// Tamam işareti (Ikonlar/isaret_tamam): apartmanı güçlendir
 	Add([this] { ADBGameMode* M = GM(); M->SelectTool(4); M->ClickBuilding(4); });
 	Add([this] { GM()->CloseNpc(); });

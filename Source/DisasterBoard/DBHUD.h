@@ -71,7 +71,7 @@ private:
 	UPROPERTY() TMap<FString, TObjectPtr<UTexture2D>> PngCache;
 	TMap<FString, FString> PngStatus;   // varlık testi raporu: her istenen görsel yüklendi mi
 	UTexture2D* LoadPng(const FString& Rel);
-	void DrawTex(UTexture2D* T, const FBox2D& R, float RotDeg, const FVector2D& Pivot, const FLinearColor& Tint = FLinearColor::White);
+	void DrawTex(UTexture2D* T, const FBox2D& R, float RotDeg, const FVector2D& Pivot, const FLinearColor& Tint = FLinearColor::White, bool bFlipX = false);
 	bool KitIcon(int32 Kit, const FVector2D& C, float R);   // kit görseli varsa çizer
 	bool GuideTarget(int32 Who, FVector2D& Out) const;
 	void DrawGuide(int32 Who, const FVector2D& Feet, float Height);

@@ -73,9 +73,11 @@ Kontrol: FBX'i Blender'a geri içe al, N panelinde Dimensions tablodakiyle aynı
    Kırmızı çerçeve = görselin sınırı. Mavi kesikli çizgi = güvenli alan (önemli kısım içinde kalsın).
    İkonlarda mavi daire: ikon daire içine sığsın (oyun ikonları yuvarlak düğmede gösterir).
 4. **Yazı koyma** (logo hariç): oyun yazıları kendisi yazar. Çizgi romanda sarı alan = altyazı yeri, boş bırak.
-5. **Karakterler:** gövde ve kol ayrı. Gövde `*_govde.png`: gösteren kol HARİÇ bütün figür, ayaklar alt kenarda
-   (yeşil nokta). Kol `*_kol.png`: yatay, sağa uzanmış, omuz sol kenarın ortasında (oyun kolu buradan döndürür),
-   işaret parmağı sağ uçta. A = Mert, B = Asil, C = Yiğit.
+5. **Karakterler: iki poz.** `*_durus.png`: kameraya bakıyor, iki kol aşağıda, ayaklar alt kenarda (yeşil nokta).
+   `*_goster.png`: aynı karakter aynı yerde ve boyda, ekranda sağdaki kolu yukarı-sağa kalkık, eli yeşil dairede
+   (oyun bir şeyi gösterirken bu pozu çizer, elden hedefe noktalı iz çıkar). İkisini aynı tuvalde, aynı yerde çiz:
+   üst üste konunca gövde kıpırdamamalı. Büyük tuvale çizdiysen sorun değil, Yiğit'in aracı ikisini birlikte
+   kırpıp oturtur. A = Mert, B = Asil, C = Yiğit.
 6. **Teslim:** bitmiş PNG'yi (adı tablodaki gibi, ör. `esya_su.png`) **Yiğit'e gönder**. Yiğit kontrol aracından
    geçirir ve oyunda yerinde dener; sorun varsa nedenini sana iletir. Repoya kendin koyma.
 
@@ -85,12 +87,12 @@ oturur. Adlar bu tablodaki gibi kalmalı.
 ### Karakterler
 | Dosya (`Content/` altında) | Piksel | Pivot | Ne |
 |---|---|---|---|
-| `Karakterler/A_govde.png` | 320 x 512 | alt orta (ayaklar) | Mert: gösteren kol HARİÇ bütün figür, ayakta, kameraya bakıyor. Ayaklar alt kenarda, yatayda ortada. |
-| `Karakterler/A_kol.png` | 256 x 96 | sol orta (omuz) | Mert: gösteren kol, yatay, SAĞA uzanmış, işaret parmağı sağ uçta. Omuz sol kenarın ortasında (oyun buradan döndürür). |
-| `Karakterler/B_govde.png` | 320 x 512 | alt orta (ayaklar) | Asil: gösteren kol HARİÇ bütün figür, ayakta, kameraya bakıyor. Ayaklar alt kenarda, yatayda ortada. |
-| `Karakterler/B_kol.png` | 256 x 96 | sol orta (omuz) | Asil: gösteren kol, yatay, SAĞA uzanmış, işaret parmağı sağ uçta. Omuz sol kenarın ortasında (oyun buradan döndürür). |
-| `Karakterler/C_govde.png` | 320 x 512 | alt orta (ayaklar) | Yiğit: gösteren kol HARİÇ bütün figür, ayakta, kameraya bakıyor. Ayaklar alt kenarda, yatayda ortada. |
-| `Karakterler/C_kol.png` | 256 x 96 | sol orta (omuz) | Yiğit: gösteren kol, yatay, SAĞA uzanmış, işaret parmağı sağ uçta. Omuz sol kenarın ortasında (oyun buradan döndürür). |
+| `Karakterler/A_durus.png` | 320 x 512 | alt orta (ayaklar) | Mert: duruş. Kameraya bakıyor, iki kol aşağıda. Ayaklar alt kenarda, yatayda ortada. |
+| `Karakterler/A_goster.png` | 320 x 512 | alt orta (ayaklar), el sağ üstte | Mert: gösterme. Duruşla aynı yerde ve boyda; ekranda sağdaki kolu yukarı-sağa kalkık, eli yeşil dairede. Üst üste konunca gövde kıpırdamamalı. |
+| `Karakterler/B_durus.png` | 320 x 512 | alt orta (ayaklar) | Asil: duruş. Kameraya bakıyor, iki kol aşağıda. Ayaklar alt kenarda, yatayda ortada. |
+| `Karakterler/B_goster.png` | 320 x 512 | alt orta (ayaklar), el sağ üstte | Asil: gösterme. Duruşla aynı yerde ve boyda; ekranda sağdaki kolu yukarı-sağa kalkık, eli yeşil dairede. Üst üste konunca gövde kıpırdamamalı. |
+| `Karakterler/C_durus.png` | 320 x 512 | alt orta (ayaklar) | Yiğit: duruş. Kameraya bakıyor, iki kol aşağıda. Ayaklar alt kenarda, yatayda ortada. |
+| `Karakterler/C_goster.png` | 320 x 512 | alt orta (ayaklar), el sağ üstte | Yiğit: gösterme. Duruşla aynı yerde ve boyda; ekranda sağdaki kolu yukarı-sağa kalkık, eli yeşil dairede. Üst üste konunca gövde kıpırdamamalı. |
 
 ### Çizgi roman (oyunun açılış hikâyesi)
 | Dosya (`Content/` altında) | Piksel | Pivot | Ne |

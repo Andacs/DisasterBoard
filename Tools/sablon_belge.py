@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from sablon_listesi import ASSETS_2D, ASSETS_3D
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else "Sablonlar"
-PIVOT_2D = {"ayak": "alt orta (ayaklar)", "omuz": "sol orta (omuz)", "altyazi": "-", "daire": "orta", "": "orta"}
+PIVOT_2D = {"ayak": "alt orta (ayaklar)", "el": "alt orta (ayaklar), el sağ üstte", "omuz": "sol orta (omuz)", "altyazi": "-", "daire": "orta", "": "orta"}
 
 def table_3d(cat_list):
     rows = ["| Dosya | G x D x Y (cm) | Ne |", "|---|---|---|"]
@@ -73,9 +73,11 @@ Kontrol: FBX'i Blender'a geri içe al, N panelinde Dimensions tablodakiyle aynı
    Kırmızı çerçeve = görselin sınırı. Mavi kesikli çizgi = güvenli alan (önemli kısım içinde kalsın).
    İkonlarda mavi daire: ikon daire içine sığsın (oyun ikonları yuvarlak düğmede gösterir).
 4. **Yazı koyma** (logo hariç): oyun yazıları kendisi yazar. Çizgi romanda sarı alan = altyazı yeri, boş bırak.
-5. **Karakterler:** gövde ve kol ayrı. Gövde `*_govde.png`: gösteren kol HARİÇ bütün figür, ayaklar alt kenarda
-   (yeşil nokta). Kol `*_kol.png`: yatay, sağa uzanmış, omuz sol kenarın ortasında (oyun kolu buradan döndürür),
-   işaret parmağı sağ uçta. A = Mert, B = Asil, C = Yiğit.
+5. **Karakterler: iki poz.** `*_durus.png`: kameraya bakıyor, iki kol aşağıda, ayaklar alt kenarda (yeşil nokta).
+   `*_goster.png`: aynı karakter aynı yerde ve boyda, ekranda sağdaki kolu yukarı-sağa kalkık, eli yeşil dairede
+   (oyun bir şeyi gösterirken bu pozu çizer, elden hedefe noktalı iz çıkar). İkisini aynı tuvalde, aynı yerde çiz:
+   üst üste konunca gövde kıpırdamamalı. Büyük tuvale çizdiysen sorun değil, Yiğit'in aracı ikisini birlikte
+   kırpıp oturtur. A = Mert, B = Asil, C = Yiğit.
 6. **Teslim:** bitmiş PNG'yi (adı tablodaki gibi, ör. `esya_su.png`) **Yiğit'e gönder**. Yiğit kontrol aracından
    geçirir ve oyunda yerinde dener; sorun varsa nedenini sana iletir. Repoya kendin koyma.
 

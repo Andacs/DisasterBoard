@@ -5,6 +5,9 @@
 #   python Tools/varlik_kontrol.py --teslim [--kismi]        onaylıları commit + push (hepsi bitmeden: --kismi)
 #   python Tools/varlik_kontrol.py --aktar                   (Andaç) onaylı 2D'leri Content/ altına kopyalar
 #   python Tools/varlik_kontrol.py --geri <dosya adı>        bir onayı geri alır (gözle bakınca sorun görüldüyse)
+#   python Tools/varlik_kontrol.py --karakter A <duruş> <gösterme>
+#                                       rehber karakterin iki pozunu (büyük tuval olabilir) aynı kesimle 320x512'ye
+#                                       oturtur (ayaklar alt kenarda), sonra normal kontrolden geçirir
 #
 # Seçenekler: --oyun <DisasterBoard.exe>  test paketi başka yerdeyse;  --oyunsuz  oyun testini atla (onaylamaz)
 #
@@ -27,6 +30,7 @@ LISTE = teslim_listesi()
 ONAYLI = os.path.join(REPO, "Art", "Onayli")
 RED = os.path.join(REPO, "Art", "Reddedildi")
 DENEME = os.path.join(REPO, "Art", "_deneme")
+HAZIR = os.path.join(REPO, "Art", "_hazir")   # --karakter çıktısı (git'e girmez)
 DURUM = os.path.join(ONAYLI, "durum.json")
 BILGI = "bilgi: "   # uyarı değil, ölçü özeti
 
@@ -35,10 +39,12 @@ def ekranlar(yol):
     if yol.startswith("Cizgiroman/sahne"):
         n = yol[len("Cizgiroman/sahne")]
         return [f"0{n}_sahne{n}"]
-    tablo = [("Arayuz/logo", "05_menu_logo"), ("Karakterler/A_", "06_mert_tarayici"), ("Arayuz/tarayici", "06_mert_tarayici"),
-             ("Ikonlar/isaret_uyari", "07_uyari_isaretleri"), ("Karakterler/B_", "08_asil_fabrika"), ("Ikonlar/esya_", "08_asil_fabrika"),
+    tablo = [("Arayuz/logo", "05_menu_logo"), ("Karakterler/A_goster", "06_mert_tarayici"), ("Arayuz/tarayici", "06_mert_tarayici"),
+             ("Ikonlar/isaret_uyari", "07_uyari_isaretleri"), ("Karakterler/B_durus", "08a_asil_durus"),
+             ("Karakterler/A_durus", "08_asil_fabrika"), ("Karakterler/B_goster", "08_asil_fabrika"), ("Ikonlar/esya_", "08_asil_fabrika"),
              ("Ikonlar/kit_", "08_asil_fabrika"), ("Ikonlar/butce", "08_asil_fabrika"), ("Arayuz/canta", "09_canta_bantta"),
-             ("Karakterler/C_", "10_yigit_onlemler"), ("Ikonlar/onlem_", "10_yigit_onlemler"), ("Ikonlar/isaret_tamam", "11_tamam_isareti")]
+             ("Karakterler/C_durus", "10_yigit_onlemler"), ("Karakterler/C_goster", "10b_yigit_gosteriyor"),
+             ("Ikonlar/onlem_", "10_yigit_onlemler"), ("Ikonlar/isaret_tamam", "11_tamam_isareti")]
     return [shot for pre, shot in tablo if yol.startswith(pre)]
 
 
@@ -119,7 +125,11 @@ def kontrol_2d(dosya, bilgi):
     alpha = [p[3] for p in px]
     if not hikaye:
         if "A" not in im.getbands() and not (im.mode == "P" and "transparency" in im.info):
-            hata.append("Arka plan şeffaf değil (alfa kanalı yok). Şeffaf arka planlı PNG kaydet.")
+            if siyah_zemin(rgba):
+                hata.append("Arka plan siyah: şeffaflık gönderirken kaybolmuş (mesaj uygulaması PNG'yi JPG'ye çevirir). "
+                            "Orijinal PNG'yi \"fotoğraf\" değil \"dosya/belge\" olarak gönder.")
+            else:
+                hata.append("Arka plan şeffaf değil (alfa kanalı yok). Şeffaf arka planlı PNG kaydet.")
         else:
             seffaf = sum(1 for a in alpha if a < 16) / n
             if seffaf < 0.03:
@@ -139,7 +149,7 @@ def kontrol_2d(dosya, bilgi):
             hata.append("Şablonun dama (gri kareli) zemini duruyor: şablon katmanını silip öyle kaydet.")
     if im.size == (W, H) and not hikaye and "A" in rgba.getbands():
         a = rgba.getchannel("A")
-        if bilgi["isaret"] == "ayak":
+        if bilgi["isaret"] in ("ayak", "el"):
             alt = a.crop((0, int(H * 0.94), W, H))
             if alt.getbbox() is None:
                 uyari.append("Ayaklar alt kenara değmiyor; oyunda karakter havada durur.")
@@ -147,10 +157,10 @@ def kontrol_2d(dosya, bilgi):
                 x0, _, x1, _ = alt.getbbox()
                 if abs((x0 + x1) / 2 - W / 2) > W * 0.18:
                     uyari.append("Ayaklar yatayda ortada değil.")
-        if bilgi["isaret"] == "omuz":
-            omuz = a.crop((0, int(H * 0.3), int(W * 0.12), int(H * 0.7)))
-            if omuz.getbbox() is None:
-                uyari.append("Omuz sol kenarın ortasında değil; oyun kolu oradan döndürür.")
+        if bilgi["isaret"] == "el":
+            el = a.crop((int(W * 0.72), int(H * 0.28), W, int(H * 0.62)))
+            if el.getbbox() is None:
+                uyari.append("Kalkık el sağ üstte görünmüyor (şablondaki yeşil daire); oyun noktalı izi oradan başlatır.")
         if bilgi["isaret"] == "daire":
             r = min(W, H) / 2 * 1.04
             disari = sum(1 for i, al in enumerate(alpha) if al > 64 and ((i % W + 0.5 - W / 2) ** 2 + (i // W + 0.5 - H / 2) ** 2) > r * r)
@@ -159,6 +169,89 @@ def kontrol_2d(dosya, bilgi):
     if os.path.getsize(dosya) > 3 * 1024 * 1024:
         uyari.append(f"Dosya büyük ({os.path.getsize(dosya) // 1024} KB); oyun açılışını yavaşlatabilir.")
     return hata, uyari
+
+
+def siyah_zemin(rgba):
+    W, H = rgba.size
+    kose = [rgba.getpixel(p) for p in ((0, 0), (W - 1, 0), (0, H - 1), (W - 1, H - 1), (W // 2, 0), (0, H // 2))]
+    return all(r < 12 and g < 12 and b < 12 for r, g, b, _ in kose)
+
+
+def ayak_hizasi(yol):
+    """(ayakların alt satırı, ayakların yatay ortası) piksel; alfa yoksa None"""
+    from PIL import Image
+    a = Image.open(yol).convert("RGBA").getchannel("A").point(lambda v: 255 if v > 32 else 0)
+    bb = a.getbbox()
+    if not bb:
+        return None
+    alt = bb[3]
+    satir = a.crop((0, max(0, alt - 12), a.size[0], alt)).getbbox()
+    return alt, (satir[0] + satir[2]) / 2 if satir else (bb[0] + bb[2]) / 2
+
+
+def karakter_esi(k):
+    return k.replace("_durus", "_goster") if "_durus" in k else k.replace("_goster", "_durus")
+
+
+def poz_farki(p1, p2):
+    """İki poz üst üste konunca gövde kıpırdıyor mu"""
+    h1, h2 = ayak_hizasi(p1), ayak_hizasi(p2)
+    if not h1 or not h2:
+        return None
+    if abs(h1[0] - h2[0]) > 8 or abs(h1[1] - h2[1]) > 12:
+        return (f"İki poz aynı hizada değil (ayaklar {abs(h1[0] - h2[0]):.0f} px dikey, {abs(h1[1] - h2[1]):.0f} px yatay kayık); "
+                "poz değişince karakter zıplar. Aynı tuvalde, aynı yerde çiz ya da --karakter ile birlikte hazırla.")
+    return None
+
+
+def karakter_hazirla(harf, durus, goster):
+    """İki pozu aynı kesimle kırpar, 320x512'ye sığdırır (ayaklar alt kenarda, ortada), Art/_hazir/ altına yazar"""
+    from PIL import Image
+    harf = harf.upper()
+    if harf not in ("A", "B", "C"):
+        print("Karakter harfi A (Mert), B (Asil) ya da C (Yiğit) olmalı.")
+        return None
+    W, H, kenar = 320, 512, 4
+    resimler = []
+    for p in (durus, goster):
+        im = Image.open(p)
+        im.load()
+        if "A" not in im.getbands() and not (im.mode == "P" and "transparency" in im.info):
+            rgba = im.convert("RGBA")
+            neden = ("arka plan siyah: şeffaflık gönderirken kaybolmuş (mesaj uygulaması PNG'yi JPG'ye çevirir). "
+                     "Orijinal PNG'yi \"fotoğraf\" değil \"dosya/belge\" olarak iste.") if siyah_zemin(rgba) else "şeffaf arka plan yok."
+            print(f"RED    {os.path.basename(p)}: {neden}")
+            return None
+        resimler.append(im.convert("RGBA"))
+    if resimler[0].size != resimler[1].size:
+        print(f"UYARI  iki pozun tuvali farklı boyda ({resimler[0].size} / {resimler[1].size}); aynı tuvalde çizilmediyse hiza kayabilir.")
+    kutu = None
+    for im in resimler:
+        bb = im.getchannel("A").point(lambda v: 255 if v > 16 else 0).getbbox()
+        if not bb:
+            print("RED    pozlardan biri boş (her yer şeffaf).")
+            return None
+        kutu = bb if kutu is None else (min(kutu[0], bb[0]), min(kutu[1], bb[1]), max(kutu[2], bb[2]), max(kutu[3], bb[3]))
+    kw, kh = kutu[2] - kutu[0], kutu[3] - kutu[1]
+    olcek = min((W - 2 * kenar) / kw, (H - kenar - 2) / kh)
+    yw, yh = max(1, round(kw * olcek)), max(1, round(kh * olcek))
+    # Ayakların yatay ortası duruş pozundan (kalkık kol kesimi sağa genişletse de karakter ortada dursun)
+    alt = resimler[0].getchannel("A").point(lambda v: 255 if v > 32 else 0)
+    satir = alt.crop((0, kutu[3] - max(4, kh // 20), alt.size[0], kutu[3])).getbbox()
+    ayak_x = ((satir[0] + satir[2]) / 2 - kutu[0]) * olcek if satir else yw / 2
+    x0 = round(min(max(W / 2 - ayak_x, 0), W - yw))
+    y0 = H - 2 - yh
+    os.makedirs(HAZIR, exist_ok=True)
+    cikti = []
+    for im, ad in zip(resimler, ("durus", "goster")):
+        kes = im.crop(kutu).resize((yw, yh), Image.LANCZOS)
+        tuval = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        tuval.alpha_composite(kes, (x0, y0))
+        hedef = os.path.join(HAZIR, f"{harf}_{ad}.png")
+        tuval.save(hedef)
+        cikti.append(hedef)
+    print(f"Hazırlandı: {harf}_durus.png, {harf}_goster.png (320x512, ölçek %{olcek * 100:.0f}) -> Art/_hazir/")
+    return cikti
 
 
 def oyun_bul(arg):
@@ -322,6 +415,7 @@ def kontrol(dosyalar, oyun_arg, oyunsuz):
             if dur == "OYUN":
                 sonuc[f] = ("BEKLE", k, [genel], u)
     # Sonuç: onaylananlar yerine konur, reddedilenler Art/Reddedildi/ altına (sebebiyle)
+    onaylanan = {k for f, (dur, k, h, u) in sonuc.items() if dur == "ONAY"}
     for f, (dur, k, h, u) in sonuc.items():
         ad = os.path.basename(f)
         if dur == "ONAY":
@@ -330,11 +424,11 @@ def kontrol(dosyalar, oyun_arg, oyunsuz):
             os.makedirs(os.path.dirname(hedef), exist_ok=True)
             shutil.copy2(f, hedef)
             d[k] = {"tarih": datetime.now().strftime("%d.%m %H:%M"), "kaynak": ad, "sha1": sha1(f), "uyarilar": u}
-            # Karakter gövdesi ve kolu birlikte çizilir: biri eksikse oyunda karakter kolsuz / gövdesiz görünür
+            # Rehber karakter iki pozla çizilir: eşi bu seferde onaylanmadıysa ve önceden de yoksa söyle
             if k.startswith("Karakterler/"):
-                es = k.replace("_govde", "_kol") if "_govde" in k else k.replace("_kol", "_govde")
-                if es not in d:
-                    u = u + [f"Eşi {os.path.basename(es)} henüz onaylı değil; ikisi gelene kadar oyunda karakter eksik görünür."]
+                es = karakter_esi(k)
+                if es not in d and es not in onaylanan:
+                    u = u + [f"Eşi {os.path.basename(es)} henüz onaylı değil; gelene kadar oyunda hep bu poz görünür."]
             print(f"ONAY   {ad}  ->  Art/Onayli/{os.path.relpath(hedef, ONAYLI).replace(os.sep, '/')}")
         elif dur == "RED":
             reddet(f, h + [x if x.startswith(BILGI) else f"(uyarı) {x}" for x in u])
@@ -345,6 +439,14 @@ def kontrol(dosyalar, oyun_arg, oyunsuz):
             print(f"BEKLE  {ad}: {h[0]}")
         for x in u if dur != "RED" else []:
             print(f"         {x}" if x.startswith(BILGI) else f"         uyarı: {x}")
+    # İki poz da yerindeyse hizası: poz değişince karakter zıplamasın
+    for k in sorted(onaylanan):
+        es = karakter_esi(k) if k.startswith("Karakterler/") else None
+        if es and es in d and k < es:
+            fark = poz_farki(os.path.join(ONAYLI, "2D", k), os.path.join(ONAYLI, "2D", es))
+            if fark:
+                d[k]["uyarilar"].append(fark)
+                print(f"UYARI  {os.path.basename(k)} / {os.path.basename(es)}: {fark}")
     if resimler:
         ek = os.path.join(ONAYLI, "_ekran")
         os.makedirs(ek, exist_ok=True)
@@ -454,6 +556,16 @@ def main(argv):
         return teslim("--kismi" in argv)
     if "--aktar" in argv:
         return aktar()
+    if "--karakter" in argv:
+        i = argv.index("--karakter")
+        if i + 3 >= len(argv):
+            print("--karakter <A|B|C> <duruş dosyası> <gösterme dosyası>")
+            return 1
+        hazir = karakter_hazirla(argv[i + 1], argv[i + 2], argv[i + 3])
+        if not hazir:
+            return 1
+        kontrol(hazir, oyun_arg, "--oyunsuz" in argv)
+        return 0
     if "--geri" in argv:
         i = argv.index("--geri")
         return geri(argv[i + 1]) if i + 1 < len(argv) else (print("--geri <dosya adı>") or 1)

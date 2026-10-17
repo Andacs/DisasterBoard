@@ -47,10 +47,15 @@ def template_2d(path, W, H, cat, note, mark):
     dashed_rect(d, (m, m, W - 1 - m, H - 1 - m), (90, 140, 200, 255), dash=max(4, min(W, H) // 30))
     if mark == "daire":
         d.ellipse([m, m, W - 1 - m, H - 1 - m], outline=(90, 140, 200, 255), width=2)
-    if mark == "ayak":
+    if mark in ("ayak", "el"):
         d.line([(W * 0.2, H - 4), (W * 0.8, H - 4)], fill=(60, 160, 80, 255), width=4)
         d.ellipse([W / 2 - 7, H - 14, W / 2 + 7, H], fill=(60, 160, 80, 255))
         d.text((W / 2, H - 18), "pivot: ayaklar", font=font(13), fill=(60, 120, 60, 255), anchor="ms")
+    if mark == "el":
+        # Gösterme pozunda elin yeri: oyun noktalı izi buradan başlatır (çerçevenin %90 sağı, %45 aşağısı)
+        hx, hy, hr = W * 0.90, H * 0.45, 24
+        d.ellipse([hx - hr, hy - hr, hx + hr, hy + hr], outline=(60, 160, 80, 255), width=4)
+        d.text((hx - hr - 4, hy - 8), "el", font=font(16, True), fill=(60, 120, 60, 255), anchor="rs")
     if mark == "omuz":
         d.ellipse([0, H / 2 - 7, 14, H / 2 + 7], fill=(60, 160, 80, 255))
         d.line([(16, H / 2), (W - 22, H / 2)], fill=(60, 160, 80, 255), width=3)
@@ -69,7 +74,7 @@ def template_2d(path, W, H, cat, note, mark):
         for l in wrap(d, note, f2, W - 2 * m - 16):
             lines.append((l, f2, (80, 70, 60, 255)))
     total = sum(f.size * 1.25 for _, f, _ in lines)
-    y = (H - total) / 2 if mark not in ("ayak", "altyazi") else m + 10
+    y = (H - total) / 2 if mark not in ("ayak", "el", "altyazi") else m + 10
     for text, f, col in lines:
         d.text((W / 2, y), text, font=f, fill=col, anchor="ma")
         y += f.size * 1.25

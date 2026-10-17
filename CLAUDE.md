@@ -277,6 +277,15 @@ etsin, onaylananlar toplu gelsin).** Uçtan uca denendi (sahte dosyalarla, edit�
 - Test paketi: `Build/test_paketi.bat` (Development, `Build/TestKiti`); ZIP'lenip Yiğit'e gider.
 - Şablonda arabanın ÖN'ü düzeltildi: araba kendi +X yönüne gider (burnu +X ucunda); önceden -Y yüzü işaretliydi.
 
+**17 Ekim ~13.30: rehber karakterler iki poz** (Andaç, Mert'in çizimine göre: duruş + kol kaldırmış). `X_durus.png`
+ve `X_goster.png` (320×512, aynı tuvalde aynı hizada); `ADBHUD::DrawGuide` hedef varken gösterme, yoksa duruş
+pozunu çizer, hedef soldaysa aynalar, noktalı iz elden (çerçevenin %90 sağı, %45 aşağısı; Mert'in çiziminden
+ölçüldü) başlar. Eski gövde + dönen kol (`_govde`, `_kol`) kalktı. `varlik_kontrol.py --karakter A <duruş> <gösterme>`
+büyük tuvali iki poz için aynı kesimle 320×512'ye oturtur; iki pozun ayak hizasını karşılaştırır; JPG / siyah zemin
+gelirse "dosya olarak gönder" der. Mert'in ilk çizimleri JPG geldi (mesajla gönderilince şeffaflık siyaha dönmüş),
+orijinal PNG bekleniyor. Deneme kopyasıyla (siyah kabaca silindi) oyunda görüldü: tarayıcıyı gösterirken kol kalkık,
+Asil konuşurken duruş. Test turu 13 kare (B duruş, C gösterme eklendi).
+
 **17 Ekim ~08.40: modelci/tasarımcı şablonları** `Docs/Sablonlar/` (OKU_BENI.md = iş listesi + ölçüler + dışa
 aktarma ayarları). 21 3D hitbox kutusu (`.blend` + tek tek FBX, pivot taban ortası, ÖN -Y, 1 birim = 1 cm; geri
 içe alınıp ölçüldü) ve 40 2D PNG şablonu (tam piksel, adı yazılı). Tek kaynak `Tools/sablon_listesi.py`;
