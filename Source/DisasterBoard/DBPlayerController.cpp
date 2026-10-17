@@ -378,6 +378,11 @@ void ADBPlayerController::DBTest()
 	Add([this] { Shot(TEXT("01b_ayarlar")); GM()->CloseMenuPage(); });
 	Add([] {});
 	Add([] {});
+	Add([this] { GM()->OpenMenuPage(EDBMenuPage::Credits); });
+	Add([] {});
+	Add([this] { Shot(TEXT("01c_emegi_gecenler")); GM()->CloseMenuPage(); });
+	Add([] {});
+	Add([] {});
 	Add([this] { GM()->ClickPlay(); });
 	Add([] {});
 	Add([] {});
