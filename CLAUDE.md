@@ -246,6 +246,8 @@ sırt çantası.
   döndürme kalktı**; sağ tık yalnızca "geri". Tahtadaki her şey `BoardRoot`'a bağlı, ızgara/tarama yerel koordinatta.
 - **Denizde kahverengi yok:** yangın dumanı ve tarama kumu denizin üstüne taşıyordu (bulut yarıçapı + kameradan
   bakınca yükseklik payı); duman karaya çekilir, denizde kum/toz çıkmaz. Kırpılmış görüntüyle ölçüldü.
+  Andaç'ın ekranındaki **kahverengi kareler** ayrı bir sorundu: dalganın dibinde deniz karosunun üstü tahtanın
+  kahverengi düzlüğüyle (üstü 13,0) aynı yüksekliğe iniyor, yüzeyler çakışıyordu. Karo üstü artık 13,3–13,6.
 - **Yangın Musluğu önlemi geri geldi** (40 TL): kitapçının sokağında musluk yok, önlem uygulanınca yerden çıkar
   (`C.NewHydrantBuilding`, `PlaceNewHydrant`). Önlemler artık 5: Rögar 15, Tahliye 30, Yangın Musluğu 40,
   İngiliz Anahtarı 25, Güçlendirme 60. 10 sorun.

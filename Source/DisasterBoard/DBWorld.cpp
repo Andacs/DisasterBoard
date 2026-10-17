@@ -187,7 +187,7 @@ void ADBWorld::BuildBoard()
 	{
 		const float SeaY0 = -Plateau * 0.5f + (GridN - 2) * CellCm;
 		const float SeaY1 = Plateau * 0.5f;
-		Part(B, CubeMesh, FVector(0.f, (SeaY0 + SeaY1) * 0.5f, 12.6f), FVector(Plateau + 0.4f, SeaY1 - SeaY0, 0.8f), RGB(80, 140, 190), FRotator::ZeroRotator, true);
+		Part(B, CubeMesh, FVector(0.f, (SeaY0 + SeaY1) * 0.5f, 12.7f), FVector(Plateau + 0.4f, SeaY1 - SeaY0, 0.8f), RGB(80, 140, 190), FRotator::ZeroRotator, true);
 		Part(B, CubeMesh, FVector(0.f, SeaY0 + 0.5f, 13.55f), FVector(Plateau, 1.0f, 0.35f), RGB(240, 246, 250));
 	}
 
@@ -1116,7 +1116,9 @@ void ADBWorld::Tick(float Dt)
 	for (int32 i = 0; i < SeaTiles.Num(); ++i)
 	{
 		const FVector L = SeaTiles[i]->GetRelativeLocation();
-		SeaTiles[i]->SetRelativeLocation(FVector(L.X, L.Y, 12.8f + 0.2f * FMath::Sin(WaveT * 2.2f + L.X * 0.12f + L.Y * 0.05f)));
+		// Karo üstü 13,3–13,6: dalga dibinde bile tahtanın kahverengi düzlüğünün (üstü 13,0) üstünde kalır.
+		// Önceden en alçakta 13,0'a iniyordu, iki yüzey çakışıp denizde kahverengi kareler yanıp sönüyordu.
+		SeaTiles[i]->SetRelativeLocation(FVector(L.X, L.Y, 13.05f + 0.15f * FMath::Sin(WaveT * 2.2f + L.X * 0.12f + L.Y * 0.05f)));
 	}
 
 	// Tahliye: sakinler sırayla yola çıkar, sığınağın önünde toplanır
