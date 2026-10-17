@@ -1,6 +1,6 @@
-# Onaylı varlıklar (18 / 85)
+# Onaylı varlıklar (44 / 85)
 
-2D: 18 / 53 · 3D: 0 / 32. Bu dosyayı `Tools/varlik_kontrol.py` yazar, elle değiştirme.
+2D: 44 / 53 · 3D: 0 / 32. Bu dosyayı `Tools/varlik_kontrol.py` yazar, elle değiştirme.
 
 | Dosya | Tür | Durum | Tarih | Not |
 |---|---|---|---|---|
@@ -16,47 +16,47 @@
 | `Cizgiroman/sahne4.png` | 2D | bekliyor | | |
 | `Ikonlar/esya_sargi_bezi.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/esya_antiseptik.png` | 2D | ONAYLI | 17.10 15:20 | - |
-| `Ikonlar/esya_yara_bandi.png` | 2D | bekliyor | | |
+| `Ikonlar/esya_yara_bandi.png` | 2D | ONAYLI | 17.10 21:43 | - |
 | `Ikonlar/esya_su.png` | 2D | ONAYLI | 17.10 15:20 | - |
-| `Ikonlar/esya_el_feneri.png` | 2D | bekliyor | | |
-| `Ikonlar/esya_duduk.png` | 2D | bekliyor | | |
+| `Ikonlar/esya_el_feneri.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Ikonlar/esya_duduk.png` | 2D | ONAYLI | 17.10 21:43 | - |
 | `Ikonlar/esya_yangin_tupu.png` | 2D | ONAYLI | 17.10 15:20 | - |
-| `Ikonlar/esya_duman_maskesi.png` | 2D | bekliyor | | |
+| `Ikonlar/esya_duman_maskesi.png` | 2D | ONAYLI | 17.10 21:43 | - |
 | `Ikonlar/esya_kalp_ilaci.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/esya_astim_spreyi.png` | 2D | ONAYLI | 17.10 15:20 | - |
-| `Ikonlar/esya_gozluk.png` | 2D | bekliyor | | |
-| `Ikonlar/esya_bebek_mamasi.png` | 2D | bekliyor | | |
-| `Ikonlar/esya_bebek_bezi.png` | 2D | bekliyor | | |
+| `Ikonlar/esya_gozluk.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Ikonlar/esya_bebek_mamasi.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Ikonlar/esya_bebek_bezi.png` | 2D | ONAYLI | 17.10 21:43 | - |
 | `Ikonlar/esya_kedi_mamasi.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/esya_battaniye.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/esya_powerbank.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/esya_onemli_belgeler.png` | 2D | ONAYLI | 17.10 15:20 | - |
-| `Ikonlar/onlem_rogar_kapagi.png` | 2D | bekliyor | | |
-| `Ikonlar/onlem_tahliye.png` | 2D | bekliyor | | |
-| `Ikonlar/onlem_yangin_muslugu.png` | 2D | bekliyor | | |
-| `Ikonlar/onlem_ingiliz_anahtari.png` | 2D | bekliyor | | |
-| `Ikonlar/onlem_bina_guclendirme.png` | 2D | bekliyor | | |
+| `Ikonlar/onlem_rogar_kapagi.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Ikonlar/onlem_tahliye.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Ikonlar/onlem_yangin_muslugu.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Ikonlar/onlem_ingiliz_anahtari.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Ikonlar/onlem_bina_guclendirme.png` | 2D | ONAYLI | 17.10 21:43 | - |
 | `Ikonlar/kit_ilk_yardim.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/kit_deprem.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/kit_yangin.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/isaret_uyari.png` | 2D | ONAYLI | 17.10 15:17 | - |
 | `Ikonlar/isaret_tamam.png` | 2D | ONAYLI | 17.10 15:17 | - |
 | `Ikonlar/butce.png` | 2D | ONAYLI | 17.10 15:17 | - |
-| `Arayuz/tarayici.png` | 2D | bekliyor | | |
-| `Arayuz/canta.png` | 2D | bekliyor | | |
+| `Arayuz/tarayici.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Arayuz/canta.png` | 2D | ONAYLI | 17.10 21:43 | - |
 | `Arayuz/logo.png` | 2D | bekliyor | | |
-| `Karakterler/NPC_AyseTeyze.png` | 2D | bekliyor | | |
-| `Karakterler/NPC_SelmaOgretmen.png` | 2D | bekliyor | | |
-| `Karakterler/NPC_HasanAmca.png` | 2D | bekliyor | | |
-| `Karakterler/NPC_Zeynep.png` | 2D | bekliyor | | |
-| `Karakterler/NPC_KemalBey.png` | 2D | bekliyor | | |
-| `Karakterler/NPC_Elif.png` | 2D | bekliyor | | |
-| `Karakterler/NPC_AliUsta.png` | 2D | bekliyor | | |
-| `Karakterler/NPC_RizaAbi.png` | 2D | bekliyor | | |
-| `Karakterler/NPC_Can.png` | 2D | bekliyor | | |
-| `Karakterler/NPC_Deniz.png` | 2D | bekliyor | | |
-| `Karakterler/NPC_MuratAbi.png` | 2D | bekliyor | | |
-| `Karakterler/NPC_NerminHanim.png` | 2D | bekliyor | | |
+| `Karakterler/NPC_AyseTeyze.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Karakterler/NPC_SelmaOgretmen.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Karakterler/NPC_HasanAmca.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Karakterler/NPC_Zeynep.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Karakterler/NPC_KemalBey.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Karakterler/NPC_Elif.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Karakterler/NPC_AliUsta.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Karakterler/NPC_RizaAbi.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Karakterler/NPC_Can.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Karakterler/NPC_Deniz.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Karakterler/NPC_MuratAbi.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Karakterler/NPC_NerminHanim.png` | 2D | ONAYLI | 17.10 21:43 | - |
 | `SM_Bina_AyseTeyze` | 3D | bekliyor | | |
 | `SM_Bina_Okul` | 3D | bekliyor | | |
 | `SM_Bina_Siginak` | 3D | bekliyor | | |
