@@ -506,7 +506,15 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 		else if (Id == TEXT("PanelClose")) GM->ClosePanel();
 		else if (Id == TEXT("Drawer")) GM->TogglePanel();
 		else if (Id == TEXT("Kit")) GM->SetDraftKit(Ix);
-		else if (Id == TEXT("Station")) GM->StationClick(Ix / 10, Ix % 10);
+		else if (Id == TEXT("Station"))
+		{
+			const int32 NB = GM->BagPersonal.Num(), KB = GM->BagKit;
+			GM->StationClick(Ix / 10, Ix % 10);
+			if (Ix / 10 == 0 ? GM->BagKit != KB : GM->BagPersonal.Num() != NB)
+			{
+				Flies.Add({ Ix / 10 == 0 ? GM->BagKit : GM->BagPersonal.Last(), Ix / 10 == 0, Mouse, FxNow });
+			}
+		}
 		else if (Id == TEXT("OrderPrev")) GM->CycleOrder(-1);
 		else if (Id == TEXT("OrderNext")) GM->CycleOrder(1);
 		else if (Id == TEXT("BeltReset")) GM->ResetBag();
@@ -1087,7 +1095,10 @@ void ADBHUD::DrawBottomBar()
 			Frame(RR.ExpandBy(3.f * S), Teal, 4.f * S);
 		}
 		// Revizyon 15: ikonlar büyük ve okunur
-		ToolIcon(t, FVector2D(RR.GetCenter().X, RR.Min.Y + 34.f * S), 31.f * S);
+		// Seçili önlem süzülür, üzerine gelinen büyüyüp kıpırdar
+		const float Bob = bSel ? FMath::Sin(FxNow * 5.f) * 4.f * S : 0.f;
+		const float Grow = bHov ? 1.12f + 0.04f * FMath::Sin(FxNow * 12.f) : (bSel ? 1.06f : 1.f);
+		ToolIcon(t, FVector2D(RR.GetCenter().X, RR.Min.Y + 34.f * S + Bob), 31.f * S * Grow);
 		float LY = RR.Min.Y + 68.f * S;
 		for (const FString& L : Wrap(T.Name, 17.f * S, 106.f * S))
 		{
@@ -1296,7 +1307,7 @@ void ADBHUD::DrawPanel()
 				const bool bSel = GM->bBagOnBelt && GM->BagKit == B;
 				Card(BR, Kd.Color, bSel ? Ink : DarkK, bHov ? 6.f : 3.f);
 				if (bSel) Frame(BR.ExpandBy(3.f * S), Ink, 3.f * S);
-				const bool bKitPng = KitIcon(B, FVector2D(BR.Min.X + 34.f * S, BR.GetCenter().Y), 28.f * S);
+				const bool bKitPng = KitIcon(B, FVector2D(BR.Min.X + 34.f * S, BR.GetCenter().Y - (bHov ? 3.f * S * FMath::Abs(FMath::Sin(FxNow * 9.f)) : 0.f)), 28.f * S * (bHov ? 1.12f : 1.f));
 				const float TX = BR.Min.X + (bKitPng ? 70.f : 12.f) * S;
 				Txt(Kd.Short, TX, BR.Min.Y + 6.f * S, 23.f * S, Paper);
 				for (int32 i = 0; i < Kd.Defaults.Num(); ++i)
@@ -1309,7 +1320,7 @@ void ADBHUD::DrawPanel()
 				const int32 It = C.Stations[K - 1].Items[B];
 				const bool bIn = GM->bBagOnBelt && GM->BagPersonal.Contains(It);
 				Card(BR, bIn ? U(226, 240, 214) : Paper, bIn ? Green : DarkK, bHov ? 6.f : 3.f);
-				ItemIcon(It, FVector2D(BR.Min.X + 38.f * S, BR.GetCenter().Y), 31.f * S);
+				ItemIcon(It, FVector2D(BR.Min.X + 38.f * S, BR.GetCenter().Y - (bHov ? 3.f * S * FMath::Abs(FMath::Sin(FxNow * 9.f)) : 0.f)), 31.f * S * (bHov ? 1.12f : 1.f));
 				const float NPx = 20.f * S;
 				const TArray<FString> NL = Wrap(C.Items[It].Name, NPx, 100.f * S);
 				float NY = BR.GetCenter().Y - NL.Num() * NPx * 0.62f;
@@ -1415,7 +1426,42 @@ void ADBHUD::DrawPanel()
 	// Paket bantta (çantaya düşmeden önce)
 	if (GM->bBagOnBelt && !GM->bPacking)
 	{
-		DrawTray(FVector2D(BeltCX, BeltTop + GM->BagT * BeltLen), S, GM->BagKit, GM->BagPersonal);
+		const FVector2D TrayC(BeltCX, BeltTop + GM->BagT * BeltLen);
+		const float Pop = FMath::Clamp((FxNow - TrayPopT) / 0.28f, 0.f, 1.f);
+		DrawTray(TrayC, S * (1.f + 0.18f * FMath::Sin(Pop * PI)), GM->BagKit, GM->BagPersonal);
+		// Uçan eşyalar: düğmeden pakete yay çizerek, küçülerek; varınca paket yaylanır
+		for (int32 i = Flies.Num() - 1; i >= 0; --i)
+		{
+			const FFly& F = Flies[i];
+			const float Uf = (FxNow - F.T) / 0.38f;
+			if (Uf >= 1.f)
+			{
+				TrayPopT = FxNow;
+				Flies.RemoveAt(i);
+				continue;
+			}
+			const float E = 1.f - FMath::Pow(1.f - Uf, 2.f);
+			const FVector2D To = TrayC - FVector2D(0.f, 18.f * S);
+			const FVector2D Pp = FMath::Lerp(F.From, To, E) - FVector2D(0.f, 110.f * S * FMath::Sin(Uf * PI));
+			const float Rr = FMath::Lerp(26.f, 13.f, E) * S;
+			for (int32 k = 1; k <= 3; ++k)
+			{
+				const float Ub = FMath::Max(0.f, Uf - k * 0.06f);
+				const FVector2D Tp = FMath::Lerp(F.From, To, 1.f - FMath::Pow(1.f - Ub, 2.f)) - FVector2D(0.f, 110.f * S * FMath::Sin(Ub * PI));
+				Disc(Tp, (5.f - k) * S, U(255, 214, 90, uint8(170 - 45 * k)));
+			}
+			if (F.bKit)
+			{
+				if (!KitIcon(F.Id, Pp, Rr))
+				{
+					Disc(Pp, Rr, C.Kits.IsValidIndex(F.Id) ? C.Kits[F.Id].Color : Coral);
+				}
+			}
+			else
+			{
+				ItemIcon(F.Id, Pp, Rr);
+			}
+		}
 	}
 }
 

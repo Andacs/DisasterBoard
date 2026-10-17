@@ -96,8 +96,14 @@ void ADBPlayerController::PlayerTick(float DeltaTime)
 	Super::PlayerTick(DeltaTime);
 
 	HoveredBuilding = -1;
+	HoveredDesk = -1;
+	HoveredCar = -1;
 	bHoveredCell = false;
 	ADBGameMode* G = GM();
+	if (G && G->World)
+	{
+		G->World->HoverBuilding = G->World->HoverCar = G->World->HoverDesk = -1;
+	}
 	ADBHUD* H = GetHUD<ADBHUD>();
 	float MX = 0.f, MY = 0.f;
 	const bool bMouse = GetMousePosition(MX, MY);
@@ -137,11 +143,27 @@ void ADBPlayerController::PlayerTick(float DeltaTime)
 			{
 				HoveredBuilding = G->World->BuildingFromComponent(Hit.GetComponent());
 				bHand |= (HoveredBuilding >= 0 && G->Phase == EDBPhase::Play);
+				// Masadaki oyuncaklar her zaman tıklanır
+				HoveredDesk = HoveredBuilding < 0 ? G->World->DeskFromComponent(Hit.GetComponent()) : -1;
+				bHand |= HoveredDesk >= 0;
 				// Bina değilse tahtanın hangi karosu (rögar kapağı ızgaraya konur)
-				bHoveredCell = HoveredBuilding < 0 && G->World->CellFromWorld(Hit.ImpactPoint, HoveredCell);
+				bHoveredCell = HoveredBuilding < 0 && HoveredDesk < 0 && G->World->CellFromWorld(Hit.ImpactPoint, HoveredCell);
 				bHand |= bHoveredCell && G->SelTool >= 0 && G->SelTool == FDBContent::Get().FloodTool && G->World->IsRoad(HoveredCell);
 			}
 		}
+	}
+	if (bMouse && H && G && G->World && G->IsBoardPhase() && G->Phase != EDBPhase::Result && !H->IsOverUI(FVector2D(MX, MY)) && HoveredDesk < 0)
+	{
+		int32 SX = 1920, SY = 1080;
+		GetViewportSize(SX, SY);
+		HoveredCar = G->World->CarAtScreen(this, FVector2D(MX, MY), 30.f * SY / 1080.f);
+		bHand |= HoveredCar >= 0;
+	}
+	if (G && G->World)
+	{
+		G->World->HoverBuilding = HoveredBuilding;
+		G->World->HoverCar = HoveredCar;
+		G->World->HoverDesk = HoveredDesk;
 	}
 	CurrentMouseCursor = bHand ? EMouseCursor::Hand : EMouseCursor::Default;
 }
@@ -169,6 +191,12 @@ void ADBPlayerController::OnClick()
 	}
 	if (H->HandleClick(FVector2D(MX, MY)))
 	{
+		return;
+	}
+	// Masadaki oyuncak: kupa çınlar, zar atılır, ördek vıklar, lamba yanar
+	if (HoveredDesk >= 0 && G->World)
+	{
+		G->World->PokeDesk(HoveredDesk);
 		return;
 	}
 	// Arabaya tıklamak: korna çalar, araba zıplar (Andaç)
@@ -419,6 +447,16 @@ void ADBPlayerController::DBTest()
 	Add([this] { OnRotLeft(); });
 	Talk(1);
 	Add([this] { Shot(TEXT("12_oyun")); });
+	// Masadaki oyuncaklar: hepsini kurcala (kupa, iki zar, ördek, lamba yanar), hareketin ortasında çek
+	Add([this]
+	{
+		ADBWorld* Wd = GM()->World;
+		for (int32 i = 0; i < Wd->NumDesk(); ++i) Wd->PokeDesk(i);
+		FTimerHandle Hh;
+		GetWorldTimerManager().SetTimer(Hh, FTimerDelegate::CreateLambda([this] { Shot(TEXT("12d_masa_oyuncaklari")); }), 0.3f, false);
+		UE_LOG(LogDBInput, Log, TEXT("DB_TEST masa oyuncak=%d lamba=%d"), Wd->NumDesk(), Wd->bLampOn ? 1 : 0);
+	});
+	Add([this] { Shot(TEXT("12e_lamba_acik")); GM()->World->PokeDesk(GM()->World->NumDesk() - 1); });
 	// Tahta: sağ okla kalkar, döner, iner (havadayken görüntü), sonra geri; tekerlekle yakınlaştır
 	Add([this]
 	{

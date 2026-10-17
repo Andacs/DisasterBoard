@@ -30,6 +30,9 @@ enum class EDBSfx : uint8
 	Pack,      // paket çantaya düşer (üç tok ses), fermuar kapanır
 	Fanfare,   // başarım açıldı
 	Shutter,   // fotoğraf makinesi deklanşörü (albüm)
+	Clink,     // masadaki kupa: seramik çınlaması
+	Dice,      // zar: masada yuvarlanma tıkırtısı
+	Squeak,    // lastik ördek: vık
 	Count
 };
 

@@ -392,6 +392,69 @@ namespace
 		return B;
 	}
 
+	// Seramik kupa: uyumsuz kısmi tonlar (çan gibi), kısa vuruş
+	TArray<float> SynthClink()
+	{
+		TArray<float> B = Make(0.7f);
+		FNoise N(71);
+		const float Fq[4] = { 2350.f, 3870.f, 5610.f, 1460.f };
+		const float Dc[4] = { 0.22f, 0.12f, 0.07f, 0.3f };
+		const float Am[4] = { 0.5f, 0.3f, 0.18f, 0.25f };
+		for (int32 i = 0; i < B.Num(); ++i)
+		{
+			const float T = i / SR;
+			float X = N.Next() * FMath::Exp(-T / 0.002f) * 0.5f;
+			for (int32 k = 0; k < 4; ++k) X += FMath::Sin(2.f * PI * Fq[k] * T) * FMath::Exp(-T / Dc[k]) * Am[k];
+			B[i] = X;
+		}
+		return B;
+	}
+
+	// Zar: masada sekerek yuvarlanır; giderek sıklaşan, sönen tık'lar
+	TArray<float> SynthDice()
+	{
+		TArray<float> B = Make(0.75f);
+		FNoise N(81);
+		FLowpass L;
+		float At = 0.f, Gap = 0.16f, Amp = 1.f;
+		while (At < 0.7f)
+		{
+			const int32 S0 = FMath::RoundToInt(At * SR);
+			const float F = 1500.f + 900.f * (N.Next() * 0.5f + 0.5f);
+			for (int32 k = 0; k < (int32)(0.03f * SR) && S0 + k < B.Num(); ++k)
+			{
+				const float T = k / SR;
+				B[S0 + k] += (L.Run(N.Next(), 0.6f) * FMath::Exp(-T / 0.003f) + FMath::Sin(2.f * PI * F * T) * FMath::Exp(-T / 0.008f) * 0.5f) * Amp;
+			}
+			At += Gap;
+			Gap *= 0.72f;
+			Amp *= 0.8f;
+			if (Gap < 0.025f) break;
+		}
+		return B;
+	}
+
+	// Lastik ördek: perdesi yükselip inen vızıltılı ton, burundan (formant)
+	TArray<float> SynthSqueak()
+	{
+		const float Dur = 0.32f;
+		TArray<float> B = Make(Dur);
+		FReso R1(1200.f, 300.f), R2(2600.f, 400.f);
+		float Ph = 0.f;
+		for (int32 i = 0; i < B.Num(); ++i)
+		{
+			const float T = i / SR;
+			const float U = T / Dur;
+			const float F = 700.f + 650.f * FMath::Sin(FMath::Min(1.f, U * 1.3f) * PI) + 40.f * FMath::Sin(T * 2.f * PI * 30.f);
+			Ph += F / SR;
+			Ph -= FMath::FloorToFloat(Ph);
+			const float Src = Ph < 0.3f ? 1.f : -0.43f;
+			const float E = FMath::Min(1.f, T / 0.015f) * FMath::Min(1.f, (Dur - T) / 0.05f);
+			B[i] = (R1.Run(Src) + R2.Run(Src) * 0.6f) * E;
+		}
+		return B;
+	}
+
 	void Normalize(TArray<float>& B, float Peak)
 	{
 		float M = 0.f;
@@ -441,6 +504,9 @@ const TArray<float>& UDBSfxWave::Bank(int32 Id)
 		Banks[(int32)EDBSfx::Pack] = SynthPack();    Normalize(Banks[(int32)EDBSfx::Pack], 0.6f);
 		Banks[(int32)EDBSfx::Fanfare] = SynthFanfare(); Normalize(Banks[(int32)EDBSfx::Fanfare], 0.55f);
 		Banks[(int32)EDBSfx::Shutter] = SynthShutter(); Normalize(Banks[(int32)EDBSfx::Shutter], 0.55f);
+		Banks[(int32)EDBSfx::Clink] = SynthClink();  Normalize(Banks[(int32)EDBSfx::Clink], 0.5f);
+		Banks[(int32)EDBSfx::Dice] = SynthDice();    Normalize(Banks[(int32)EDBSfx::Dice], 0.55f);
+		Banks[(int32)EDBSfx::Squeak] = SynthSqueak(); Normalize(Banks[(int32)EDBSfx::Squeak], 0.5f);
 		bBuilt = true;
 	}
 	return Banks[FMath::Clamp(Id, 0, (int32)EDBSfx::Count - 1)];

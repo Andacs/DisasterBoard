@@ -14,6 +14,7 @@
 #include "Engine/Texture2D.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Components/SceneCaptureComponent2D.h"
+#include "Components/PointLightComponent.h"
 #include "ImageUtils.h"
 #include "Misc/Paths.h"
 
@@ -113,6 +114,7 @@ void ADBWorld::Build()
 	BuildFeedbackFx();
 	BuildLife();
 	BuildWallArt();
+	BuildDesk();
 
 	for (TActorIterator<ADirectionalLight> It(GetWorld()); It; ++It)
 	{
@@ -274,6 +276,8 @@ void ADBWorld::BuildBuilding(int32 Index)
 	USceneComponent* Root = Node(BoardRoot, LotCenter(D.Lot));
 	Root->SetRelativeScale3D(FVector(BuildingScale));
 	BuildingRoots.Add(Root);
+	BuildingBase.Add(LotCenter(D.Lot));
+	HoverAmt.Add(0.f);
 	PopTime.Add(0.f);
 	JiggleTime.Add(-1.f);
 	FallRot.Add(FRotator((Index & 1) ? 26.f : -26.f, 0.f, (Index & 2) ? 20.f : -20.f));
@@ -863,6 +867,7 @@ void ADBWorld::BuildCars()
 		}
 		CarRoots.Add(Car);
 		CarHonkT.Add(-100.f);
+		CarHover.Add(0.f);
 		FCar Cr;
 		Cr.A = CellLocal(Rt.From);
 		Cr.B = CellLocal(Rt.To);
@@ -1050,6 +1055,7 @@ void ADBWorld::Tick(float Dt)
 	}
 
 	UpdateBoardCam(Dt);
+	TickDesk(Dt);
 
 	// Sis bulutları: yavaş döner, salınır, nefes alır; hedef 0 olunca küçülüp kaybolur
 	const FVector BeamPos = SweepDir * ScanS;
@@ -1146,6 +1152,10 @@ void ADBWorld::Tick(float Dt)
 			const float Ht = GetWorld()->GetTimeSeconds() - CarHonkT[i];
 			Hop = (Ht >= 0.f && Ht < 0.5f) ? FMath::Abs(FMath::Sin(Ht * 2.f * PI * 2.f)) * 2.2f * (1.f - Ht / 0.5f) : 0.f;
 		}
+		// Üzerine gelince: yavaşlar, hafifçe zıplar
+		CarHover[i] = FMath::FInterpTo(CarHover[i], i == HoverCar ? 1.f : 0.f, Dt, 12.f);
+		Hop += CarHover[i] * (0.4f + 0.5f * FMath::Abs(FMath::Sin(GetWorld()->GetTimeSeconds() * 9.f)));
+		Cr.T -= CarHover[i] * 0.7f * Cr.Speed * Dt / Len;
 		CarRoots[i]->SetRelativeLocationAndRotation(FMath::Lerp(From, To, Cr.T) + Right * 1.7f + FVector(0, 0, Hop), Dir.Rotation());
 	}
 
@@ -1266,6 +1276,23 @@ void ADBWorld::Tick(float Dt)
 	{
 		const bool bPop = PopTime[i] > 0.f;
 		const bool bJig = JiggleTime.IsValidIndex(i) && JiggleTime[i] >= 0.f;
+		// Üzerine gelince bina hafifçe kalkar ve nefes alır
+		float Hv = 0.f;
+		if (HoverAmt.IsValidIndex(i))
+		{
+			const float Was = HoverAmt[i];
+			HoverAmt[i] = FMath::FInterpTo(HoverAmt[i], (i == HoverBuilding && !bQuaking) ? 1.f : 0.f, Dt, 14.f);
+			Hv = HoverAmt[i] < 0.002f ? 0.f : HoverAmt[i];
+			if (Hv > 0.f || Was > 0.f)
+			{
+				BuildingRoots[i]->SetRelativeLocation(BuildingBase[i] + FVector(0.f, 0.f, Hv * (1.4f + 0.35f * FMath::Sin(FlutterT * 7.f))));
+			}
+			if (!bPop && !bJig && (Hv > 0.f || Was > 0.f))
+			{
+				const float B = 1.f + Hv * (0.035f + 0.01f * FMath::Sin(FlutterT * 7.f));
+				BuildingRoots[i]->SetRelativeScale3D(FVector(B, B, B * (1.f + 0.015f * Hv)) * BuildingScale);
+			}
+		}
 		if (!bPop && !bJig)
 		{
 			continue;
@@ -1293,6 +1320,7 @@ void ADBWorld::Tick(float Dt)
 				Sq = 0.f;
 			}
 		}
+		Uni *= 1.f + 0.035f * Hv;
 		BuildingRoots[i]->SetRelativeScale3D(FVector(Uni * (1.f + Sq), Uni * (1.f + Sq), Uni * (1.f - Sq)) * BuildingScale);
 	}
 
@@ -1963,5 +1991,259 @@ void ADBWorld::BuildWallArt()
 		{
 			Part(WallYRoot, CubeMesh, FVector(A.X, Y + 0.1f, A.Z), FVector(A.Size.X, 0.4f, A.Size.Y), A.Fallback);
 		}
+	}
+}
+
+// ---------------------------------------------------------------- masadaki oyuncaklar (Andaç, 18 Ekim ~00.30)
+
+void ADBWorld::BuildDesk()
+{
+	USceneComponent* R = RootComponent;
+	auto Add = [this](USceneComponent* Root, EDesk Kind)
+	{
+		FDesk D;
+		D.Root = Root;
+		D.Kind = Kind;
+		D.Base = D.Home = Root->GetRelativeLocation();
+		D.BaseRot = Root->GetRelativeRotation();
+		Desks.Add(D);
+	};
+	// Kahve kupası (tahtanın solunda): gövde, kahve, kulp, buhar
+	{
+		USceneComponent* M = Node(R, FVector(78.f, -112.f, 0.f));
+		Part(M, CylinderMesh, FVector(0, 0, 5.f), FVector(9.f, 9.f, 10.f), RGB(232, 128, 104), FRotator::ZeroRotator, true);
+		Part(M, CylinderMesh, FVector(0, 0, 9.7f), FVector(7.8f, 7.8f, 0.8f), RGB(92, 58, 36), FRotator::ZeroRotator, true);
+		Part(M, CylinderMesh, FVector(0, 0, 3.f), FVector(9.3f, 9.3f, 1.2f), RGB(250, 243, 228), FRotator::ZeroRotator, true);
+		Part(M, CubeMesh, FVector(5.4f, 0, 7.6f), FVector(3.f, 1.6f, 1.4f), RGB(232, 128, 104), FRotator::ZeroRotator, true);
+		Part(M, CubeMesh, FVector(6.6f, 0, 5.2f), FVector(1.4f, 1.6f, 5.6f), RGB(232, 128, 104), FRotator::ZeroRotator, true);
+		Part(M, CubeMesh, FVector(5.4f, 0, 2.8f), FVector(3.f, 1.6f, 1.4f), RGB(232, 128, 104), FRotator::ZeroRotator, true);
+		for (int32 k = 0; k < 4; ++k)
+		{
+			Steam.Add(Part(M, SphereMesh, FVector(0, 0, 11.f), FVector(2.6f, 2.6f, 2.6f), RGB(250, 250, 250)));
+		}
+		Add(M, EDesk::Mug);
+	}
+	// İki zar: beyaz küp, koyu benekler (karşılıklı yüzler 7 eder)
+	auto Die = [this, R, &Add](const FVector& At, float Yaw)
+	{
+		USceneComponent* D = Node(R, At + FVector(0, 0, 2.6f));
+		D->SetRelativeRotation(FRotator(0.f, Yaw, 0.f));
+		const float H = 2.6f;
+		Part(D, CubeMesh, FVector::ZeroVector, FVector(5.2f, 5.2f, 5.2f), RGB(248, 244, 236), FRotator::ZeroRotator, true);
+		struct FFace { FVector N, U, V; int32 Count; };
+		const FFace Faces[6] = {
+			{ FVector(0, 0, 1), FVector(1, 0, 0), FVector(0, 1, 0), 1 }, { FVector(0, 0, -1), FVector(1, 0, 0), FVector(0, 1, 0), 6 },
+			{ FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), 2 }, { FVector(-1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), 5 },
+			{ FVector(0, 1, 0), FVector(1, 0, 0), FVector(0, 0, 1), 3 }, { FVector(0, -1, 0), FVector(1, 0, 0), FVector(0, 0, 1), 4 },
+		};
+		for (const FFace& F : Faces)
+		{
+			TArray<FVector2D> Pips;
+			const float O = 1.35f;
+			switch (F.Count)
+			{
+			case 1: Pips = { {0, 0} }; break;
+			case 2: Pips = { {-O, -O}, {O, O} }; break;
+			case 3: Pips = { {-O, -O}, {0, 0}, {O, O} }; break;
+			case 4: Pips = { {-O, -O}, {O, O}, {-O, O}, {O, -O} }; break;
+			case 5: Pips = { {-O, -O}, {O, O}, {-O, O}, {O, -O}, {0, 0} }; break;
+			default: Pips = { {-O, -O}, {O, O}, {-O, O}, {O, -O}, {-O, 0}, {O, 0} }; break;
+			}
+			for (const FVector2D& P : Pips)
+			{
+				Part(D, SphereMesh, F.N * (H - 0.05f) + F.U * P.X + F.V * P.Y, FVector(1.f, 1.f, 1.f) - F.N.GetAbs() * 0.6f,
+					F.Count == 1 ? RGB(214, 64, 52) : RGB(50, 40, 34));
+			}
+		}
+		Add(D, EDesk::Die);
+	};
+	Die(FVector(72.f, -88.f, 0.f), 18.f);
+	Die(FVector(84.f, -98.f, 0.f), -24.f);
+	// Lastik ördek (tahtanın sağında), kameraya bakar
+	{
+		USceneComponent* Dk = Node(R, FVector(-118.f, 30.f, 0.f));
+		Dk->SetRelativeRotation(FRotator(0.f, -125.f, 0.f));
+		Part(Dk, SphereMesh, FVector(0, 0, 3.6f), FVector(10.f, 8.f, 7.f), RGB(252, 214, 60), FRotator::ZeroRotator, true);
+		Part(Dk, SphereMesh, FVector(-4.2f, 0, 5.6f), FVector(3.f, 4.f, 3.6f), RGB(252, 214, 60), FRotator(20.f, 0.f, 0.f), true);   // kuyruk
+		Part(Dk, SphereMesh, FVector(3.f, 0, 8.6f), FVector(5.6f, 5.6f, 5.6f), RGB(252, 214, 60), FRotator::ZeroRotator, true);
+		Part(Dk, SphereMesh, FVector(6.1f, 0, 8.1f), FVector(3.2f, 2.6f, 1.2f), RGB(246, 140, 50), FRotator::ZeroRotator, true);
+		Part(Dk, SphereMesh, FVector(4.9f, 1.6f, 9.8f), FVector(0.9f, 0.9f, 0.9f), RGB(30, 30, 34));
+		Part(Dk, SphereMesh, FVector(4.9f, -1.6f, 9.8f), FVector(0.9f, 0.9f, 0.9f), RGB(30, 30, 34));
+		Part(Dk, SphereMesh, FVector(0.f, 3.4f, 4.6f), FVector(5.f, 1.4f, 3.f), RGB(240, 196, 46));   // kanat
+		Part(Dk, SphereMesh, FVector(0.f, -3.4f, 4.6f), FVector(5.f, 1.4f, 3.f), RGB(240, 196, 46));
+		Add(Dk, EDesk::Duck);
+	}
+	// Masa lambası (sağ arkada): taban, iki kol, başlık, ampul + nokta ışık (tıklayınca yanar)
+	{
+		USceneComponent* L = Node(R, FVector(-34.f, 86.f, 0.f));   // tahtanın arkası ile yan duvar (Y 100,7) arası
+		L->SetRelativeRotation(FRotator(0.f, -45.f, 0.f));
+		Part(L, CylinderMesh, FVector(0, 0, 1.f), FVector(14.f, 14.f, 2.f), RGB(70, 152, 146), FRotator::ZeroRotator, true);
+		Part(L, CylinderMesh, FVector(0, 0, 14.f), FVector(1.6f, 1.6f, 26.f), RGB(60, 64, 72), FRotator(0.f, 0.f, 12.f), true);
+		LampHead = Node(L, FVector(0.f, -5.5f, 27.f));
+		Part(LampHead, CylinderMesh, FVector(6.f, 0.f, -1.f), FVector(1.4f, 1.4f, 14.f), RGB(60, 64, 72), FRotator(-70.f, 0.f, 0.f), true);
+		Part(LampHead, ConeMesh, FVector(13.f, 0.f, -5.f), FVector(11.f, 11.f, 9.f), RGB(70, 152, 146), FRotator(-40.f, 0.f, 0.f), true);
+		LampBulb = Part(LampHead, SphereMesh, FVector(14.5f, 0.f, -8.5f), FVector(4.f, 4.f, 4.f), RGB(200, 196, 180));
+		LampLight = NewObject<UPointLightComponent>(this);
+		LampLight->SetupAttachment(LampHead);
+		LampLight->SetRelativeLocation(FVector(16.f, 0.f, -12.f));
+		LampLight->SetIntensityUnits(ELightUnits::Lumens);
+		LampLight->SetIntensity(0.f);
+		LampLight->SetLightColor(FLinearColor(1.f, 0.82f, 0.58f));
+		LampLight->SetAttenuationRadius(220.f);
+		LampLight->SetCastShadows(false);
+		LampLight->RegisterComponent();
+		Add(L, EDesk::Lamp);
+	}
+}
+
+int32 ADBWorld::DeskFromComponent(const UPrimitiveComponent* Comp) const
+{
+	if (!Comp)
+	{
+		return -1;
+	}
+	for (int32 i = 0; i < Desks.Num(); ++i)
+	{
+		if (Desks[i].Root && Comp->IsAttachedTo(Desks[i].Root))
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
+void ADBWorld::PokeDesk(int32 Index)
+{
+	if (!Desks.IsValidIndex(Index))
+	{
+		return;
+	}
+	FDesk& D = Desks[Index];
+	D.PokeT = 0.f;
+	auto Play = [this, &D](EDBSfx Id, float Vol, float Pitch)
+	{
+		if (SfxWave)
+		{
+			SfxWave->Play(Id, Vol, FMath::Clamp(-D.Root->GetComponentLocation().Y / 120.f, -0.8f, 0.8f), Pitch);
+		}
+	};
+	switch (D.Kind)
+	{
+	case EDesk::Mug:
+		SteamBoost = 1.f;
+		Play(EDBSfx::Clink, 0.9f, FMath::FRandRange(0.95f, 1.05f));
+		break;
+	case EDesk::Die:
+	{
+		// Rastgele yüz + birkaç tur; evin yakınına düşer
+		const int32 Faces[6][2] = { {0, 0}, {180, 0}, {0, 90}, {0, -90}, {90, 0}, {-90, 0} };
+		const int32 F = FMath::RandRange(0, 5);
+		D.RollTo = FRotator(Faces[F][0] + 360.f * FMath::RandRange(1, 2), D.BaseRot.Yaw + FMath::FRandRange(-120.f, 120.f), Faces[F][1] + 360.f * FMath::RandRange(1, 2));
+		D.LandAt = D.Home + FVector(FMath::FRandRange(-4.f, 4.f), FMath::FRandRange(-4.f, 4.f), 0.f);   // tahtaya ve arayüzün altına kaçmasın
+		Play(EDBSfx::Dice, 0.9f, FMath::FRandRange(0.9f, 1.1f));
+		break;
+	}
+	case EDesk::Duck:
+		Play(EDBSfx::Squeak, 0.85f, FMath::FRandRange(0.9f, 1.12f));
+		break;
+	case EDesk::Lamp:
+		bLampOn = !bLampOn;
+		if (LampLight) LampLight->SetIntensity(bLampOn ? 140.f : 0.f);   // 2600 ve 320 masada beyaz leke yapıyordu
+		if (LampBulb)
+		{
+			if (UMaterialInstanceDynamic* Mid = Cast<UMaterialInstanceDynamic>(LampBulb->GetMaterial(0)))
+			{
+				Mid->SetVectorParameterValue(TEXT("Color"), bLampOn ? RGB(255, 236, 160) : RGB(200, 196, 180));
+			}
+		}
+		Play(EDBSfx::Click, 1.f, bLampOn ? 1.3f : 0.9f);
+		break;
+	}
+}
+
+void ADBWorld::TickDesk(float Dt)
+{
+	const float Now = GetWorld()->GetTimeSeconds();
+	for (int32 i = 0; i < Desks.Num(); ++i)
+	{
+		FDesk& D = Desks[i];
+		if (!D.Root)
+		{
+			continue;
+		}
+		D.Hover = FMath::FInterpTo(D.Hover, i == HoverDesk ? 1.f : 0.f, Dt, 14.f);
+		FVector Loc = D.Base;
+		FRotator Rot = D.BaseRot;
+		FVector Scale(1.f);
+		// Üzerine gelince: biraz kalkar, hafifçe sallanır (lamba ağır: yalnız sallanır)
+		if (D.Kind != EDesk::Lamp)
+		{
+			Loc.Z += D.Hover * (1.6f + 0.4f * FMath::Sin(Now * 8.f + i));
+		}
+		Rot.Yaw += D.Hover * 4.f * FMath::Sin(Now * 6.f + i);
+		if (D.PokeT >= 0.f)
+		{
+			D.PokeT += Dt;
+			const float T = D.PokeT;
+			switch (D.Kind)
+			{
+			case EDesk::Mug:
+			{
+				// Çınlar: sallanır, sönümlenir
+				Rot.Roll += 12.f * FMath::Sin(T * 28.f) * FMath::Exp(-T * 5.f);
+				Rot.Pitch += 6.f * FMath::Sin(T * 22.f + 1.f) * FMath::Exp(-T * 5.f);
+				if (T > 1.2f) D.PokeT = -1.f;
+				break;
+			}
+			case EDesk::Die:
+			{
+				// Havaya atılır, dönerek yeni yerine düşer, küçük sekme
+				const float Dur = 0.8f;
+				const float U = FMath::Clamp(T / Dur, 0.f, 1.f);
+				const float Arc = U < 0.82f ? FMath::Sin(U / 0.82f * PI) * 20.f : FMath::Sin((U - 0.82f) / 0.18f * PI) * 2.f;
+				Loc = FMath::Lerp(D.Base, D.LandAt, FMath::InterpEaseOut(0.f, 1.f, U, 2.f)) + FVector(0, 0, Arc);
+				const float R = FMath::InterpEaseOut(0.f, 1.f, FMath::Min(1.f, U / 0.82f), 2.5f);
+				Rot = FRotator(FMath::Lerp(D.BaseRot.Pitch, D.RollTo.Pitch, R), FMath::Lerp(D.BaseRot.Yaw, D.RollTo.Yaw, R), FMath::Lerp(D.BaseRot.Roll, D.RollTo.Roll, R));
+				if (U >= 1.f)
+				{
+					D.Base = D.LandAt;
+					D.BaseRot = D.RollTo.GetNormalized();
+					D.PokeT = -1.f;
+					if (SfxWave) SfxWave->Play(EDBSfx::Land, 0.35f, 0.f, 2.2f);
+				}
+				break;
+			}
+			case EDesk::Duck:
+			{
+				// Ezilir-uzar, zıplar, yarım tur döner
+				const float Dur = 0.7f;
+				const float U = FMath::Clamp(T / Dur, 0.f, 1.f);
+				const float Sq = FMath::Sin(U * PI * 3.f) * FMath::Exp(-U * 3.f) * 0.28f;
+				Scale = FVector(1.f + Sq, 1.f + Sq, 1.f - Sq);
+				Loc.Z += FMath::Max(0.f, FMath::Sin(FMath::Clamp((U - 0.12f) / 0.6f, 0.f, 1.f) * PI)) * 9.f;
+				Rot.Yaw += FMath::InterpEaseInOut(0.f, 360.f, FMath::Clamp((U - 0.12f) / 0.6f, 0.f, 1.f), 2.f);
+				if (U >= 1.f) D.PokeT = -1.f;
+				break;
+			}
+			case EDesk::Lamp:
+			{
+				// Başlık "evet" der gibi iki kez sallanır
+				if (LampHead) LampHead->SetRelativeRotation(FRotator(-14.f * FMath::Sin(T * 14.f) * FMath::Exp(-T * 4.f), 0.f, 0.f));
+				if (T > 1.f) D.PokeT = -1.f;
+				break;
+			}
+			}
+		}
+		D.Root->SetRelativeLocationAndRotation(Loc, Rot);
+		D.Root->SetRelativeScale3D(Scale);
+	}
+	// Kupanın buharı: üç dört küre yükselip büyür, söner; tıklanınca hızlanıp kabarır
+	SteamBoost = FMath::FInterpTo(SteamBoost, 0.f, Dt, 1.2f);
+	for (int32 k = 0; k < Steam.Num(); ++k)
+	{
+		const float Ph = FMath::Fmod(Now * (0.35f + 0.5f * SteamBoost) + k / (float)Steam.Num(), 1.f);
+		const float Sz = FMath::Max(0.05f, FMath::Sin(Ph * PI) * (0.9f + 1.2f * SteamBoost));
+		Steam[k]->SetRelativeLocation(FVector(FMath::Sin(Ph * 6.f + k) * 1.4f, FMath::Cos(Ph * 5.f + k) * 1.2f, 10.5f + Ph * (10.f + 8.f * SteamBoost)));
+		Steam[k]->SetRelativeScale3D(FVector(0.026f * Sz));
 	}
 }

@@ -19,6 +19,8 @@ public:
 	virtual void PlayerTick(float DeltaTime) override;
 
 	int32 HoveredBuilding = -1;
+	int32 HoveredDesk = -1;   // masadaki oyuncak (kupa, zar, ördek, lamba)
+	int32 HoveredCar = -1;
 	bool bHoveredCell = false;
 	FIntPoint HoveredCell = FIntPoint(-1, -1);
 

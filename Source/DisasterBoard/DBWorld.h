@@ -124,6 +124,18 @@ public:
 	int32 CarAtScreen(const APlayerController* PC, const FVector2D& Screen, float RadiusPx) const;
 	void HonkCar(int32 Car);
 
+	// Hareket tasarımı (Andaç, 18 Ekim ~00.30): üzerine gelinen bina / araba / masa nesnesi kalkar, sallanır.
+	// PlayerController her karede yazar.
+	int32 HoverBuilding = -1;
+	int32 HoverCar = -1;
+	int32 HoverDesk = -1;
+	// Masadaki oyuncaklar (fareyle): kahve kupası (çınlar, buhar), iki zar (atılır), lastik ördek (vıklar, zıplar),
+	// masa lambası (yanar / söner)
+	int32 DeskFromComponent(const UPrimitiveComponent* Comp) const;
+	void PokeDesk(int32 Index);
+	int32 NumDesk() const { return Desks.Num(); }
+	bool bLampOn = false;
+
 	// Oyuncu tahtayı döndürür: alttaki oklar / Q-E → tahta masadan kalkar, 90° döner, yerine iner (kamera sabit)
 	void TurnBoard(int32 Dir);
 	UPROPERTY() TObjectPtr<UDBSfxWave> SfxWave;      // GameMode verir: tahta sesleri
@@ -235,6 +247,30 @@ private:
 	};
 	TArray<FGrow> Grows;    // yeni konan parça yaylanarak büyür (sıfır ölçek yok)
 	TArray<float> CarHonkT;
+	TArray<float> CarHover;
+	TArray<float> HoverAmt;       // bina başına 0..1 (yumuşak)
+	TArray<FVector> BuildingBase;
+	enum class EDesk : uint8 { Mug, Die, Duck, Lamp };
+	struct FDesk
+	{
+		TObjectPtr<USceneComponent> Root;
+		EDesk Kind = EDesk::Mug;
+		FVector Base = FVector::ZeroVector;
+		FVector Home = FVector::ZeroVector;
+		FRotator BaseRot = FRotator::ZeroRotator;
+		float Hover = 0.f;
+		float PokeT = -1.f;
+		FRotator RollTo = FRotator::ZeroRotator;
+		FVector LandAt = FVector::ZeroVector;
+	};
+	TArray<FDesk> Desks;
+	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> Steam;
+	float SteamBoost = 0.f;
+	UPROPERTY() TObjectPtr<class UPointLightComponent> LampLight;
+	UPROPERTY() TObjectPtr<UStaticMeshComponent> LampBulb;
+	UPROPERTY() TObjectPtr<USceneComponent> LampHead;
+	void BuildDesk();
+	void TickDesk(float Dt);
 	void BuildWallArt();    // yan duvar: ekip logosu + jam afişi (Content/Arayuz/duvar_logo.png, duvar_afis.png)
 	UTexture2D* LoadWallPng(const FString& Rel);
 	UStaticMeshComponent* TexPlane(USceneComponent* Parent, const FVector& Loc, const FRotator& Rot, const FVector2D& SizeCm, UTexture* Tex, bool bTranslucent);
