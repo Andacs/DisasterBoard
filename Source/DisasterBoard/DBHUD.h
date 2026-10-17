@@ -27,6 +27,7 @@ public:
 	// Geri bildirim: tıklanan yerde halka + kıvılcımlar (her tıklamada PlayerController çağırır)
 	void AddClickFx(const FVector2D& P);
 	bool IsOverButton(const FVector2D& P) const;
+	FBox2D DoTargetRect() const;   // etkileşimli tutorial satırının hedefi (test de kullanır)
 	bool IsOverDeliver(const FVector2D& P) const { return TgDeliver.bIsValid && TgDeliver.IsInside(P); }
 	bool IsOverUI(const FVector2D& P) const;
 
@@ -97,6 +98,8 @@ private:
 	int32 PressIndex = -1;
 	float PressTime = -100.f;
 	bool bTasksOpen = true;
+	float DoMissTime = -100.f;   // tutorial: yanlış yere tıklandı, "Bu tuşa bas" etiketi sallanır
+	void DrawDoHint();
 	UFont* MakeRuntimeFont(const TCHAR* File);
 	void DrawWind();
 	void DrawMini();

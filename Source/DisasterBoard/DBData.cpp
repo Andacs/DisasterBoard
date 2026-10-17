@@ -227,7 +227,7 @@ namespace
 		C.IntroA = {
 			{ S::A, TEXT("Ben Mert! Bu masa oyununda kasabayı afetlere hazırlayacağız.") },
 			{ S::A, TEXT("Önce sorunları bulalım.") },
-			{ S::A, TEXT("Şu tarayıcıya bas!") },
+			{ S::A, TEXT("Şu tarayıcıya bas! (Gösterdiğim tuşa tıkla)") },
 		};
 		C.AfterScan = {
 			{ S::A, TEXT("İşaretli yerlerin yanında ne istedikleri yazıyor.") },
@@ -244,10 +244,10 @@ namespace
 		// HUD hedefleri: 1 önlemler, 2 bütçe, 3 önlemler, 4 çekmece
 		C.PanelIntroC = {
 			{ S::C, TEXT("Ben Yiğit. Şehir önlemleri bende.") },
-			{ S::C, TEXT("Sel, tsunami, yangın ve deprem için önlemler burada.") },
+			{ S::C, TEXT("Sel, tsunami, yangın ve deprem için önlemler burada. Birine bas, gör.") },
 			{ S::C, TEXT("Önlemler bütçeden düşer; teslim ettiğin her çanta bütçe kazandırır.") },
 			{ S::C, TEXT("Önlemi seç, isteği olan yere tıkla. Rögar kapağını su birikintisinin olduğu ızgaraya koy.") },
-			{ S::C, TEXT("Kasabalılara tıkla, dertlerini anlatsınlar. Çantayı da çekmecedeki fabrikada hazırla.") },
+			{ S::C, TEXT("Kasabalılara tıkla, dertlerini anlatsınlar. Çantalar sağdaki çekmecede: kulpa bas.") },
 			{ S::C, TEXT("Hepsi yeşil olunca kasaba hazır! Tekerlek yakınlaştırır, alttaki oklar tahtayı döndürür.") },
 		};
 

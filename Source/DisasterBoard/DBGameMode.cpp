@@ -270,6 +270,15 @@ void ADBGameMode::ClickPlay()
 	BeginBoardTransition();
 }
 
+int32 ADBGameMode::DoLineTarget() const
+{
+	const FDBContent& C = FDBContent::Get();
+	if (IsTalking(C.IntroA, 2)) return 1;
+	if (IsTalking(C.PanelIntroC, 1)) return 2;
+	if (IsTalking(C.PanelIntroC, 4)) return 3;
+	return 0;
+}
+
 void ADBGameMode::PlaySfx(EDBSfx Id, float Volume, float Pan, float Pitch, float PanTo)
 {
 	if (Sfx)

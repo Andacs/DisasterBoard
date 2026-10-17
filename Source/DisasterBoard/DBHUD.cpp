@@ -383,6 +383,26 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 	}
 	if (GM->Phase == EDBPhase::Talk)
 	{
+		// Etkileşimli satır: yazı bittiyse yalnızca gösterilen tuş geçer (oyuncu işlemi kendisi yapar)
+		const int32 Do = GM->DoLineTarget();
+		if (Do != 0 && GM->IsLineComplete())
+		{
+			const FBox2D T = DoTargetRect();
+			if (!(T.bIsValid && T.ExpandBy(10.f * S).IsInside(P)))
+			{
+				DoMissTime = FxNow;
+				GM->PlaySfx(EDBSfx::Bad, 0.35f, 0.f, 1.4f);
+				return true;
+			}
+			GM->PlaySfx(EDBSfx::Click, 0.9f);
+			AddClickFx(P);
+			GM->AdvanceTalk();
+			if (Do == 1 && GM->Phase == EDBPhase::WaitScan)
+			{
+				GM->StartScan();   // "tarayıcıya bas" → bastı: tarama hemen başlar
+			}
+			return true;
+		}
 		GM->PlaySfx(EDBSfx::Click, 0.55f, 0.f, 1.15f);
 		GM->AdvanceTalk();
 		return true;
@@ -584,6 +604,7 @@ void ADBHUD::DrawHUD()
 		}
 	}
 	DrawTalk();
+	DrawDoHint();
 	if (GM->Mini != EDBMini::None)
 	{
 		DrawMini();
@@ -1254,7 +1275,9 @@ void ADBHUD::DrawTalk()
 	if (GM->IsLineComplete())
 	{
 		const float A = 0.5f + 0.5f * FMath::Sin(GM->Now * 5.f);
-		Txt(TEXT("devam için tıkla"), BR.Max.X - 22.f * S, BR.Max.Y - 30.f * S, 16.f * S, WithA(DarkK, 0.4f + 0.6f * A), 2);
+		const bool bDo = GM->DoLineTarget() != 0;
+		Txt(bDo ? TEXT("gösterilen tuşa bas") : TEXT("devam için tıkla"), BR.Max.X - 22.f * S, BR.Max.Y - 30.f * S, bDo ? 18.f * S : 16.f * S,
+			bDo ? WithA(Coral, 0.5f + 0.5f * A) : WithA(DarkK, 0.4f + 0.6f * A), 2);
 	}
 }
 
@@ -2337,4 +2360,50 @@ void ADBHUD::DrawEventFx()
 		Tri(C.P - Ax - Ay, C.P + Ax + Ay, C.P - Ax + Ay, C.C);
 	}
 	Confetti.RemoveAll([this](const FConfetti& C) { return C.P.Y > H + 20.f; });
+}
+
+// ---------------------------------------------------------------- etkileşimli tutorial: "Bu tuşa bas"
+
+FBox2D ADBHUD::DoTargetRect() const
+{
+	switch (GM->DoLineTarget())
+	{
+	case 1: return TgScanner;
+	case 2: return TgTools;
+	case 3: return TgDrawer;
+	default: return FBox2D(ForceInit);
+	}
+}
+
+void ADBHUD::DrawDoHint()
+{
+	if (GM->DoLineTarget() == 0 || !GM->IsLineComplete())
+	{
+		return;
+	}
+	const FBox2D T = DoTargetRect();
+	if (!T.bIsValid)
+	{
+		return;
+	}
+	// Hedef: dışa yayılan halkalar (nabız) + hafif büyüyüp küçülen sarı çerçeve
+	const float Pulse = 0.5f + 0.5f * FMath::Sin(FxNow * 6.f);
+	Frame(T.ExpandBy((6.f + 4.f * Pulse) * S), U(255, 214, 90, uint8(160 + 90 * Pulse)), 5.f * S);
+	for (int32 k = 0; k < 2; ++k)
+	{
+		const float Ph = FMath::Fmod(FxNow * 0.9f + k * 0.5f, 1.f);
+		Frame(T.ExpandBy((10.f + 40.f * Ph) * S), U(255, 214, 90, uint8(200 * (1.f - Ph))), 3.f * S);
+	}
+	// Etiket: hedefin üstünde, yanlış yere tıklanınca sallanır
+	const float Miss = FxNow - DoMissTime;
+	const float Shake = Miss < 0.45f ? FMath::Sin(Miss * 60.f) * 10.f * S * (1.f - Miss / 0.45f) : 0.f;
+	const FString Lbl = TEXT("Bu tuşa bas");
+	const float LW = Measure(Lbl, 24.f * S).X + 36.f * S;
+	FVector2D C(T.GetCenter().X + Shake, T.Min.Y - 58.f * S - 6.f * S * Pulse);
+	C.X = FMath::Clamp(C.X, LW * 0.5f + 10.f * S, W - LW * 0.5f - 10.f * S);
+	const FBox2D L = Rect(C.X - LW * 0.5f, C.Y - 22.f * S, LW, 44.f * S);
+	RoundCard(L, Miss < 0.45f ? U(250, 222, 212) : U(255, 214, 90), Ink, 14.f * S, 4.f);
+	Txt(Lbl, L.GetCenter().X, L.Min.Y + 7.f * S, 24.f * S, Ink, 1);
+	const FVector2D Tip(FMath::Clamp(T.GetCenter().X, L.Min.X + 20.f * S, L.Max.X - 20.f * S), T.Min.Y - 10.f * S);
+	Tri(FVector2D(Tip.X - 12.f * S, L.Max.Y - 1.f), FVector2D(Tip.X + 12.f * S, L.Max.Y - 1.f), FVector2D(Tip.X, Tip.Y - 6.f * S * Pulse), Ink);
 }

@@ -337,9 +337,23 @@ void ADBPlayerController::DBTest()
 	Add([] {});
 	Add([] {});
 	Talk(2);
-	Add([this] { Shot(TEXT("04b_A_tarayiciyi_gosteriyor")); });
-	Talk(1);
-	Add([this] { GM()->StartScan(); });
+	Add([this] { Shot(TEXT("04b_A_tarayiciyi_gosteriyor")); UE_LOG(LogDBInput, Log, TEXT("DB_TEST tutorial satir_tamam=%d"), GM()->IsLineComplete() ? 1 : 0); });
+	// Etkileşimli tutorial: yanlış yere tıklamak geçmez, tarayıcıya tıklamak taramayı başlatır
+	Add([this]
+	{
+		int32 SX = 1600, SY = 900;
+		GetViewportSize(SX, SY);
+		ADBHUD* H = GetHUD<ADBHUD>();
+		H->HandleClick(FVector2D(SX * 0.5f, SY * 0.5f));
+		UE_LOG(LogDBInput, Log, TEXT("DB_TEST tutorial yanlis_yer phase=%d"), (int32)GM()->Phase);
+		Shot(TEXT("04c_bu_tusa_bas"));
+	});
+	Add([this]
+	{
+		ADBHUD* H = GetHUD<ADBHUD>();
+		H->HandleClick(H->DoTargetRect().GetCenter());
+		UE_LOG(LogDBInput, Log, TEXT("DB_TEST tutorial tarayici phase=%d"), (int32)GM()->Phase);
+	});
 	Add([this] { Shot(TEXT("06_taraniyor")); });
 	Add([] {});
 	Add([this] { Shot(TEXT("07_istekler")); });
@@ -604,9 +618,9 @@ void ADBPlayerController::DBSesTest()
 	{
 		Add([this, Center]
 		{
-			ADBHUD* H = GetHUD<ADBHUD>();
-			H->HandleClick(Center());
-			H->HandleClick(Center());
+			GM()->PlaySfx(EDBSfx::Click, 0.55f, 0.f, 1.15f);
+			GM()->AdvanceTalk();
+			GM()->AdvanceTalk();
 			SesOlay(TEXT("konusma_tik"));
 		});
 	}

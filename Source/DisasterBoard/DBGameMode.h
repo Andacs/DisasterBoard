@@ -166,6 +166,9 @@ public:
 
 	// --- Sorgular ---
 	const FDBLine* CurrentLine() const;
+	// Etkileşimli tutorial (revizyon 4): bu satırlarda oyuncu gösterilen tuşa kendisi basar, başka yere tıklamak geçmez
+	// 1 = tarayıcı (basınca tarama başlar), 2 = şehir önlemleri, 3 = çekmece
+	int32 DoLineTarget() const;
 	bool IsTalking(const TArray<FDBLine>& Lines, int32 Index) const { return Phase == EDBPhase::Talk && Talk == &Lines && TalkIndex == Index; }
 	bool IsLineComplete() const { const FDBLine* L = CurrentLine(); return L && VisibleChars() >= L->Text.Len(); }
 	int32 VisibleChars() const;
