@@ -106,5 +106,13 @@
   "sha1": "12e336a96ea3",
   "tarih": "17.10 15:16",
   "uyarilar": []
+ },
+ "SM_Bina_Okul": {
+  "kaynak": "SM_Bina_Okul.fbx",
+  "sha1": "261de31599b9",
+  "tarih": "17.10 19:53",
+  "uyarilar": [
+   "bilgi: Ölçü 14,6 x 14,6 x 19,0 cm (kutu 14,6 x 14,6 x 21,9), 428 üçgen, 1 parça, 1 malzeme"
+  ]
  }
 }
