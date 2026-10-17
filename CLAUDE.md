@@ -290,6 +290,29 @@ Asil konuşurken duruş. Test turu 13 kare (B duruş, C gösterme eklendi).
 Gösterme pozunda kolun ötesinde fırçadan kalmış tek bir nokta vardı; kesimi büyütüp karakteri küçültüyordu.
 Kesim artık ayrı küçük lekeleri saymıyor (`govde_kutusu`, 8 px ızgarada bağlantılı parçalar).
 
+**17 Ekim ~19.00: ekip revizyon belgesi uygulandı** (`Downloads/Dogal_Afetlere_Hazirlik_Oyunu_Revizyon_Dokumani.pdf`,
+20 madde; Andaç'ın kararları: 3 sipariş, küçük görev şeridi, "Takvime dön" = duraklat, hepsi önemliden). DBTest
+8/8, 25 TL, 2 hata; görsel turu 14 kare; hepsi ekranda görüldü:
+- **3 sipariş** (Ayşe İY, Yılmazlar Deprem, Fırın Yangın): Okul ve Öğrenci evinin çanta sorunu kalktı, 8 sorun,
+  başlangıç 120 TL. Fabrikadaki X yok (kulp / Esc kapatır).
+- **Kasaba Hazırlık %** (çözülen) ve **Şehir Farkındalık %** (konuşulan kasabalı + 2×çözülen) bütçenin sağında.
+  Bütçe akarak değişir, yeşil/kırmızı uçan "±TL".
+- **Başarı:** ekran kenarı yeşil parlama + işaretten konfeti + kısa kamera sarsıntısı (`ADBWorld::Shake`); hata:
+  kırmızı parlama. Düğmeye basınca çökme-yaylanma, üzerine gelince sıcak çerçeve. Konuşma balonları yuvarlak
+  (`RoundCard`). Uyarı işareti ortalandı, etiket hizalı.
+- **Duraklatma:** Menü / Esc → Oyuna devam · Takvime dön (ilerleme korunur, takvimde "Devam et",
+  `PauseToCalendar`) · Ana menü (baştan).
+- **Görev şeridi** (sol üst, aç-kapa): sıradaki belirgin + ipucu, bitenler çizili.
+- **Etkileşimli tutorial:** tarayıcı / önlemler / çekmece satırlarında "Bu tuşa bas" + nabız halkaları; başka yere
+  tıklamak geçmez (`DoLineTarget`).
+- **Hikâye:** görsele yavaş yakınlaşma + kayma, kâğıttan açılma, ışıltı, yaylanan altyazı. **Mini oyun:** "TAMİR!" /
+  "YERİNE OTURDU!" damgası + su fıskiyesi, hatada pencere sallanır.
+- **Canlılık:** kuşlar (yalnız tahta görünümünde) ve bulut gölgeleri. **NPC portresi** konuşmada
+  (`Karakterler/NPC_<Ad>.png`, yoksa yer tutucu; şablonlar 85 teslim: 53 2D + 32 3D). **Efektler** ayarı
+  Yüksek / Orta / Düşük. Önlem ikonları büyük.
+- **Görsel turu bir çökme yakaladı:** portre çiziminde `Pts.Add(Pts[0])` (dizinin kendi elemanını eklemek) →
+  konuşma balonu açılınca çöküyordu; düzeltildi.
+
 **17 Ekim ~16.30, Andaç'ın notları (uygulandı, DBTest ekranında görüldü, 10/10, 65 TL, 2 hata):**
 - **Ünleme tıklamak = binaya tıklamak** (işaret ve istek etiketi `Marker` tıklama alanı; testte gerçek tıklama yolu
   balonu açtı).
@@ -338,7 +361,7 @@ içe alınıp ölçüldü) ve 40 2D PNG şablonu (tam piksel, adı yazılı). Te
 Yiğit onay akışından geçirir (12.30 notu). Şablonlar artık 41 2D (5. önlem ikonu eklendi).
 
 **Test:** `UnrealEditor.exe <tam yol>\DisasterBoard.uproject /Game/DisasterBoard/Maps/L_Ana -game -windowed
--ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~150 sn oynar, 26 görüntü; fabrikada 5 sipariş (1 bilerek yanlış), tahta döndürme, rögar ve somun mini oyunları, 10/10 → sonuç (65 TL, 2 hata). `-DBGainTest` ile sayfa parlaklığını 5 değerde çeker
+-ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~150 sn oynar, 26 görüntü; fabrikada 5 sipariş (1 bilerek yanlış), tahta döndürme, rögar ve somun mini oyunları, 8/8 → sonuç (25 TL, 2 hata). `-DBGainTest` ile sayfa parlaklığını 5 değerde çeker
 `Saved/Screenshots/WindowsEditor/DB_*.png`, kendisi kapanır. Test tıklama işlevlerini doğrudan çağırıyor.
 
 **Derlendi, ekranda görülmedi:** gerçek fareyle tıklama/hover (imleç, tooltip), Ayarlar'daki tam ekran ve
