@@ -10,3 +10,6 @@ Build/Package/
 Build/Windows/
 Build/*.log
 Build/Teslim/
+
+# python önbelleği
+__pycache__/

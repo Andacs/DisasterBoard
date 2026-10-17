@@ -240,6 +240,12 @@ sırt çantası.
 - **Fabrika öğreticisi:** ilk doğru teslime kadar seçilmesi gereken kit ve eşyalar parlar; yanlış teslimde de
   parlamaya devam eder (`bFactoryTutorial`).
 
+**17 Ekim ~08.40: modelci/tasarımcı şablonları** `Docs/Sablonlar/` (OKU_BENI.md = iş listesi + ölçüler + dışa
+aktarma ayarları). 21 3D hitbox kutusu (`.blend` + tek tek FBX, pivot taban ortası, ÖN -Y, 1 birim = 1 cm; geri
+içe alınıp ölçüldü) ve 40 2D PNG şablonu (tam piksel, adı yazılı). Tek kaynak `Tools/sablon_listesi.py`;
+üreticiler `sablon_3d_blender.py`, `sablon_2d.py`, `sablon_belge.py`. Teslim yeri: modeller `Art/Modeller/`,
+2D `Content/<yol>`. **Kod henüz `Ikonlar/` ve `Arayuz/` PNG'lerini yüklemiyor** (karakter ve çizgi roman yükleniyor).
+
 **Test:** `UnrealEditor.exe <tam yol>\DisasterBoard.uproject /Game/DisasterBoard/Maps/L_Ana -game -windowed
 -ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~110 sn oynar, 18 görüntü; fabrikada 5 sipariş (1 bilerek yanlış), kamera döndürme, 9/9 → sonuç (90 TL, 2 hata). `-DBGainTest` ile sayfa parlaklığını 5 değerde çeker
 `Saved/Screenshots/WindowsEditor/DB_*.png`, kendisi kapanır. Test tıklama işlevlerini doğrudan çağırıyor.
