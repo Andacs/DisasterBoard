@@ -204,6 +204,50 @@ def poz_farki(p1, p2):
     return None
 
 
+def govde_kutusu(im):
+    """Karakterin kutusu; fırçadan kalan ayrı küçük lekeler sayılmaz (kesimi büyütüp karakteri küçültüyordu).
+    Maske 8 px'lik ızgarada bağlantılı parçalara ayrılır, en büyüğün %2'sinden küçük parçalar atılır.
+    İnce ama bağlı çizgiler (saç kıvrımı) kalır."""
+    from PIL import Image, ImageChops
+    maske = im.getchannel("A").point(lambda v: 255 if v > 16 else 0)
+    W, H = maske.size
+    g = 8
+    gw, gh = (W + g - 1) // g, (H + g - 1) // g
+    kucuk = maske.resize((gw, gh), Image.BOX).point(lambda v: 255 if v > 0 else 0)
+    px = kucuk.load()
+    etiket = [[0] * gw for _ in range(gh)]
+    boy = {}
+    n = 0
+    for y in range(gh):
+        for x in range(gw):
+            if px[x, y] and not etiket[y][x]:
+                n += 1
+                yigin = [(x, y)]
+                etiket[y][x] = n
+                say = 0
+                while yigin:
+                    cx, cy = yigin.pop()
+                    say += 1
+                    for dx in (-1, 0, 1):
+                        for dy in (-1, 0, 1):
+                            nx, ny = cx + dx, cy + dy
+                            if 0 <= nx < gw and 0 <= ny < gh and px[nx, ny] and not etiket[ny][nx]:
+                                etiket[ny][nx] = n
+                                yigin.append((nx, ny))
+                boy[n] = say
+    if not boy:
+        return None
+    esik = max(boy.values()) * 0.02
+    tut = Image.new("L", (gw, gh), 0)
+    tp = tut.load()
+    for y in range(gh):
+        for x in range(gw):
+            if etiket[y][x] and boy[etiket[y][x]] >= esik:
+                tp[x, y] = 255
+    tut = tut.resize((gw * g, gh * g), Image.NEAREST).crop((0, 0, W, H))
+    return ImageChops.multiply(maske, tut).getbbox()
+
+
 def karakter_hazirla(harf, durus, goster):
     """İki pozu aynı kesimle kırpar, 320x512'ye sığdırır (ayaklar alt kenarda, ortada), Art/_hazir/ altına yazar"""
     from PIL import Image
@@ -227,7 +271,7 @@ def karakter_hazirla(harf, durus, goster):
         print(f"UYARI  iki pozun tuvali farklı boyda ({resimler[0].size} / {resimler[1].size}); aynı tuvalde çizilmediyse hiza kayabilir.")
     kutu = None
     for im in resimler:
-        bb = im.getchannel("A").point(lambda v: 255 if v > 16 else 0).getbbox()
+        bb = govde_kutusu(im)
         if not bb:
             print("RED    pozlardan biri boş (her yer şeffaf).")
             return None

@@ -285,6 +285,10 @@ büyük tuvali iki poz için aynı kesimle 320×512'ye oturtur; iki pozun ayak h
 gelirse "dosya olarak gönder" der. Mert'in ilk çizimleri JPG geldi (mesajla gönderilince şeffaflık siyaha dönmüş),
 orijinal PNG bekleniyor. Deneme kopyasıyla (siyah kabaca silindi) oyunda görüldü: tarayıcıyı gösterirken kol kalkık,
 Asil konuşurken duruş. Test turu 13 kare (B duruş, C gösterme eklendi).
+**Mert'in A pozları oyunda** (`Content/Karakterler/A_durus.png`, `A_goster.png`; orijinaller `Art/Kaynak/Karakterler/`,
+2000×2000 şeffaf WebP). `--karakter` ile hazırlandı (ölçek %63, iki poz aynı hizada), paketlenmiş oyunda görüldü.
+Gösterme pozunda kolun ötesinde fırçadan kalmış tek bir nokta vardı; kesimi büyütüp karakteri küçültüyordu.
+Kesim artık ayrı küçük lekeleri saymıyor (`govde_kutusu`, 8 px ızgarada bağlantılı parçalar).
 
 **17 Ekim ~08.40: modelci/tasarımcı şablonları** `Docs/Sablonlar/` (OKU_BENI.md = iş listesi + ölçüler + dışa
 aktarma ayarları). 21 3D hitbox kutusu (`.blend` + tek tek FBX, pivot taban ortası, ÖN -Y, 1 birim = 1 cm; geri
