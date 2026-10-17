@@ -107,12 +107,76 @@
   "tarih": "17.10 15:16",
   "uyarilar": []
  },
+ "SM_Agac": {
+  "kaynak": "SM_Agac.fbx",
+  "sha1": "fb1dfae002c7",
+  "tarih": "18.10 01:05",
+  "uyarilar": [
+   "bilgi: Ölçü 6,6 x 6,7 x 8,0 cm (kutu 6,7 x 6,7 x 9,1), 430 üçgen, 1 parça, 2 malzeme"
+  ]
+ },
+ "SM_Araba": {
+  "kaynak": "SM_Araba.fbx",
+  "sha1": "edb2f1780705",
+  "tarih": "18.10 01:05",
+  "uyarilar": [
+   "bilgi: Ölçü 4,5 x 3,0 x 3,3 cm (kutu 6,0 x 3,0 x 3,4), 2200 üçgen, 1 parça, 5 malzeme"
+  ]
+ },
+ "SM_Bina_AhsapEvler": {
+  "kaynak": "SM_Bina_AhsapEvler.fbx",
+  "sha1": "e7cee1c56d2d",
+  "tarih": "18.10 00:07",
+  "uyarilar": [
+   "bilgi: Ölçü 14,6 x 14,6 x 17,0 cm (kutu 14,6 x 14,6 x 18,5), 888 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
  "SM_Bina_AyseTeyze": {
   "kaynak": "SM_Bina_AyseTeyze.fbx",
-  "sha1": "1dbf43034741",
-  "tarih": "17.10 20:19",
+  "sha1": "7a70c6460128",
+  "tarih": "18.10 00:07",
   "uyarilar": [
-   "bilgi: Ölçü 14,6 x 14,6 x 14,6 cm (kutu 14,6 x 14,6 x 18,5), 888 üçgen, 1 parça, 1 malzeme"
+   "bilgi: Ölçü 14,6 x 14,6 x 17,0 cm (kutu 14,6 x 14,6 x 18,5), 888 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Bina_EskiApartman": {
+  "kaynak": "SM_Bina_EskiApartman.fbx",
+  "sha1": "e317acfb7754",
+  "tarih": "18.10 00:07",
+  "uyarilar": [
+   "bilgi: Ölçü 14,6 x 14,6 x 26,6 cm (kutu 14,6 x 14,6 x 43,8), 1182 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Bina_Firin": {
+  "kaynak": "SM_Bina_Firin.fbx",
+  "sha1": "fc5e59baa7d3",
+  "tarih": "18.10 00:07",
+  "uyarilar": [
+   "bilgi: Ölçü 14,6 x 14,6 x 17,0 cm (kutu 14,6 x 14,6 x 17,3), 888 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Bina_Kitapci": {
+  "kaynak": "SM_Bina_Kitapci.fbx",
+  "sha1": "12453abf0a5b",
+  "tarih": "18.10 00:07",
+  "uyarilar": [
+   "bilgi: Ölçü 14,6 x 14,6 x 17,0 cm (kutu 14,6 x 14,6 x 20,3), 888 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Bina_Market": {
+  "kaynak": "SM_Bina_Market.fbx",
+  "sha1": "b592de0bed77",
+  "tarih": "18.10 00:17",
+  "uyarilar": [
+   "bilgi: Ölçü 14,6 x 14,6 x 17,0 cm (kutu 14,6 x 14,6 x 17,3), 888 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Bina_OgrenciEvi": {
+  "kaynak": "SM_Bina_OgrenciEvi.fbx",
+  "sha1": "265939f77f08",
+  "tarih": "18.10 00:07",
+  "uyarilar": [
+   "bilgi: Ölçü 14,6 x 14,6 x 23,6 cm (kutu 14,6 x 14,6 x 24,3), 1182 üçgen, 1 parça, 1 malzeme"
   ]
  },
  "SM_Bina_Okul": {
@@ -121,6 +185,152 @@
   "tarih": "17.10 19:53",
   "uyarilar": [
    "bilgi: Ölçü 14,6 x 14,6 x 19,0 cm (kutu 14,6 x 14,6 x 21,9), 428 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Bina_Park": {
+  "kaynak": "SM_Bina_Park.fbx",
+  "sha1": "71c6843769f4",
+  "tarih": "18.10 01:05",
+  "uyarilar": [
+   "24700 üçgen; bu tür için önerilen en çok 15000.",
+   "34 malzeme var; 1-3 düz renk yeterli.",
+   "bilgi: Ölçü 14,5 x 14,6 x 7,3 cm (kutu 14,6 x 14,6 x 8,5), 24700 üçgen, 1 parça, 34 malzeme"
+  ]
+ },
+ "SM_Bina_SahilEvi": {
+  "kaynak": "SM_Bina_SahilEvi.fbx",
+  "sha1": "b0d6d13a7fb5",
+  "tarih": "18.10 00:07",
+  "uyarilar": [
+   "bilgi: Ölçü 14,6 x 14,6 x 17,0 cm (kutu 14,6 x 14,6 x 18,5), 888 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Bina_Siginak": {
+  "kaynak": "SM_Bina_Siginak.fbx",
+  "sha1": "0f9f75a0ddbb",
+  "tarih": "18.10 00:33",
+  "uyarilar": [
+   "bilgi: Ölçü 14,6 x 14,6 x 8,8 cm (kutu 14,6 x 14,6 x 11,6), 140 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Bina_Yilmazlar": {
+  "kaynak": "SM_Bina_Yilmazlar.fbx",
+  "sha1": "072f4d719777",
+  "tarih": "18.10 00:07",
+  "uyarilar": [
+   "bilgi: Ölçü 14,6 x 14,6 x 17,0 cm (kutu 14,6 x 14,6 x 20,9), 888 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Kasabali_AliUsta": {
+  "kaynak": "SM_Kasabali_AliUsta.fbx",
+  "sha1": "9f535acc17b4",
+  "tarih": "18.10 00:33",
+  "uyarilar": [
+   "bilgi: Ölçü 3,4 x 0,6 x 6,8 cm (kutu 3,4 x 3,4 x 8,5), 132 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Kasabali_AyseTeyze": {
+  "kaynak": "SM_Kasabali_AyseTeyze.fbx",
+  "sha1": "a94c453c4e2d",
+  "tarih": "18.10 00:33",
+  "uyarilar": [
+   "bilgi: Ölçü 3,0 x 0,7 x 7,1 cm (kutu 3,4 x 3,4 x 8,5), 208 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Kasabali_Can": {
+  "kaynak": "SM_Kasabali_Can.fbx",
+  "sha1": "18d37671e6bb",
+  "tarih": "18.10 00:33",
+  "uyarilar": [
+   "bilgi: Ölçü 3,4 x 0,6 x 6,8 cm (kutu 3,4 x 3,4 x 8,5), 132 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Kasabali_Deniz": {
+  "kaynak": "SM_Kasabali_Deniz.fbx",
+  "sha1": "26456aacd448",
+  "tarih": "18.10 00:33",
+  "uyarilar": [
+   "bilgi: Ölçü 3,0 x 0,7 x 7,1 cm (kutu 3,4 x 3,4 x 8,5), 208 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Kasabali_Elif": {
+  "kaynak": "SM_Kasabali_Elif.fbx",
+  "sha1": "5c10f7791451",
+  "tarih": "18.10 00:33",
+  "uyarilar": [
+   "bilgi: Ölçü 3,0 x 0,7 x 7,1 cm (kutu 3,4 x 3,4 x 8,5), 208 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Kasabali_HasanAmca": {
+  "kaynak": "SM_Kasabali_HasanAmca.fbx",
+  "sha1": "76f1497419a7",
+  "tarih": "18.10 00:33",
+  "uyarilar": [
+   "bilgi: Ölçü 3,4 x 0,6 x 6,8 cm (kutu 3,4 x 3,4 x 8,5), 132 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Kasabali_KemalBey": {
+  "kaynak": "SM_Kasabali_KemalBey.fbx",
+  "sha1": "5495f64a411b",
+  "tarih": "18.10 00:33",
+  "uyarilar": [
+   "bilgi: Ölçü 3,4 x 0,6 x 6,8 cm (kutu 3,4 x 3,4 x 8,5), 132 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Kasabali_MuratAbi": {
+  "kaynak": "SM_Kasabali_MuratAbi.fbx",
+  "sha1": "4c68b320bd91",
+  "tarih": "18.10 00:33",
+  "uyarilar": [
+   "bilgi: Ölçü 3,4 x 0,6 x 6,8 cm (kutu 3,4 x 3,4 x 8,5), 132 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Kasabali_NerminHanim": {
+  "kaynak": "SM_Kasabali_NerminHanim.fbx",
+  "sha1": "f6c050950bd0",
+  "tarih": "18.10 00:33",
+  "uyarilar": [
+   "bilgi: Ölçü 3,0 x 0,7 x 7,1 cm (kutu 3,4 x 3,4 x 8,5), 208 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Kasabali_RizaAbi": {
+  "kaynak": "SM_Kasabali_RizaAbi.fbx",
+  "sha1": "e1b4f0342294",
+  "tarih": "18.10 00:33",
+  "uyarilar": [
+   "bilgi: Ölçü 3,4 x 0,6 x 6,8 cm (kutu 3,4 x 3,4 x 8,5), 132 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Kasabali_SelmaOgretmen": {
+  "kaynak": "SM_Kasabali_SelmaOgretmen.fbx",
+  "sha1": "8da77cd5328f",
+  "tarih": "18.10 00:33",
+  "uyarilar": [
+   "bilgi: Ölçü 3,0 x 0,7 x 7,1 cm (kutu 3,4 x 3,4 x 8,5), 208 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Kasabali_Zeynep": {
+  "kaynak": "SM_Kasabali_Zeynep.fbx",
+  "sha1": "5d279deff486",
+  "tarih": "18.10 00:33",
+  "uyarilar": [
+   "bilgi: Ölçü 3,0 x 0,7 x 7,1 cm (kutu 3,4 x 3,4 x 8,5), 208 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_RogarKapagi": {
+  "kaynak": "SM_RogarKapagi.fbx",
+  "sha1": "955d441f571b",
+  "tarih": "18.10 00:33",
+  "uyarilar": [
+   "bilgi: Ölçü 5,4 x 5,4 x 0,6 cm (kutu 5,4 x 5,4 x 0,6), 764 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_TahliyeKisi": {
+  "kaynak": "SM_TahliyeKisi.fbx",
+  "sha1": "ab2877278ab6",
+  "tarih": "18.10 00:33",
+  "uyarilar": [
+   "bilgi: Ölçü 2,6 x 0,5 x 5,2 cm (kutu 2,6 x 2,6 x 6,9), 132 üçgen, 1 parça, 1 malzeme"
   ]
  },
  "SM_Tahta": {
@@ -137,6 +347,14 @@
   "tarih": "17.10 20:22",
   "uyarilar": [
    "bilgi: Ölçü 96,5 x 2,0 x 74,3 cm (kutu 96,5 x 2,0 x 74,3), 844 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_YanginMuslugu": {
+  "kaynak": "SM_YanginMuslugu.fbx",
+  "sha1": "6965dd0fd855",
+  "tarih": "18.10 00:33",
+  "uyarilar": [
+   "bilgi: Ölçü 2,8 x 3,2 x 4,6 cm (kutu 3,2 x 3,2 x 5,5), 1076 üçgen, 1 parça, 1 malzeme"
   ]
  }
 }

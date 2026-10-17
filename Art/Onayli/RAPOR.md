@@ -1,6 +1,6 @@
-# Onaylı varlıklar (22 / 85)
+# Onaylı varlıklar (49 / 85)
 
-2D: 18 / 53 · 3D: 4 / 32. Bu dosyayı `Tools/varlik_kontrol.py` yazar, elle değiştirme.
+2D: 18 / 53 · 3D: 31 / 32. Bu dosyayı `Tools/varlik_kontrol.py` yazar, elle değiştirme.
 
 | Dosya | Tür | Durum | Tarih | Not |
 |---|---|---|---|---|
@@ -57,35 +57,35 @@
 | `Karakterler/NPC_Deniz.png` | 2D | bekliyor | | |
 | `Karakterler/NPC_MuratAbi.png` | 2D | bekliyor | | |
 | `Karakterler/NPC_NerminHanim.png` | 2D | bekliyor | | |
-| `SM_Bina_AyseTeyze` | 3D | ONAYLI | 17.10 20:19 | - |
+| `SM_Bina_AyseTeyze` | 3D | ONAYLI | 18.10 00:07 | - |
 | `SM_Bina_Okul` | 3D | ONAYLI | 17.10 19:53 | - |
-| `SM_Bina_Siginak` | 3D | bekliyor | | |
-| `SM_Bina_Yilmazlar` | 3D | bekliyor | | |
-| `SM_Bina_EskiApartman` | 3D | bekliyor | | |
-| `SM_Bina_Kitapci` | 3D | bekliyor | | |
-| `SM_Bina_Firin` | 3D | bekliyor | | |
-| `SM_Bina_Market` | 3D | bekliyor | | |
-| `SM_Bina_OgrenciEvi` | 3D | bekliyor | | |
-| `SM_Bina_Park` | 3D | bekliyor | | |
-| `SM_Bina_SahilEvi` | 3D | bekliyor | | |
-| `SM_Bina_AhsapEvler` | 3D | bekliyor | | |
-| `SM_Agac` | 3D | bekliyor | | |
-| `SM_Araba` | 3D | bekliyor | | |
-| `SM_YanginMuslugu` | 3D | bekliyor | | |
-| `SM_RogarKapagi` | 3D | bekliyor | | |
+| `SM_Bina_Siginak` | 3D | ONAYLI | 18.10 00:33 | - |
+| `SM_Bina_Yilmazlar` | 3D | ONAYLI | 18.10 00:07 | - |
+| `SM_Bina_EskiApartman` | 3D | ONAYLI | 18.10 00:07 | - |
+| `SM_Bina_Kitapci` | 3D | ONAYLI | 18.10 00:07 | - |
+| `SM_Bina_Firin` | 3D | ONAYLI | 18.10 00:07 | - |
+| `SM_Bina_Market` | 3D | ONAYLI | 18.10 00:17 | - |
+| `SM_Bina_OgrenciEvi` | 3D | ONAYLI | 18.10 00:07 | - |
+| `SM_Bina_Park` | 3D | ONAYLI | 18.10 01:05 | 24700 üçgen; bu tür için önerilen en çok 15000.; 34 malzeme var; 1-3 düz renk yeterli. |
+| `SM_Bina_SahilEvi` | 3D | ONAYLI | 18.10 00:07 | - |
+| `SM_Bina_AhsapEvler` | 3D | ONAYLI | 18.10 00:07 | - |
+| `SM_Agac` | 3D | ONAYLI | 18.10 01:05 | - |
+| `SM_Araba` | 3D | ONAYLI | 18.10 01:05 | - |
+| `SM_YanginMuslugu` | 3D | ONAYLI | 18.10 00:33 | - |
+| `SM_RogarKapagi` | 3D | ONAYLI | 18.10 00:33 | - |
 | `SM_SuBirikintisi` | 3D | bekliyor | | |
-| `SM_Kasabali_AyseTeyze` | 3D | bekliyor | | |
-| `SM_Kasabali_SelmaOgretmen` | 3D | bekliyor | | |
-| `SM_Kasabali_HasanAmca` | 3D | bekliyor | | |
-| `SM_Kasabali_Zeynep` | 3D | bekliyor | | |
-| `SM_Kasabali_KemalBey` | 3D | bekliyor | | |
-| `SM_Kasabali_Elif` | 3D | bekliyor | | |
-| `SM_Kasabali_AliUsta` | 3D | bekliyor | | |
-| `SM_Kasabali_RizaAbi` | 3D | bekliyor | | |
-| `SM_Kasabali_Can` | 3D | bekliyor | | |
-| `SM_Kasabali_Deniz` | 3D | bekliyor | | |
-| `SM_Kasabali_MuratAbi` | 3D | bekliyor | | |
-| `SM_Kasabali_NerminHanim` | 3D | bekliyor | | |
-| `SM_TahliyeKisi` | 3D | bekliyor | | |
+| `SM_Kasabali_AyseTeyze` | 3D | ONAYLI | 18.10 00:33 | - |
+| `SM_Kasabali_SelmaOgretmen` | 3D | ONAYLI | 18.10 00:33 | - |
+| `SM_Kasabali_HasanAmca` | 3D | ONAYLI | 18.10 00:33 | - |
+| `SM_Kasabali_Zeynep` | 3D | ONAYLI | 18.10 00:33 | - |
+| `SM_Kasabali_KemalBey` | 3D | ONAYLI | 18.10 00:33 | - |
+| `SM_Kasabali_Elif` | 3D | ONAYLI | 18.10 00:33 | - |
+| `SM_Kasabali_AliUsta` | 3D | ONAYLI | 18.10 00:33 | - |
+| `SM_Kasabali_RizaAbi` | 3D | ONAYLI | 18.10 00:33 | - |
+| `SM_Kasabali_Can` | 3D | ONAYLI | 18.10 00:33 | - |
+| `SM_Kasabali_Deniz` | 3D | ONAYLI | 18.10 00:33 | - |
+| `SM_Kasabali_MuratAbi` | 3D | ONAYLI | 18.10 00:33 | - |
+| `SM_Kasabali_NerminHanim` | 3D | ONAYLI | 18.10 00:33 | - |
+| `SM_TahliyeKisi` | 3D | ONAYLI | 18.10 00:33 | - |
 | `SM_Takvim` | 3D | ONAYLI | 17.10 20:22 | - |
 | `SM_Tahta` | 3D | ONAYLI | 17.10 20:22 | - |
