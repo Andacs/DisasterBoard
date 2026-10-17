@@ -350,6 +350,8 @@ private:
 
 	UStaticMeshComponent* Part(USceneComponent* Parent, UStaticMesh* Mesh, const FVector& Loc, const FVector& SizeCm,
 		const FLinearColor& Color, const FRotator& Rot = FRotator::ZeroRotator, bool bCollide = false);
+	// Ekip modeli (Content/DisasterBoard/Meshes) kendi malzemesiyle, çarpışmasız
+	UStaticMeshComponent* TeamPart(USceneComponent* Parent, UStaticMesh* Mesh, const FVector& Loc, float Scale = 1.f);
 	USceneComponent* Node(USceneComponent* Parent, const FVector& Loc);
 	void BuildRoom();
 	void BuildBoard();

@@ -286,5 +286,37 @@
   "sha1": "ca40f2ba70b7",
   "tarih": "17.10 21:43",
   "uyarilar": []
+ },
+ "SM_Bina_AyseTeyze": {
+  "kaynak": "SM_Bina_AyseTeyze.fbx",
+  "sha1": "1dbf43034741",
+  "tarih": "17.10 20:19",
+  "uyarilar": [
+   "bilgi: Ölçü 14,6 x 14,6 x 14,6 cm (kutu 14,6 x 14,6 x 18,5), 888 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Bina_Okul": {
+  "kaynak": "SM_Bina_Okul.fbx",
+  "sha1": "261de31599b9",
+  "tarih": "17.10 19:53",
+  "uyarilar": [
+   "bilgi: Ölçü 14,6 x 14,6 x 19,0 cm (kutu 14,6 x 14,6 x 21,9), 428 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Tahta": {
+  "kaynak": "SM_Tahta.fbx",
+  "sha1": "3b35777d8920",
+  "tarih": "17.10 20:22",
+  "uyarilar": [
+   "bilgi: Ölçü 128,0 x 128,0 x 12,0 cm (kutu 128,0 x 128,0 x 15,2), 1324 üçgen, 1 parça, 1 malzeme"
+  ]
+ },
+ "SM_Takvim": {
+  "kaynak": "SM_Takvim.fbx",
+  "sha1": "89391c1db1f6",
+  "tarih": "17.10 20:22",
+  "uyarilar": [
+   "bilgi: Ölçü 96,5 x 2,0 x 74,3 cm (kutu 96,5 x 2,0 x 74,3), 844 üçgen, 1 parça, 1 malzeme"
+  ]
  }
 }

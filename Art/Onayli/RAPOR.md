@@ -1,6 +1,6 @@
-# Onaylı varlıklar (48 / 85)
+# Onaylı varlıklar (52 / 85)
 
-2D: 48 / 53 · 3D: 0 / 32. Bu dosyayı `Tools/varlik_kontrol.py` yazar, elle değiştirme.
+2D: 48 / 53 · 3D: 4 / 32. Bu dosyayı `Tools/varlik_kontrol.py` yazar, elle değiştirme.
 
 | Dosya | Tür | Durum | Tarih | Not |
 |---|---|---|---|---|
@@ -57,8 +57,8 @@
 | `Karakterler/NPC_Deniz.png` | 2D | ONAYLI | 17.10 21:43 | - |
 | `Karakterler/NPC_MuratAbi.png` | 2D | ONAYLI | 17.10 21:43 | - |
 | `Karakterler/NPC_NerminHanim.png` | 2D | ONAYLI | 17.10 21:43 | - |
-| `SM_Bina_AyseTeyze` | 3D | bekliyor | | |
-| `SM_Bina_Okul` | 3D | bekliyor | | |
+| `SM_Bina_AyseTeyze` | 3D | ONAYLI | 17.10 20:19 | - |
+| `SM_Bina_Okul` | 3D | ONAYLI | 17.10 19:53 | - |
 | `SM_Bina_Siginak` | 3D | bekliyor | | |
 | `SM_Bina_Yilmazlar` | 3D | bekliyor | | |
 | `SM_Bina_EskiApartman` | 3D | bekliyor | | |
@@ -87,5 +87,5 @@
 | `SM_Kasabali_MuratAbi` | 3D | bekliyor | | |
 | `SM_Kasabali_NerminHanim` | 3D | bekliyor | | |
 | `SM_TahliyeKisi` | 3D | bekliyor | | |
-| `SM_Takvim` | 3D | bekliyor | | |
-| `SM_Tahta` | 3D | bekliyor | | |
+| `SM_Takvim` | 3D | ONAYLI | 17.10 20:22 | - |
+| `SM_Tahta` | 3D | ONAYLI | 17.10 20:22 | - |
