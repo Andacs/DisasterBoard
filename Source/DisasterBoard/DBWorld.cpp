@@ -25,6 +25,22 @@ namespace
 	const FVector SweepDir = FVector(-1.f, -1.f, 0.f).GetSafeNormal(); // arka köşeden (+X+Y) kameraya doğru
 	// DBData'daki 5×5 arsa sırası → 13 karoluk tahtada 2×2 bloğun ilk karosu (aralarda bir karo sokak)
 	const int32 LotOrigin[5] = { 0, 3, 6, 9, 11 };
+
+	// Ekipten gelen, varlik_kontrol.py ile onaylanıp Content/DisasterBoard/Meshes'e alınmış bina modelleri
+	// (bina adı → SM_ adı). Listede yoksa ya da paket yoksa bina eskisi gibi koddan kutularla kurulur.
+	UStaticMesh* TeamBuildingMesh(const FString& BuildingName)
+	{
+		static const TMap<FString, FString> Names = {
+			{ TEXT("Okul"), TEXT("SM_Bina_Okul") },
+		};
+		const FString* N = Names.Find(BuildingName);
+		if (!N)
+		{
+			return nullptr;
+		}
+		const FString Path = FString::Printf(TEXT("/Game/DisasterBoard/Meshes/%s.%s"), **N, **N);
+		return LoadObject<UStaticMesh>(nullptr, *Path, nullptr, LOAD_NoWarn | LOAD_Quiet);
+	}
 }
 
 ADBWorld::ADBWorld()
@@ -295,6 +311,28 @@ void ADBWorld::BuildBuilding(int32 Index)
 		BuildTree(Root, FVector(6.f, 4.f, 2.f), 0.65f);
 		Part(Root, CubeMesh, FVector(4.f, -6.f, 3.5f), FVector(8.f, 2.5f, 1.2f), RGB(140, 100, 66));
 		BuildingHeights.Add(14.f);
+		return;
+	}
+
+	if (UStaticMesh* M = TeamBuildingMesh(D.Name))
+	{
+		// Ekipten gelen onaylı model: gerçek ölçüsünde (cm, şablon 14,6 × 14,6) ve kendi tabanı var, plaka ve yer
+		// tutucu kutular kurulmaz. Kök BuildingScale ile küçüldüğü için model 1 / BuildingScale ile büyütülür.
+		UStaticMeshComponent* C = NewObject<UStaticMeshComponent>(this);
+		C->SetMobility(EComponentMobility::Movable);
+		C->SetStaticMesh(M);
+		C->SetupAttachment(Root);
+		C->SetRelativeScale3D(FVector(1.f / BuildingScale));
+		C->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		C->RegisterComponent();
+		// Tıklama için görünmez kutu: imleç izi binaya bağlı bileşeni arar
+		const FBox Box = M->GetBoundingBox();
+		const FVector SizeDesign = Box.GetSize() / BuildingScale;
+		UStaticMeshComponent* HitBox = Part(Root, CubeMesh, Box.GetCenter() / BuildingScale, SizeDesign, FLinearColor::White, FRotator::ZeroRotator, true);
+		HitBox->SetHiddenInGame(true);
+		BuildingHeights.Add(SizeDesign.Z);
+		UE_LOG(LogDBWorld, Log, TEXT("DB_MODEL %s <- %s (%.1f x %.1f x %.1f cm)"), *D.Name, *M->GetName(),
+			Box.GetSize().X, Box.GetSize().Y, Box.GetSize().Z);
 		return;
 	}
 
