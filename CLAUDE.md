@@ -135,11 +135,16 @@ konuşmalar atlanır) / Menü.
 - `DBPlayerController` — sol tık / Esc + sağ tık (geri, seçimi bırak) / F5 (baştan). Konsol: `DBTest`,
   `DBExposure <EV>`, `DBTime <sn>`, `DBQuake`.
 
-**Ölçülenler:** tahta 5×5, hücre 26 cm; tahta kamerası 450 cm, −50°, yaw 45° (330'da üstteki işaretler
-kesiliyordu). Menü kamerası takvimden 250 cm. Pozlama sabit EV100 1,9.
+**Sahne = `Art/Sahne/AnaMenu_OyunAlani.blend` ölçüleri (17 Ekim ~03.20, Andaç'ın Blender görüntülerine göre):**
+Blender x → UE −X, y → Y, kaide üstü Z=0. Takvim duvarı X=100,7, yan duvar Y=100,7, zemin −160,7. Kaide köşeye
+dayalı 2 m blok. Tahta 128 cm, 13×13 oluk (8 cm), pahlı kenar, karo üstü Z=13,8. Takvim yatay 88,5×64,3 cm,
+merkez (Y −2,4, Z 88,9). DBData'daki 5×5 arsa → tahtada 2×2 karo (`LotOrigin` 0,3,6,9,11), binalar ×0,62.
+**Üç kamera:** menü (yatay, üstte takvim altta tahta; `MenuCamLoc` / `MenuCamLookAt`) · takvim yakın plan
+(Ayarlar / Emeği Geçenler: kamera 0,9 sn'de yaklaşır, sonra sayfa kalkar; Geri: sayfa iner, kamera menü
+açısına döner) · tahta (330 cm, −50°, yaw 45°). Pozlama sabit EV100 1,9.
 
 **Test:** `UnrealEditor.exe <tam yol>\DisasterBoard.uproject /Game/DisasterBoard/Maps/L_Ana -game -windowed
--ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~75 sn oynar, 18 görüntü
+-ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~90 sn oynar, 21 görüntü
 `Saved/Screenshots/WindowsEditor/DB_*.png`, kendisi kapanır. Test tıklama işlevlerini doğrudan çağırıyor.
 
 **Derlendi, ekranda görülmedi:** gerçek fareyle tıklama/hover (imleç, tooltip), Ayarlar'daki tam ekran ve

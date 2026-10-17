@@ -89,6 +89,24 @@ void ADBGameMode::Tick(float Dt)
 
 	switch (Phase)
 	{
+	case EDBPhase::MenuPage:
+		if (bPageFlipPending && PhaseTime >= CalendarBlendSeconds)
+		{
+			bPageFlipPending = false;
+			World->FlipPage(true);
+		}
+		else if (bReturnPending && !World->IsPageFlipping())
+		{
+			bReturnPending = false;
+			if (APlayerController* P = PC())
+			{
+				P->SetViewTargetWithBlend(World->MenuCam, CalendarBlendSeconds, VTBlend_EaseInOut, 2.f);
+			}
+			MenuUIDelay = CalendarBlendSeconds;
+			SetPhase(EDBPhase::Menu);
+		}
+		break;
+
 	case EDBPhase::ToBoard:
 		if (PhaseTime >= CameraBlendSeconds)
 		{
@@ -156,7 +174,7 @@ void ADBGameMode::Tick(float Dt)
 
 void ADBGameMode::ClickPlay()
 {
-	if (Phase != EDBPhase::Menu)
+	if (!IsMenuReady())
 	{
 		return;
 	}
@@ -167,25 +185,35 @@ void ADBGameMode::ClickPlay()
 	}
 }
 
+// Ayarlar / Emeği Geçenler: kamera takvime yaklaşır → sayfa kalkar. Geri: sayfa iner → kamera menü açısına döner.
 void ADBGameMode::OpenMenuPage(EDBMenuPage Page)
 {
-	if (Phase != EDBPhase::Menu || World->IsPageFlipping())
+	if (!IsMenuReady() || World->IsPageFlipping())
 	{
 		return;
 	}
 	MenuPage = Page;
-	World->FlipPage(true);
 	SetPhase(EDBPhase::MenuPage);
+	bPageFlipPending = true;
+	if (APlayerController* P = PC())
+	{
+		P->SetViewTargetWithBlend(World->CalendarCam, CalendarBlendSeconds, VTBlend_EaseInOut, 2.f);
+	}
 }
 
 void ADBGameMode::CloseMenuPage()
 {
-	if (Phase != EDBPhase::MenuPage || World->IsPageFlipping())
+	if (!IsMenuPageReady())
 	{
 		return;
 	}
 	World->FlipPage(false);
-	SetPhase(EDBPhase::Menu);
+	bReturnPending = true;
+}
+
+bool ADBGameMode::IsMenuPageReady() const
+{
+	return Phase == EDBPhase::MenuPage && !bPageFlipPending && !bReturnPending && World && !World->IsPageFlipping();
 }
 
 void ADBGameMode::QuitGame()

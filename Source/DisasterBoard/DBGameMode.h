@@ -34,6 +34,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "DB") int32 BagCapacity = 4;
 	UPROPERTY(EditAnywhere, Category = "DB") int32 MaxBags = 4;
 	UPROPERTY(EditAnywhere, Category = "DB") float CameraBlendSeconds = 2.2f;
+	UPROPERTY(EditAnywhere, Category = "DB") float CalendarBlendSeconds = 0.9f;  // menü ↔ takvim yakın plan
 	UPROPERTY(EditAnywhere, Category = "DB") float ScanSeconds = 2.4f;
 	UPROPERTY(EditAnywhere, Category = "DB") float QuakeDuration = 5.f;
 	UPROPERTY(EditAnywhere, Category = "DB") float TalkCharsPerSecond = 55.f;
@@ -77,6 +78,9 @@ public:
 	int32 NumSolved() const;
 	int32 NumRevealed() const;
 	bool CanEditBags() const { return bPanelOpen && (Phase == EDBPhase::BagPrep || Phase == EDBPhase::Play); }
+	// Menü yazıları yalnızca kamera durup sayfa yerine oturunca çizilir
+	bool IsMenuReady() const { return Phase == EDBPhase::Menu && PhaseTime >= MenuUIDelay; }
+	bool IsMenuPageReady() const;
 	bool IsBoardPhase() const { return Phase != EDBPhase::Menu && Phase != EDBPhase::MenuPage; }
 	bool IsTimerVisible() const { return bPlayStarted && (Phase == EDBPhase::Play || Phase == EDBPhase::Quake); }
 	FString MissingItemsText(int32 Problem, const TArray<int32>& BagItems) const;
@@ -124,4 +128,7 @@ private:
 	float TalkTime = 0.f;
 	TFunction<void()> TalkDone;
 	float AllSolvedAt = -1.f;
+	bool bPageFlipPending = false;  // takvim kamerasına varınca sayfa kalkacak
+	bool bReturnPending = false;    // sayfa inince menü kamerasına dönülecek
+	float MenuUIDelay = 0.f;
 };

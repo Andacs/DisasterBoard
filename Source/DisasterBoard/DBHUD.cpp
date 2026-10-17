@@ -377,23 +377,28 @@ void ADBHUD::DrawMenu()
 	const float CX = Mn.X + PW * 0.5f;
 	const float BandH = PH * 0.18f;
 
-	if (GM->World->IsPageFlipping())
-	{
-		return;
-	}
-
 	if (GM->Phase == EDBPhase::Menu)
 	{
-		Txt(TEXT("EKİM 2026"), CX, Mn.Y + BandH * 0.5f - 3.2f * U1, 6.4f * U1, Paper, 1);
-		Txt(TEXT("DisasterBoard"), CX, Mn.Y + BandH + 5.f * U1, 8.6f * U1, Ink, 1);
-		Txt(TEXT("Depreme hazır mısın?"), CX, Mn.Y + BandH + 15.f * U1, 4.4f * U1, DarkK, 1);
+		if (!GM->IsMenuReady())
+		{
+			return;
+		}
+		// Yatay sayfa: başlık, altında 2×2 düğme
+		Txt(TEXT("EKİM 2026"), CX, Mn.Y + BandH * 0.5f - 4.5f * U1, 9.f * U1, Paper, 1);
+		Txt(TEXT("DisasterBoard"), CX, Mn.Y + BandH + 4.f * U1, 12.f * U1, Ink, 1);
+		Txt(TEXT("Depreme hazır mısın?"), CX, Mn.Y + BandH + 18.f * U1, 6.f * U1, DarkK, 1);
 		const TCHAR* Labels[] = { TEXT("Oyna"), TEXT("Ayarlar"), TEXT("Emeği Geçenler"), TEXT("Çıkış") };
 		const FName Ids[] = { TEXT("Play"), TEXT("Settings"), TEXT("Credits"), TEXT("Quit") };
 		for (int32 i = 0; i < 4; ++i)
 		{
-			const FBox2D R = Rect(Mn.X + PW * 0.14f, Mn.Y + BandH + 25.f * U1 + i * 12.5f * U1, PW * 0.72f, 10.f * U1);
-			Button(Ids[i], -1, R, Labels[i], 5.2f * U1, i == 0 ? Coral : CardC, DarkK, i == 0 ? Paper : Ink);
+			const FBox2D R = Rect(Mn.X + PW * (i % 2 == 0 ? 0.08f : 0.52f), Mn.Y + BandH + (32.f + (i / 2) * 22.f) * U1, PW * 0.40f, 17.f * U1);
+			Button(Ids[i], -1, R, Labels[i], 7.5f * U1, i == 0 ? Coral : CardC, DarkK, i == 0 ? Paper : Ink);
 		}
+		return;
+	}
+
+	if (!GM->IsMenuPageReady())
+	{
 		return;
 	}
 
@@ -415,8 +420,8 @@ void ADBHUD::DrawMenu()
 		const TArray<FString>& Lines = FDBContent::Get().Credits;
 		for (int32 i = 0; i < Lines.Num(); ++i)
 		{
-			Txt(Lines[i], CX, Y, (i == 0 ? 5.6f : 3.9f) * U1, i == 0 ? Coral : Ink, 1);
-			Y += (Lines[i].IsEmpty() ? 2.5f : (i == 0 ? 7.f : 5.4f)) * U1;
+			Txt(Lines[i], CX, Y, (i == 0 ? 6.f : 4.4f) * U1, i == 0 ? Coral : Ink, 1);
+			Y += (Lines[i].IsEmpty() ? 1.5f : (i == 0 ? 7.f : 5.6f)) * U1;
 		}
 	}
 	Button(TEXT("Back"), -1, Rect(Mn.X + PW * 0.3f, Mx.Y - 14.f * U1, PW * 0.4f, 9.f * U1), TEXT("Geri"), 4.8f * U1, Coral, DarkK, Paper);

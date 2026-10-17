@@ -11,7 +11,7 @@ class UStaticMesh;
 class UStaticMeshComponent;
 class UMaterialInterface;
 
-// Odanın tamamı koddan: zemin, iki duvar, masa, tahta, binalar, duvardaki takvim, iki kamera.
+// Odanın tamamı koddan: zemin, iki duvar, kaide, tahta, binalar, duvardaki takvim, üç kamera.
 // Seviye dosyasında yalnızca ışık var; modelciden mesh gelince ilgili parça burada değiştirilir.
 UCLASS()
 class DISASTERBOARD_API ADBWorld : public AActor
@@ -24,19 +24,25 @@ public:
 
 	void Build();
 
-	// --- Ayarlar ---
-	UPROPERTY(EditAnywhere, Category = "DB|Tahta") int32 GridN = 5;
-	UPROPERTY(EditAnywhere, Category = "DB|Tahta") float CellCm = 26.f;
-	UPROPERTY(EditAnywhere, Category = "DB|Tahta") float BorderCm = 10.f;
-	UPROPERTY(EditAnywhere, Category = "DB|Oda") float WallDistCm = 330.f;
-	UPROPERTY(EditAnywhere, Category = "DB|Oda") float FloorZ = -80.f;
-	UPROPERTY(EditAnywhere, Category = "DB|Takvim") FVector CalendarCenter = FVector(40.f, 328.f, 135.f);
-	UPROPERTY(EditAnywhere, Category = "DB|Takvim") FVector2D CalendarSize = FVector2D(74.f, 92.f);
+	// --- Ayarlar (ölçüler Art/Sahne/AnaMenu_OyunAlani.blend'den; Blender x → −X, y → Y, kaide üstü Z=0) ---
+	UPROPERTY(EditAnywhere, Category = "DB|Tahta") int32 GridN = 13;            // blend: 13×13 oluk
+	UPROPERTY(EditAnywhere, Category = "DB|Tahta") float CellCm = 8.f;          // oluk aralığı
+	UPROPERTY(EditAnywhere, Category = "DB|Tahta") float TileCm = 6.6f;         // karonun üst yüzü
+	UPROPERTY(EditAnywhere, Category = "DB|Tahta") float BoardCm = 128.f;       // dış ölçü
+	UPROPERTY(EditAnywhere, Category = "DB|Tahta") float BoardTopZ = 13.8f;     // karoların üstü
+	UPROPERTY(EditAnywhere, Category = "DB|Tahta") float BuildingScale = 0.62f; // bina 2×2 karoya sığsın
+	UPROPERTY(EditAnywhere, Category = "DB|Oda") float WallX = 100.7f;          // takvimin duvarı
+	UPROPERTY(EditAnywhere, Category = "DB|Oda") float WallY = 100.7f;          // yan duvar
+	UPROPERTY(EditAnywhere, Category = "DB|Oda") float FloorZ = -160.7f;
+	UPROPERTY(EditAnywhere, Category = "DB|Takvim") FVector2D CalendarYZ = FVector2D(-2.4f, 88.9f);   // duvarda merkez
+	UPROPERTY(EditAnywhere, Category = "DB|Takvim") FVector2D CalendarSize = FVector2D(88.5f, 64.3f); // yatay
 	UPROPERTY(EditAnywhere, Category = "DB|Takvim") float PageFlipDegPerSec = 300.f;
-	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float MenuCamDistance = 250.f;
+	UPROPERTY(EditAnywhere, Category = "DB|Kamera") FVector MenuCamLoc = FVector(-250.f, 15.f, 85.f);  // yatay: takvim + tahta
+	UPROPERTY(EditAnywhere, Category = "DB|Kamera") FVector MenuCamLookAt = FVector(100.f, -5.f, 55.f);
+	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float CalendarCamDistance = 200.f;                 // Ayarlar / Emeği Geçenler
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float MenuCamFov = 50.f;
-	UPROPERTY(EditAnywhere, Category = "DB|Kamera") FVector BoardFocus = FVector(-34.f, -34.f, 0.f);
-	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float BoardCamDistance = 450.f;
+	UPROPERTY(EditAnywhere, Category = "DB|Kamera") FVector BoardFocus = FVector(-8.f, -8.f, 10.f);
+	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float BoardCamDistance = 330.f;
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float BoardCamPitch = -50.f;
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float BoardCamYaw = 45.f;
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float BoardCamFov = 50.f;
@@ -44,6 +50,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "DB|Işık") FRotator SunRotation = FRotator(-52.f, 32.f, 0.f);
 
 	UPROPERTY() TObjectPtr<ACameraActor> MenuCam;
+	UPROPERTY() TObjectPtr<ACameraActor> CalendarCam;
 	UPROPERTY() TObjectPtr<ACameraActor> BoardCam;
 
 	// --- Sorgular ---
@@ -78,6 +85,7 @@ private:
 
 	UPROPERTY() TObjectPtr<USceneComponent> BoardRoot;
 	UPROPERTY() TArray<TObjectPtr<USceneComponent>> BuildingRoots;
+	UPROPERTY() TObjectPtr<USceneComponent> CalendarRoot;
 	UPROPERTY() TObjectPtr<USceneComponent> PageHinge;
 	UPROPERTY() TObjectPtr<UStaticMeshComponent> ScanBeam;
 
@@ -100,7 +108,7 @@ private:
 	float QuakeDuration = 4.f;
 
 	float HalfDiag() const;
-	FVector CellCenter(FIntPoint Cell) const;
+	FVector LotCenter(FIntPoint Lot) const;   // DBData'daki 5×5 arsa → 13×13 tahtada 2×2 karo
 
 	UStaticMeshComponent* Part(USceneComponent* Parent, UStaticMesh* Mesh, const FVector& Loc, const FVector& SizeCm,
 		const FLinearColor& Color, const FRotator& Rot = FRotator::ZeroRotator, bool bCollide = false);

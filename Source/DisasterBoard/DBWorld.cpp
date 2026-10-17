@@ -16,7 +16,8 @@ namespace
 {
 	using DBColor::RGB;
 	const FVector SweepDir = FVector(-1.f, -1.f, 0.f).GetSafeNormal(); // arka köşeden (+X+Y) kameraya doğru
-	constexpr float BoardTopZ = 5.f;                                     // karoların üstü
+	// DBData'daki 5×5 arsa sırası → 13 karoluk tahtada 2×2 bloğun ilk karosu (aralarda bir karo sokak)
+	const int32 LotOrigin[5] = { 0, 3, 6, 9, 11 };
 }
 
 ADBWorld::ADBWorld()
@@ -75,13 +76,15 @@ USceneComponent* ADBWorld::Node(USceneComponent* Parent, const FVector& Loc)
 
 float ADBWorld::HalfDiag() const
 {
-	return (GridN * CellCm * 0.5f + BorderCm) * UE_SQRT_2;
+	return (GridN * CellCm * 0.5f + 2.f) * UE_SQRT_2;
 }
 
-FVector ADBWorld::CellCenter(FIntPoint Cell) const
+FVector ADBWorld::LotCenter(FIntPoint Lot) const
 {
-	const float Half = (GridN - 1) * 0.5f;
-	return FVector((Cell.X - Half) * CellCm, (Cell.Y - Half) * CellCm, BoardTopZ);
+	const float Min = -GridN * CellCm * 0.5f;
+	const int32 GX = LotOrigin[FMath::Clamp(Lot.X, 0, 4)];
+	const int32 GY = LotOrigin[FMath::Clamp(Lot.Y, 0, 4)];
+	return FVector(Min + (GX + 1) * CellCm, Min + (GY + 1) * CellCm, BoardTopZ);
 }
 
 void ADBWorld::Build()
@@ -101,19 +104,21 @@ void ADBWorld::Build()
 void ADBWorld::BuildRoom()
 {
 	USceneComponent* R = RootComponent;
-	const float H = 520.f;
-	const float Span = 1600.f;
+	const float H = 560.f;
+	const float Span = 1400.f;
 	Part(R, CubeMesh, FVector(0, 0, FloorZ - 1.f), FVector(Span, Span, 2.f), RGB(170, 132, 98));
-	// İki duvar: kameradan bakınca tahtanın arkasında köşe oluşturur
-	Part(R, CubeMesh, FVector(WallDistCm + 2.f, 0, FloorZ + H * 0.5f), FVector(4.f, Span, H), RGB(238, 224, 198));
-	Part(R, CubeMesh, FVector(0, WallDistCm + 2.f, FloorZ + H * 0.5f), FVector(Span, 4.f, H), RGB(230, 212, 182));
-	Part(R, CubeMesh, FVector(WallDistCm - 1.f, 0, FloorZ + 6.f), FVector(4.f, Span, 12.f), RGB(196, 154, 108));
-	Part(R, CubeMesh, FVector(0, WallDistCm - 1.f, FloorZ + 6.f), FVector(Span, 4.f, 12.f), RGB(196, 154, 108));
-	// Duvarda pencere (dışarısı gök mavisi)
-	Part(R, CubeMesh, FVector(WallDistCm - 0.5f, -120.f, 150.f), FVector(2.f, 130.f, 100.f), RGB(150, 112, 78));
-	Part(R, CubeMesh, FVector(WallDistCm - 1.2f, -120.f, 150.f), FVector(2.f, 118.f, 88.f), RGB(176, 214, 236));
-	Part(R, CubeMesh, FVector(WallDistCm - 1.8f, -120.f, 150.f), FVector(2.f, 4.f, 88.f), RGB(150, 112, 78));
-	Part(R, CubeMesh, FVector(WallDistCm - 1.8f, -120.f, 150.f), FVector(2.f, 118.f, 4.f), RGB(150, 112, 78));
+	// İki duvar köşe oluşturur; kaide bu köşeye dayalı (blend: Cube.001)
+	Part(R, CubeMesh, FVector(WallX + 2.f, 0, FloorZ + H * 0.5f), FVector(4.f, Span, H), RGB(238, 224, 198));
+	Part(R, CubeMesh, FVector(0, WallY + 2.f, FloorZ + H * 0.5f), FVector(Span, 4.f, H), RGB(228, 210, 180));
+	Part(R, CubeMesh, FVector(WallX - 1.f, 0, FloorZ + 6.f), FVector(4.f, Span, 12.f), RGB(196, 154, 108));
+	Part(R, CubeMesh, FVector(0, WallY - 1.f, FloorZ + 6.f), FVector(Span, 4.f, 12.f), RGB(196, 154, 108));
+	// Takvimin solunda pencere
+	const float WinY = -190.f;
+	const float WinZ = 110.f;
+	Part(R, CubeMesh, FVector(WallX - 0.5f, WinY, WinZ), FVector(2.f, 120.f, 96.f), RGB(150, 112, 78));
+	Part(R, CubeMesh, FVector(WallX - 1.2f, WinY, WinZ), FVector(2.f, 108.f, 84.f), RGB(176, 214, 236));
+	Part(R, CubeMesh, FVector(WallX - 1.8f, WinY, WinZ), FVector(2.f, 4.f, 84.f), RGB(150, 112, 78));
+	Part(R, CubeMesh, FVector(WallX - 1.8f, WinY, WinZ), FVector(2.f, 108.f, 4.f), RGB(150, 112, 78));
 }
 
 void ADBWorld::BuildBoard()
@@ -121,27 +126,25 @@ void ADBWorld::BuildBoard()
 	BoardRoot = Node(RootComponent, FVector::ZeroVector);
 	USceneComponent* B = BoardRoot;
 
-	// Masa (tahta onunla birlikte sallanır)
-	const FLinearColor Wood = RGB(158, 110, 72);
-	Part(B, CubeMesh, FVector(0, 0, -3.f), FVector(196.f, 196.f, 6.f), Wood);
-	const float LegH = -FloorZ - 6.f;
-	for (int32 i = 0; i < 4; ++i)
-	{
-		const float X = (i & 1) ? 88.f : -88.f;
-		const float Y = (i & 2) ? 88.f : -88.f;
-		Part(B, CubeMesh, FVector(X, Y, -6.f - LegH * 0.5f), FVector(9.f, 9.f, LegH), Wood);
-	}
+	// Kaide: duvarların köşesine dayalı blok, üstü Z=0 (tahta onunla birlikte sallanır)
+	const float PlinthBack = FMath::Min(WallX, WallY);
+	const float PlinthFront = -102.f;
+	Part(B, CubeMesh, FVector((PlinthBack + PlinthFront) * 0.5f, (PlinthBack + PlinthFront) * 0.5f, FloorZ * 0.5f),
+		FVector(PlinthBack - PlinthFront, PlinthBack - PlinthFront, -FloorZ), RGB(158, 110, 72));
 
-	// Tahta: karton levha + karolar
-	const float Size = GridN * CellCm + 2.f * BorderCm;
-	Part(B, CubeMesh, FVector(0, 0, 2.f), FVector(Size, Size, 4.f), RGB(196, 154, 108), FRotator::ZeroRotator, true);
+	// Tahta (blend: Cube.002): taban, pahlı kenar, oluklu düzlük
+	const float Plateau = GridN * CellCm;
+	Part(B, CubeMesh, FVector(0, 0, 3.6f), FVector(BoardCm, BoardCm, 10.2f), RGB(176, 132, 90), FRotator::ZeroRotator, true);
+	Part(B, CubeMesh, FVector(0, 0, 10.35f), FVector(BoardCm - 10.f, BoardCm - 10.f, 3.3f), RGB(196, 154, 108), FRotator::ZeroRotator, true);
+	Part(B, CubeMesh, FVector(0, 0, 12.5f), FVector(Plateau + 2.f, Plateau + 2.f, 1.f), RGB(150, 112, 78), FRotator::ZeroRotator, true);
+	const float TileH = BoardTopZ - 13.f;
 	for (int32 X = 0; X < GridN; ++X)
 	{
 		for (int32 Y = 0; Y < GridN; ++Y)
 		{
 			const bool bDark = ((X + Y) & 1) != 0;
-			Part(B, CubeMesh, CellCenter(FIntPoint(X, Y)) - FVector(0, 0, 0.5f), FVector(CellCm - 2.f, CellCm - 2.f, 1.f),
-				bDark ? RGB(222, 198, 156) : RGB(234, 214, 176), FRotator::ZeroRotator, true);
+			const FVector C(-Plateau * 0.5f + (X + 0.5f) * CellCm, -Plateau * 0.5f + (Y + 0.5f) * CellCm, 13.f + TileH * 0.5f);
+			Part(B, CubeMesh, C, FVector(TileCm, TileCm, TileH), bDark ? RGB(226, 204, 164) : RGB(236, 218, 182), FRotator::ZeroRotator, true);
 		}
 	}
 
@@ -151,15 +154,15 @@ void ADBWorld::BuildBoard()
 		BuildBuilding(i);
 	}
 
-	// Boş karolara ağaç
+	// Boş arsalara ağaç
 	const FIntPoint Trees[] = { FIntPoint(0, 0), FIntPoint(1, 2), FIntPoint(3, 3), FIntPoint(4, 4), FIntPoint(2, 4), FIntPoint(3, 0) };
 	for (const FIntPoint& T : Trees)
 	{
-		BuildTree(B, CellCenter(T), 1.f);
+		BuildTree(B, LotCenter(T), BuildingScale);
 	}
 
 	// Tarama çizgisi (yalnızca taramada görünür)
-	ScanBeam = Part(B, CubeMesh, FVector(0, 0, BoardTopZ + 1.f), FVector(100.f, 3.f, 2.f), RGB(110, 235, 140), FRotator(0, -45.f, 0));
+	ScanBeam = Part(B, CubeMesh, FVector(0, 0, BoardTopZ + 1.f), FVector(100.f, 2.f, 1.5f), RGB(110, 235, 140), FRotator(0, -45.f, 0));
 	ScanBeam->SetVisibility(false);
 }
 
@@ -172,14 +175,16 @@ void ADBWorld::BuildTree(USceneComponent* Parent, const FVector& Loc, float Scal
 void ADBWorld::BuildBuilding(int32 Index)
 {
 	const FDBBuildingDef& D = FDBContent::Get().Buildings[Index];
-	USceneComponent* Root = Node(BoardRoot, CellCenter(D.Cell));
+	// Bina tasarım ölçüsünde (≈20 cm) kurulur, kök BuildingScale ile 2×2 karoya küçülür
+	USceneComponent* Root = Node(BoardRoot, LotCenter(D.Cell));
+	Root->SetRelativeScale3D(FVector(BuildingScale));
 	BuildingRoots.Add(Root);
 	PopTime.Add(0.f);
 	FallRot.Add(FRotator((Index & 1) ? 26.f : -26.f, 0.f, (Index & 2) ? 20.f : -20.f));
 
 	if (D.bPark)
 	{
-		Part(Root, CubeMesh, FVector(0, 0, 1.f), FVector(CellCm - 3.f, CellCm - 3.f, 2.f), D.Body, FRotator::ZeroRotator, true);
+		Part(Root, CubeMesh, FVector(0, 0, 1.f), FVector(23.f, 23.f, 2.f), D.Body, FRotator::ZeroRotator, true);
 		BuildTree(Root, FVector(-5.f, -5.f, 2.f), 0.8f);
 		BuildTree(Root, FVector(6.f, 4.f, 2.f), 0.65f);
 		Part(Root, CubeMesh, FVector(4.f, -6.f, 3.5f), FVector(8.f, 2.5f, 1.2f), RGB(140, 100, 66));
@@ -222,7 +227,7 @@ void ADBWorld::BuildBuilding(int32 Index)
 			Part(Root, CubeMesh, FVector(-S.X * 0.5f - 0.3f, Col * S.Y * 0.24f, Z), FVector(0.8f, 4.f, 4.5f), Glass);
 			if (Rows > 1 || Col == 1)
 			{
-				Part(Root, CubeMesh, FVector(Col * S.X * 0.24f, -S.Y * 0.5f - 0.3f, Rows == 1 ? Z : Z), FVector(4.f, 0.8f, 4.5f), Glass);
+				Part(Root, CubeMesh, FVector(Col * S.X * 0.24f, -S.Y * 0.5f - 0.3f, Z), FVector(4.f, 0.8f, 4.5f), Glass);
 			}
 		}
 	}
@@ -230,58 +235,61 @@ void ADBWorld::BuildBuilding(int32 Index)
 
 void ADBWorld::BuildCalendar()
 {
+	// Takvim X duvarında, odaya (-X) bakar. Yerel eksenler: X = genişlik, -Y = duvardan odaya, Z = yukarı.
 	const float W = CalendarSize.X;
 	const float H = CalendarSize.Y;
-	const float Face = WallDistCm;
-	const FVector C(CalendarCenter.X, 0.f, CalendarCenter.Z);
-	USceneComponent* R = RootComponent;
+	CalendarRoot = Node(RootComponent, FVector(WallX, CalendarYZ.X, CalendarYZ.Y));
+	CalendarRoot->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+	USceneComponent* R = CalendarRoot;
 
 	const FLinearColor Paper = RGB(248, 240, 224);
-	const FLinearColor Band = RGB(232, 128, 104);
-	Part(R, CubeMesh, C + FVector(0, Face - 1.f, 0), FVector(W + 10.f, 2.f, H + 12.f), RGB(150, 108, 72));
+	Part(R, CubeMesh, FVector(0, -1.f, 0), FVector(W + 8.f, 2.f, H + 10.f), RGB(150, 108, 72));
 	// Alttaki sayfa (Ayarlar / Emeği Geçenler buraya yazılır)
-	Part(R, CubeMesh, C + FVector(0, Face - 2.5f, 0), FVector(W, 0.6f, H), Paper);
-	Part(R, CubeMesh, C + FVector(0, Face - 3.1f, H * 0.5f - H * 0.09f), FVector(W, 0.4f, H * 0.18f), RGB(96, 170, 164));
+	Part(R, CubeMesh, FVector(0, -2.5f, 0), FVector(W, 0.6f, H), Paper);
+	Part(R, CubeMesh, FVector(0, -3.1f, H * 0.5f - H * 0.09f), FVector(W, 0.4f, H * 0.18f), RGB(96, 170, 164));
 
 	// Üstteki sayfa: menteşe üst kenarda, sayfa aşağı sarkar
-	PageHinge = Node(R, C + FVector(0, Face - 4.0f, H * 0.5f));
+	PageHinge = Node(R, FVector(0, -4.f, H * 0.5f));
 	Part(PageHinge, CubeMesh, FVector(0, 0, -H * 0.5f), FVector(W, 0.6f, H), Paper);
-	Part(PageHinge, CubeMesh, FVector(0, -0.5f, -H * 0.09f), FVector(W, 0.4f, H * 0.18f), Band);
+	Part(PageHinge, CubeMesh, FVector(0, -0.5f, -H * 0.09f), FVector(W, 0.4f, H * 0.18f), RGB(232, 128, 104));
 
 	// Spiral halkalar
-	const int32 Rings = 12;
+	const int32 Rings = 22;
 	for (int32 i = 0; i < Rings; ++i)
 	{
-		const float X = -W * 0.5f + 4.f + i * (W - 8.f) / (Rings - 1);
-		Part(R, CylinderMesh, C + FVector(X, Face - 4.0f, H * 0.5f + 1.f), FVector(1.6f, 1.6f, 6.f), RGB(90, 90, 96));
+		const float X = -W * 0.5f + 3.f + i * (W - 6.f) / (Rings - 1);
+		Part(R, CylinderMesh, FVector(X, -4.f, H * 0.5f + 1.f), FVector(1.4f, 1.4f, 5.f), RGB(90, 90, 96));
 	}
-	// Çivi
-	Part(R, CylinderMesh, C + FVector(0, Face - 2.f, H * 0.5f + 8.f), FVector(1.5f, 1.5f, 4.f), RGB(90, 90, 96), FRotator(0, 0, 90.f));
+	Part(R, CylinderMesh, FVector(0, -2.f, H * 0.5f + 7.f), FVector(1.5f, 1.5f, 4.f), RGB(90, 90, 96), FRotator(0, 0, 90.f));
 
-	// Menteşe yönü: küçük açıda sayfanın alt ucu odaya (-Y) gitmeli, duvara değil
+	// Menteşe yönü: küçük açıda sayfanın alt ucu odaya (yerel -Y) gitmeli, duvara değil
 	PageSign = FRotator(0, 0, 30.f).RotateVector(FVector(0, 0, -1.f)).Y < 0.f ? 1.f : -1.f;
 }
 
 void ADBWorld::BuildCameras()
 {
-	auto Setup = [this](ACameraActor* Cam, float Fov)
+	auto Make = [this](const FVector& Loc, const FRotator& Rot, float Fov)
 	{
+		ACameraActor* Cam = GetWorld()->SpawnActor<ACameraActor>(Loc, Rot);
 		UCameraComponent* CC = Cam->GetCameraComponent();
 		CC->SetFieldOfView(Fov);
 		CC->SetConstraintAspectRatio(false);
 		CC->PostProcessSettings.bOverride_MotionBlurAmount = true;
 		CC->PostProcessSettings.MotionBlurAmount = 0.f;
 		CC->PostProcessBlendWeight = 1.f;
+		return Cam;
 	};
 
-	const FVector CalFront(CalendarCenter.X, WallDistCm - 4.f, CalendarCenter.Z);
-	const FVector MenuLoc = CalFront - FVector(0, MenuCamDistance, 0);
-	MenuCam = GetWorld()->SpawnActor<ACameraActor>(MenuLoc, (CalFront - MenuLoc).Rotation());
-	Setup(MenuCam, MenuCamFov);
+	// Menü: yatay bakış, üstte takvim, altta tahta
+	MenuCam = Make(MenuCamLoc, (MenuCamLookAt - MenuCamLoc).Rotation(), MenuCamFov);
 
+	// Takvim: tam karşıdan, yakın (Ayarlar / Emeği Geçenler)
+	const FVector CalFront(WallX - 4.f, CalendarYZ.X, CalendarYZ.Y);
+	CalendarCam = Make(CalFront - FVector(CalendarCamDistance, 0, 0), FRotator::ZeroRotator, MenuCamFov);
+
+	// Oyun: tahtaya köşeden, eşkenar dörtgen görünüş
 	const FRotator BoardRot(BoardCamPitch, BoardCamYaw, 0.f);
-	BoardCam = GetWorld()->SpawnActor<ACameraActor>(BoardFocus - BoardRot.Vector() * BoardCamDistance, BoardRot);
-	Setup(BoardCam, BoardCamFov);
+	BoardCam = Make(BoardFocus - BoardRot.Vector() * BoardCamDistance, BoardRot, BoardCamFov);
 
 	ApplyExposure(ExposureEV100);
 }
@@ -289,7 +297,7 @@ void ADBWorld::BuildCameras()
 void ADBWorld::ApplyExposure(float EV100)
 {
 	ExposureEV100 = EV100;
-	for (ACameraActor* Cam : { MenuCam.Get(), BoardCam.Get() })
+	for (ACameraActor* Cam : { MenuCam.Get(), CalendarCam.Get(), BoardCam.Get() })
 	{
 		if (!Cam)
 		{
@@ -309,7 +317,7 @@ FVector ADBWorld::MarkerAnchor(int32 Building) const
 	{
 		return FVector::ZeroVector;
 	}
-	return BuildingRoots[Building]->GetComponentTransform().TransformPosition(FVector(0, 0, BuildingHeights[Building] + 12.f));
+	return BuildingRoots[Building]->GetComponentTransform().TransformPosition(FVector(0, 0, BuildingHeights[Building] + 16.f));
 }
 
 int32 ADBWorld::BuildingFromComponent(const UPrimitiveComponent* Comp) const
@@ -330,19 +338,19 @@ int32 ADBWorld::BuildingFromComponent(const UPrimitiveComponent* Comp) const
 
 bool ADBWorld::GetPageScreenRect(const APlayerController* PC, FVector2D& OutMin, FVector2D& OutMax) const
 {
-	if (!PC)
+	if (!PC || !CalendarRoot)
 	{
 		return false;
 	}
 	const float W = CalendarSize.X * 0.5f;
 	const float H = CalendarSize.Y * 0.5f;
-	const FVector C(CalendarCenter.X, WallDistCm - 3.f, CalendarCenter.Z);
+	const FTransform T = CalendarRoot->GetComponentTransform();
 	OutMin = FVector2D(1e9f, 1e9f);
 	OutMax = FVector2D(-1e9f, -1e9f);
-	for (const FVector& Off : { FVector(-W, 0, -H), FVector(W, 0, -H), FVector(-W, 0, H), FVector(W, 0, H) })
+	for (const FVector& Off : { FVector(-W, -3.f, -H), FVector(W, -3.f, -H), FVector(-W, -3.f, H), FVector(W, -3.f, H) })
 	{
 		FVector2D S;
-		if (!PC->ProjectWorldLocationToScreen(C + Off, S))
+		if (!PC->ProjectWorldLocationToScreen(T.TransformPosition(Off), S))
 		{
 			return false;
 		}
@@ -438,7 +446,7 @@ void ADBWorld::Tick(float Dt)
 		PopTime[i] += Dt;
 		const float T = PopTime[i] / 0.45f;
 		const float S = T < 1.f ? 1.f + 0.22f * FMath::Sin(T * PI) : 1.f;
-		BuildingRoots[i]->SetRelativeScale3D(FVector(S));
+		BuildingRoots[i]->SetRelativeScale3D(FVector(S * BuildingScale));
 		if (T >= 1.f)
 		{
 			PopTime[i] = 0.f;
@@ -451,7 +459,7 @@ void ADBWorld::Tick(float Dt)
 		QuakeT += Dt;
 		const float A = FMath::Clamp(QuakeT / QuakeDuration, 0.f, 1.f);
 		const float Env = FMath::Sin(A * PI);
-		const float Amp = 4.f * Env;
+		const float Amp = 2.5f * Env;
 		BoardRoot->SetRelativeLocation(FVector(FMath::Sin(QuakeT * 41.f) * Amp, FMath::Cos(QuakeT * 33.f) * Amp, 0.f));
 		BoardRoot->SetRelativeRotation(FRotator(FMath::Sin(QuakeT * 23.f) * 1.2f * Env, 0.f, FMath::Cos(QuakeT * 29.f) * 1.2f * Env));
 
@@ -469,7 +477,7 @@ void ADBWorld::Tick(float Dt)
 			const float Shake = (1.f - F) * Env;
 			B->SetRelativeRotation(FRotator(FallRot[i].Pitch * F + FMath::Sin(QuakeT * 34.f + i) * 4.f * Shake, 0.f,
 				FallRot[i].Roll * F + FMath::Cos(QuakeT * 31.f + i) * 4.f * Shake));
-			B->SetRelativeScale3D(FVector(1.f, 1.f, FMath::Lerp(1.f, 0.42f, F)));
+			B->SetRelativeScale3D(FVector(1.f, 1.f, FMath::Lerp(1.f, 0.42f, F)) * BuildingScale);
 		}
 
 		if (A >= 1.f)

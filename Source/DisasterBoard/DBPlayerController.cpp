@@ -168,12 +168,19 @@ void ADBPlayerController::DBTest()
 
 	Add([this] { Shot(TEXT("01_menu")); });
 	Add([this] { GM()->OpenMenuPage(EDBMenuPage::Credits); });
+	Add([this] { Shot(TEXT("02a_takvime_yaklasiyor")); });
 	Add([this] { Shot(TEXT("02_jenerik")); });
 	Add([this] { GM()->CloseMenuPage(); });
-	Add([this] { GM()->OpenMenuPage(EDBMenuPage::Settings); });
+	Add([] {});
+	Add([] {});
+	Add([this] { Shot(TEXT("02b_menuye_dondu")); GM()->OpenMenuPage(EDBMenuPage::Settings); });
+	Add([] {});
 	Add([this] { Shot(TEXT("03_ayarlar")); });
 	Add([this] { GM()->CloseMenuPage(); });
+	Add([] {});
+	Add([] {});
 	Add([this] { GM()->ClickPlay(); });
+	Add([this] { Shot(TEXT("03b_tahtaya_gidiyor")); });
 	Add([] {});
 	Add([this] { Shot(TEXT("04_A_konusuyor")); });
 	Talk(3);
