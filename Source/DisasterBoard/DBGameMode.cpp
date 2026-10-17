@@ -33,6 +33,7 @@ void ADBGameMode::StartPlay()
 	Solved.Init(false, C.Problems.Num());
 	RevealTime.Init(-100.f, C.Problems.Num());
 	SolveTime.Init(-100.f, C.Problems.Num());
+	Money = C.StartMoney;
 
 	World = GetWorld()->SpawnActor<ADBWorld>();
 	World->Build();
@@ -358,6 +359,14 @@ void ADBGameMode::ClosePanel()
 	}
 }
 
+void ADBGameMode::SetDraftKit(int32 Kit)
+{
+	if (CanEditBags() && FDBContent::Get().Kits.IsValidIndex(Kit))
+	{
+		DraftKit = Kit;
+	}
+}
+
 void ADBGameMode::AddItem(int32 Item)
 {
 	if (!CanEditBags() || !FDBContent::Get().Items.IsValidIndex(Item))
@@ -415,9 +424,10 @@ void ADBGameMode::PackBag()
 		Slot = Bags.AddDefaulted();
 	}
 	Bags[Slot].Items = Draft;
+	Bags[Slot].Kit = DraftKit;
 	Bags[Slot].bUsed = false;
 	Draft.Reset();
-	ShowToast(TEXT("Çanta hazır! Alttaki sırt çantasına eklendi."), false);
+	ShowToast(FString::Printf(TEXT("%s hazır! Alttaki sırt çantasına eklendi."), *FDBContent::Get().Kits[DraftKit].Name), false);
 }
 
 // ---------------------------------------------------------------- uygulama
@@ -463,11 +473,11 @@ int32 ADBGameMode::NumRevealed() const
 	return Revealed.FilterByPredicate([](bool b) { return b; }).Num();
 }
 
-FString ADBGameMode::MissingItemsText(int32 Problem, const TArray<int32>& BagItems) const
+FString ADBGameMode::MissingItemsText(int32 Kit, const TArray<int32>& BagItems) const
 {
 	const FDBContent& C = FDBContent::Get();
 	TArray<FString> Missing;
-	for (int32 Item : C.Problems[Problem].Items)
+	for (int32 Item : C.KitItems(Kit))
 	{
 		if (!BagItems.Contains(Item))
 		{
@@ -525,38 +535,52 @@ void ADBGameMode::ClickBuilding(int32 Building)
 
 	if (SelTool >= 0)
 	{
+		const FDBToolDef& Tool = C.Tools[SelTool];
 		if (Prob.Tool == SelTool)
 		{
-			ShowToast(FString::Printf(TEXT("%s: %s tamam. Bina güvende!"), *Name, *C.Tools[SelTool].Name), false, Building);
+			if (Money < Tool.Cost)
+			{
+				// Hata sayılmaz: doğru önlem, bütçe yetmiyor
+				ShowToast(FString::Printf(TEXT("%s için %d TL gerekiyor, bütçede %d TL var. Çanta göndererek bütçe kazan."), *Tool.Name, Tool.Cost, Money), true, Building);
+				return;
+			}
+			Money -= Tool.Cost;
+			ShowToast(FString::Printf(TEXT("%s: %s yapıldı (-%d TL). %s riskine hazır!"), *Name, *Tool.Name, Tool.Cost, *Prob.Hazard), false, Building);
 			Solve(P, Building);
 		}
 		else if (Prob.Tool < 0)
 		{
-			Penalty(FString::Printf(TEXT("%s bir şehir aracı değil, afet çantası istiyor."), *Name), Building);
+			Penalty(FString::Printf(TEXT("%s bir şehir önlemi değil, %s istiyor."), *Name, *C.Kits[Prob.Kit].Name), Building);
 		}
 		else
 		{
-			Penalty(FString::Printf(TEXT("%s burada işe yaramaz. Notu tekrar oku."), *C.Tools[SelTool].Name), Building);
+			Penalty(FString::Printf(TEXT("%s burada işe yaramaz: buradaki risk %s. Notu tekrar oku."), *Tool.Name, *Prob.Hazard), Building);
 		}
 		return;
 	}
 
 	// Çanta
 	FDBBag& Bag = Bags[SelBag];
-	if (Prob.Tool >= 0)
+	if (Prob.Kit < 0)
 	{
-		Penalty(TEXT("Çanta burada işe yaramaz: bu bir şehir sorunu, araç gerekir."), Building);
+		Penalty(FString::Printf(TEXT("Çanta burada işe yaramaz: %s riski için şehir önlemi gerekir."), *Prob.Hazard), Building);
 		return;
 	}
-	const FString Missing = MissingItemsText(P, Bag.Items);
+	if (Bag.Kit != Prob.Kit)
+	{
+		Penalty(FString::Printf(TEXT("%s %s istiyor, bu bir %s."), *Name, *C.Kits[Prob.Kit].Name, *C.Kits[Bag.Kit].Name), Building);
+		return;
+	}
+	const FString Missing = MissingItemsText(Prob.Kit, Bag.Items);
 	if (!Missing.IsEmpty())
 	{
-		Penalty(FString::Printf(TEXT("Çantada eksik var: %s."), *Missing), Building);
+		Penalty(FString::Printf(TEXT("%s eksik: %s."), *C.Kits[Prob.Kit].Name, *Missing), Building);
 		return;
 	}
 	Bag.bUsed = true;
 	SelBag = -1;
-	ShowToast(FString::Printf(TEXT("%s afet çantasını aldı. Hazırlar!"), *Name), false, Building);
+	Money += C.KitReward;
+	ShowToast(FString::Printf(TEXT("%s %s aldı (+%d TL). Hazırlar!"), *Name, *C.Kits[Prob.Kit].Name, C.KitReward), false, Building);
 	Solve(P, Building);
 }
 
@@ -566,6 +590,11 @@ void ADBGameMode::Solve(int32 Problem, int32 Building)
 	SolveTime[Problem] = Now;
 	SelTool = -1;
 	World->PopBuilding(Building);
+	const FDBContent& C = FDBContent::Get();
+	if (C.Problems[Problem].Tool >= 0 && C.Problems[Problem].Tool == C.EvacuateTool)
+	{
+		World->StartEvacuation(Building, C.ShelterBuilding);
+	}
 	UE_LOG(LogDB, Log, TEXT("DB_SOLVE sorun=%d bina=%d toplam=%d/%d"), Problem, Building, NumSolved(), Solved.Num());
 	if (NumSolved() == Solved.Num())
 	{

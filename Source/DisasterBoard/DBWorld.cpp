@@ -8,6 +8,8 @@
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Kismet/KismetRenderingLibrary.h"
 #include "UObject/ConstructorHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDBWorld, Log, All);
@@ -31,6 +33,11 @@ ADBWorld::ADBWorld()
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphF(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> ConeF(TEXT("/Engine/BasicShapes/Cone.Cone"));
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MatF(TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> PlaneF(TEXT("/Engine/BasicShapes/Plane.Plane"));
+	// UWidgetComponent'in kullandığı ışıksız, iki yüzlü doku malzemesi; parametre "SlateUI"
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> PageMatF(TEXT("/Engine/EngineMaterials/Widget3DPassThrough_Opaque.Widget3DPassThrough_Opaque"));
+	PlaneMesh = PlaneF.Object;
+	PageMaterial = PageMatF.Object;
 	CubeMesh = CubeF.Object;
 	CylinderMesh = CylF.Object;
 	SphereMesh = SphF.Object;
@@ -143,7 +150,17 @@ void ADBWorld::BuildBoard()
 		{
 			const bool bDark = ((X + Y) & 1) != 0;
 			const FVector C(-Plateau * 0.5f + (X + 0.5f) * CellCm, -Plateau * 0.5f + (Y + 0.5f) * CellCm, 13.f + TileH * 0.5f);
-			Part(B, CubeMesh, C, FVector(TileCm, TileCm, TileH), bDark ? RGB(226, 204, 164) : RGB(236, 218, 182), FRotator::ZeroRotator, true);
+			if (Y >= GridN - 2)
+			{
+				// Sahil: son iki sıra deniz (dalgalanır), karolar arası boşluksuz
+				UStaticMeshComponent* Sea = Part(B, CubeMesh, C - FVector(0, 0, 0.3f), FVector(CellCm, CellCm, TileH),
+					bDark ? RGB(96, 160, 204) : RGB(110, 174, 214), FRotator::ZeroRotator, true);
+				SeaTiles.Add(Sea);
+				continue;
+			}
+			const bool bSand = Y == GridN - 3;
+			Part(B, CubeMesh, C, FVector(TileCm, TileCm, TileH),
+				bSand ? RGB(236, 214, 160) : (bDark ? RGB(226, 204, 164) : RGB(236, 218, 182)), FRotator::ZeroRotator, true);
 		}
 	}
 
@@ -154,7 +171,7 @@ void ADBWorld::BuildBoard()
 	}
 
 	// Boş arsalara ağaç
-	const FIntPoint Trees[] = { FIntPoint(0, 0), FIntPoint(1, 2), FIntPoint(3, 3), FIntPoint(4, 4), FIntPoint(2, 4), FIntPoint(3, 0) };
+	const FIntPoint Trees[] = { FIntPoint(1, 0), FIntPoint(2, 1), FIntPoint(4, 1), FIntPoint(1, 2), FIntPoint(2, 3), FIntPoint(4, 3) };
 	for (const FIntPoint& T : Trees)
 	{
 		BuildTree(B, LotCenter(T), BuildingScale);
@@ -163,6 +180,17 @@ void ADBWorld::BuildBoard()
 	// Tarama çizgisi (yalnızca taramada görünür)
 	ScanBeam = Part(B, CubeMesh, FVector(0, 0, BoardTopZ + 1.f), FVector(100.f, 2.f, 1.5f), RGB(110, 235, 140), FRotator(0, -45.f, 0));
 	ScanBeam->SetVisibility(false);
+
+	// Tahliye edilen sakinler (tsunami)
+	const FLinearColor Shirts[] = { RGB(232, 128, 104), RGB(96, 170, 164), RGB(236, 188, 86), RGB(172, 152, 204) };
+	for (int32 k = 0; k < 4; ++k)
+	{
+		USceneComponent* Wk = Node(B, FVector(0, 0, BoardTopZ));
+		Part(Wk, CylinderMesh, FVector(0, 0, 2.2f), FVector(2.4f, 2.4f, 4.4f), Shirts[k]);
+		Part(Wk, SphereMesh, FVector(0, 0, 5.6f), FVector(2.6f, 2.6f, 2.6f), RGB(240, 200, 160));
+		Wk->SetVisibility(false, true);
+		Walkers.Add(Wk);
+	}
 }
 
 void ADBWorld::BuildTree(USceneComponent* Parent, const FVector& Loc, float Scale)
@@ -175,7 +203,7 @@ void ADBWorld::BuildBuilding(int32 Index)
 {
 	const FDBBuildingDef& D = FDBContent::Get().Buildings[Index];
 	// Bina tasarım ölçüsünde (≈20 cm) kurulur, kök BuildingScale ile 2×2 karoya küçülür
-	USceneComponent* Root = Node(BoardRoot, LotCenter(D.Cell));
+	USceneComponent* Root = Node(BoardRoot, LotCenter(D.Lot));
 	Root->SetRelativeScale3D(FVector(BuildingScale));
 	BuildingRoots.Add(Root);
 	PopTime.Add(0.f);
@@ -183,7 +211,7 @@ void ADBWorld::BuildBuilding(int32 Index)
 
 	if (D.bPark)
 	{
-		Part(Root, CubeMesh, FVector(0, 0, 1.f), FVector(23.f, 23.f, 2.f), D.Body, FRotator::ZeroRotator, true);
+		Part(Root, CubeMesh, FVector(0, 0, 1.f), FVector(24.f, 24.f, 2.f), D.Body, FRotator::ZeroRotator, true);
 		BuildTree(Root, FVector(-5.f, -5.f, 2.f), 0.8f);
 		BuildTree(Root, FVector(6.f, 4.f, 2.f), 0.65f);
 		Part(Root, CubeMesh, FVector(4.f, -6.f, 3.5f), FVector(8.f, 2.5f, 1.2f), RGB(140, 100, 66));
@@ -191,9 +219,20 @@ void ADBWorld::BuildBuilding(int32 Index)
 		return;
 	}
 
-	const FVector S = D.Size;
+	const FVector S(FMath::Min(D.Size.X, 20.f), FMath::Min(D.Size.Y, 20.f), D.Size.Z);
 	const float Base = 1.f;
-	Part(Root, CubeMesh, FVector(0, 0, 0.5f), FVector(S.X + 4.f, S.Y + 4.f, 1.f), RGB(244, 232, 208));
+	// Plaka 24×24 tasarım birimi = BuildingScale ile tam 2×2 karo
+	Part(Root, CubeMesh, FVector(0, 0, 0.5f), FVector(24.f, 24.f, 1.f), RGB(244, 232, 208));
+	if (D.bShelter)
+	{
+		// Sığınak: yarı gömülü kubbe, kapı, yeşil bayrak
+		Part(Root, SphereMesh, FVector(0, 0, Base), FVector(S.X, S.Y, S.Z * 2.f), D.Body, FRotator::ZeroRotator, true);
+		Part(Root, CubeMesh, FVector(0, -S.Y * 0.42f, Base + 3.f), FVector(5.f, 3.f, 6.f), RGB(70, 90, 70));
+		Part(Root, CylinderMesh, FVector(7.f, 7.f, Base + 9.f), FVector(0.8f, 0.8f, 18.f), RGB(90, 90, 96));
+		Part(Root, CubeMesh, FVector(7.f, 4.f, Base + 15.f), FVector(0.5f, 6.f, 4.f), RGB(90, 170, 90));
+		BuildingHeights.Add(Base + 18.f);
+		return;
+	}
 	Part(Root, CubeMesh, FVector(0, 0, Base + S.Z * 0.5f), S, D.Body, FRotator::ZeroRotator, true);
 
 	float Top = Base + S.Z;
@@ -245,12 +284,15 @@ void ADBWorld::BuildCalendar()
 	Part(R, CubeMesh, FVector(0, -1.f, 0), FVector(W + 8.f, 2.f, H + 10.f), RGB(150, 108, 72));
 	// Alttaki sayfa (Ayarlar / Emeği Geçenler buraya yazılır)
 	Part(R, CubeMesh, FVector(0, -2.5f, 0), FVector(W, 0.6f, H), Paper);
-	Part(R, CubeMesh, FVector(0, -3.1f, H * 0.5f - H * 0.09f), FVector(W, 0.4f, H * 0.18f), RGB(96, 170, 164));
+	const FVector2D TexSize = PageTextureSize();
+	TopRT = UKismetRenderingLibrary::CreateRenderTarget2D(this, int32(TexSize.X), int32(TexSize.Y), RTF_RGBA16f, FLinearColor(FColor(248, 240, 224)) * PageGain);
+	UnderRT = UKismetRenderingLibrary::CreateRenderTarget2D(this, int32(TexSize.X), int32(TexSize.Y), RTF_RGBA16f, FLinearColor(FColor(248, 240, 224)) * PageGain);
+	UnderPagePlane = PagePlane(R, FVector(0, -2.85f, 0), UnderRT);
 
 	// Üstteki sayfa: menteşe üst kenarda, sayfa aşağı sarkar
 	PageHinge = Node(R, FVector(0, -4.f, H * 0.5f));
 	Part(PageHinge, CubeMesh, FVector(0, 0, -H * 0.5f), FVector(W, 0.6f, H), Paper);
-	Part(PageHinge, CubeMesh, FVector(0, -0.5f, -H * 0.09f), FVector(W, 0.4f, H * 0.18f), RGB(232, 128, 104));
+	TopPagePlane = PagePlane(PageHinge, FVector(0, -0.35f, -H * 0.5f), TopRT);
 
 	// Spiral halkalar
 	const int32 Rings = 22;
@@ -333,6 +375,107 @@ int32 ADBWorld::BuildingFromComponent(const UPrimitiveComponent* Comp) const
 		}
 	}
 	return -1;
+}
+
+UStaticMeshComponent* ADBWorld::PagePlane(USceneComponent* Parent, const FVector& Loc, UTextureRenderTarget2D* RT)
+{
+	UStaticMeshComponent* C = NewObject<UStaticMeshComponent>(this);
+	C->SetMobility(EComponentMobility::Movable);
+	C->SetStaticMesh(PlaneMesh);
+	C->SetupAttachment(Parent);
+	C->SetRelativeLocation(Loc);
+	// Düzlemin X'i → takvimde -X (bakanın sağı), Y'si → aşağı, normali → odaya (-Y)
+	C->SetRelativeRotation(FMatrix(FVector(-1, 0, 0), FVector(0, 0, -1), FVector(0, -1, 0), FVector::ZeroVector).Rotator());
+	C->SetRelativeScale3D(FVector(CalendarSize.X / 100.f * (bFlipPageU ? -1.f : 1.f), CalendarSize.Y / 100.f * (bFlipPageV ? -1.f : 1.f), 1.f));
+	UMaterialInstanceDynamic* Mid = UMaterialInstanceDynamic::Create(PageMaterial, this);
+	Mid->SetTextureParameterValue(TEXT("SlateUI"), RT);
+	C->SetMaterial(0, Mid);
+	C->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	C->SetCastShadow(false);
+	C->RegisterComponent();
+	return C;
+}
+
+bool ADBWorld::PagePointFromScreen(const APlayerController* PC, const FVector2D& Screen, bool bTop, FVector2D& OutUV) const
+{
+	const UStaticMeshComponent* Pl = bTop ? TopPagePlane.Get() : UnderPagePlane.Get();
+	FVector O, D;
+	if (!PC || !Pl || !PC->DeprojectScreenPositionToWorld(Screen.X, Screen.Y, O, D))
+	{
+		return false;
+	}
+	const FTransform T = Pl->GetComponentTransform();
+	const FVector LO = T.InverseTransformPosition(O);
+	const FVector LD = T.InverseTransformVector(D);
+	if (FMath::IsNearlyZero(LD.Z))
+	{
+		return false;
+	}
+	const float Tt = -LO.Z / LD.Z;
+	if (Tt < 0.f)
+	{
+		return false;
+	}
+	const FVector P = LO + LD * Tt;
+	OutUV = FVector2D((P.X + 50.f) / 100.f, (P.Y + 50.f) / 100.f);
+	return OutUV.X >= 0.f && OutUV.X <= 1.f && OutUV.Y >= 0.f && OutUV.Y <= 1.f;
+}
+
+bool ADBWorld::PageUVToScreen(const APlayerController* PC, bool bTop, const FVector2D& UV, FVector2D& OutScreen) const
+{
+	const UStaticMeshComponent* Pl = bTop ? TopPagePlane.Get() : UnderPagePlane.Get();
+	if (!PC || !Pl)
+	{
+		return false;
+	}
+	const FVector Wp = Pl->GetComponentTransform().TransformPosition(FVector(UV.X * 100.f - 50.f, UV.Y * 100.f - 50.f, 0.f));
+	return PC->ProjectWorldLocationToScreen(Wp, OutScreen);
+}
+
+void ADBWorld::StartEvacuation(int32 FromBuilding, int32 ToBuilding)
+{
+	const FDBContent& C = FDBContent::Get();
+	if (!C.Buildings.IsValidIndex(FromBuilding) || !C.Buildings.IsValidIndex(ToBuilding))
+	{
+		return;
+	}
+	// Sokaklar arsaların arasındaki tek karoluk boşluklar: evin önündeki sokak → sığınağın yanındaki sokak → sığınak
+	const FIntPoint From = C.Buildings[FromBuilding].Lot;
+	const FIntPoint To = C.Buildings[ToBuilding].Lot;
+	const float Min = -GridN * CellCm * 0.5f;
+	auto Street = [&](int32 Cell) { return Min + (Cell + 0.5f) * CellCm; };
+	const FVector A = LotCenter(From);
+	const FVector Bp = LotCenter(To);
+	const float RowFrom = Street(LotOrigin[From.Y] - 1);
+	const float ColTo = Street(LotOrigin[To.X] - 1);
+	const float RowTo = Street(LotOrigin[To.Y] + 2);
+	EvacPath = { A, FVector(A.X, RowFrom, BoardTopZ), FVector(ColTo, RowFrom, BoardTopZ), FVector(ColTo, RowTo, BoardTopZ),
+		FVector(Bp.X, RowTo, BoardTopZ), Bp };
+	EvacT = 0.f;
+}
+
+float ADBWorld::PathLength() const
+{
+	float L = 0.f;
+	for (int32 i = 1; i < EvacPath.Num(); ++i)
+	{
+		L += FVector::Dist(EvacPath[i - 1], EvacPath[i]);
+	}
+	return L;
+}
+
+FVector ADBWorld::PointOnPath(float Dist) const
+{
+	for (int32 i = 1; i < EvacPath.Num(); ++i)
+	{
+		const float Seg = FVector::Dist(EvacPath[i - 1], EvacPath[i]);
+		if (Dist <= Seg && Seg > 0.f)
+		{
+			return FMath::Lerp(EvacPath[i - 1], EvacPath[i], Dist / Seg);
+		}
+		Dist -= Seg;
+	}
+	return EvacPath.Num() ? EvacPath.Last() : FVector::ZeroVector;
 }
 
 bool ADBWorld::GetPageScreenRect(const APlayerController* PC, FVector2D& OutMin, FVector2D& OutMax) const
@@ -432,6 +575,34 @@ void ADBWorld::Tick(float Dt)
 		if (A >= 1.f)
 		{
 			ScanBeam->SetVisibility(false);
+		}
+	}
+
+	// Deniz dalgalanır
+	WaveT += Dt;
+	for (int32 i = 0; i < SeaTiles.Num(); ++i)
+	{
+		const FVector L = SeaTiles[i]->GetRelativeLocation();
+		SeaTiles[i]->SetRelativeLocation(FVector(L.X, L.Y, 12.9f + 0.35f * FMath::Sin(WaveT * 2.2f + L.X * 0.12f + L.Y * 0.05f)));
+	}
+
+	// Tahliye: sakinler sırayla yola çıkar, sığınağın önünde toplanır
+	if (EvacT >= 0.f && EvacPath.Num() > 1)
+	{
+		EvacT += Dt;
+		const float Len = PathLength();
+		for (int32 k = 0; k < Walkers.Num(); ++k)
+		{
+			const float D = (EvacT - k * 0.5f) * WalkerSpeed;
+			if (D < 0.f)
+			{
+				continue;
+			}
+			Walkers[k]->SetVisibility(true, true);
+			const bool bArrived = D >= Len - 6.f;
+			FVector P = PointOnPath(FMath::Min(D, Len - 6.f));
+			P += bArrived ? FVector((k % 2) * 3.5f - 1.75f, (k / 2) * 3.5f - 5.f, 0.f) : FVector(0, 0, FMath::Abs(FMath::Sin(EvacT * 12.f + k)) * 1.2f);
+			Walkers[k]->SetRelativeLocation(P);
 		}
 	}
 

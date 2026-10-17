@@ -11,6 +11,7 @@ class APlayerController;
 struct FDBBag
 {
 	TArray<int32> Items;
+	int32 Kit = 0;
 	bool bUsed = false;
 };
 
@@ -56,6 +57,8 @@ public:
 
 	TArray<FDBBag> Bags;
 	TArray<int32> Draft;
+	int32 DraftKit = 0;
+	int32 Money = 0;
 	int32 SelTool = -1;
 	int32 SelBag = -1;
 	float TimeLeft = 0.f;
@@ -84,7 +87,7 @@ public:
 	bool IsMenuPageReady() const;
 	bool IsBoardPhase() const { return Phase != EDBPhase::Menu && Phase != EDBPhase::MenuPage; }
 	bool IsTimerVisible() const { return bPlayStarted && (Phase == EDBPhase::Play || Phase == EDBPhase::Quake); }
-	FString MissingItemsText(int32 Problem, const TArray<int32>& BagItems) const;
+	FString MissingItemsText(int32 Kit, const TArray<int32>& BagItems) const;
 
 	// --- Eylemler ---
 	void ClickPlay();
@@ -100,6 +103,7 @@ public:
 	void StartScan();
 	void OpenPanel();
 	void ClosePanel();
+	void SetDraftKit(int32 Kit);
 	void AddItem(int32 Item);
 	void RemoveDraftAt(int32 Slot);
 	void ClearDraft();

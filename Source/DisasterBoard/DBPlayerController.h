@@ -25,6 +25,7 @@ public:
 	UFUNCTION(Exec) void DBExposure(float EV100);  // sabit pozlama
 	UFUNCTION(Exec) void DBTime(float Seconds);    // kalan süre
 	UFUNCTION(Exec) void DBQuake();                // depremi şimdi başlat
+	UFUNCTION(Exec) void DBPageGain(float Gain);   // takvim sayfası dokusunun parlaklığı
 
 private:
 	void OnClick();

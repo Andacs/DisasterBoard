@@ -1,8 +1,10 @@
 # DisasterBoard
 
-Karton bir masa oyunu kasabasında tarayıcıyla binaların deprem risklerini bulursun; her eve uygun afet çantasını hazırlar, şehir risklerini araçlarla giderirsin. Deprem gelmeden bütün binalar hazırsa kazanırsın.
+Karton bir masa oyunu kasabasında tarayıcıyla afet risklerini (deprem, sel, yangın, tsunami) bulursun; evlere doğru
+afet çantasını (ilk yardım / deprem / yangın) hazırlayıp gönderirsin, şehir risklerini bütçeyle önlem alarak
+giderirsin. Bütün işaretler yeşil olunca kasaba afetlere hazırdır.
 
-Tema: **depreme hazırlık ve farkındalık.** Görsel dil: 3D lowpoly, cozy, karton (cardboard) kasaba, masa oyunu.
+Tema: **doğal afetlere hazırlık ve farkındalık** (Andaç, 17 Ekim: amaç belediye yardımı değil, hazırlık ve farkındalık). Görsel dil: 3D lowpoly, cozy, karton (cardboard) kasaba, masa oyunu.
 Akış çizimleri: `Docs/Cizimler/akis_01..09.jpg`. Oda/masa/takvim taslağı: `Art/Sahne/AnaMenu_OyunAlani.blend`.
 
 48 saatlik game jam projesi. Unreal Engine 5.8, Windows PC. 4 kişilik ekip (FreakLabs), tek programcı Andaç.
@@ -151,8 +153,25 @@ bilgi). Yanlış uygulama süre değil `Mistakes` sayar. Eski deprem kodu `bQuak
 kayarak açılır (`ADBHUD::PanelSlide`); not kağıdı panelin altına sarkar. Alt panelde yalnızca şehir araçları +
 sırt çantası.
 
+**17 Ekim ~04.30, Andaç'ın kararları (uygulandı, ekranda görüldü):**
+- **Takvim yazıları sayfaya basılı:** menü ve Ayarlar/Emeği Geçenler HUD yardımcılarıyla 1024×744 render
+  target'a çizilir (`ADBHUD::RenderPage`), sayfanın önündeki düzleme `Widget3DPassThrough_Opaque` ("SlateUI")
+  ile kaplanır → takvimle birlikte eğik, sayfa kalkarken onunla gider. Tıklama: fare ışını sayfa düzlemiyle
+  kesiştirilir (`ADBWorld::PagePointFromScreen`). Test "Oyna"nın hesaplanan yerini (527,344) düğmenin üstünde buldu.
+  Işıksız malzeme parlaklığı ölçülerek `PageGain` 1,1 (0,4–2,0 denendi; 1,0'da kağıt 220 ≈ ışıklı duvar 227).
+  Sayfadaki yazılar aynı renkte konturla kalın (ince harf ~%40 küçülünce açık kalıyordu).
+- **3 çanta türü:** İlk Yardım (sargı bezi, yara bandı, antiseptik, makas), Deprem (su, konserve, el feneri,
+  düdük), Yangın (yangın tüpü, duman maskesi, yangın örtüsü, eldiven). 12 eşya karışık sırada, çantaya 4 sığar.
+  Önce tür seçilir; yanlış tür ya da eksik eşya → `Mistakes` + hangi eşyanın eksik olduğu söylenir.
+- **Bütçe:** başlangıç 100 TL. Şehir önlemleri bütçeden düşer: Rögar Kapağı 30 (sel), Tahliye 30 (tsunami),
+  Yangın Musluğu 40 (yangın), Bina Güçlendirme 60 (deprem). Doğru eve giden her çanta +30 TL. Para yetmezse
+  hata sayılmaz, "çanta göndererek bütçe kazan" der. Test sonu: 90 TL, 2 hata.
+- **Tahta:** son iki sıra deniz (dalgalanır), önünde kum; Sahil evi tahliyede 4 sakin sokaklardan sığınağa
+  (yeşil kubbe) yürür (`ADBWorld::StartEvacuation`). Binalar 24'lük plakayla tam 2×2 karoya oturur (×0,608).
+- 12 bina, 9 sorun (`DBData.cpp`). C artık "afet koordinatörü".
+
 **Test:** `UnrealEditor.exe <tam yol>\DisasterBoard.uproject /Game/DisasterBoard/Maps/L_Ana -game -windowed
--ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~95 sn oynar, 22 görüntü, 7/7 hazırlayıp sonuç kartına varır
+-ResX=1600 -ResY=900 -ExecCmds="DBTest"` (Git Bash'te `MSYS_NO_PATHCONV=1` ile). ~110 sn oynar, 24 görüntü, 9/9 hazırlayıp sonuç kartına varır. `-DBGainTest` ile sayfa parlaklığını 5 değerde çeker
 `Saved/Screenshots/WindowsEditor/DB_*.png`, kendisi kapanır. Test tıklama işlevlerini doğrudan çağırıyor.
 
 **Derlendi, ekranda görülmedi:** gerçek fareyle tıklama/hover (imleç, tooltip), Ayarlar'daki tam ekran ve
@@ -160,8 +179,8 @@ grafik düğmeleri ← 2'yi geçerse yeni özellik durur
 
 **Bozuk:** —
 
-**Ekipten bekleyen kararlar:** alt paneldeki ilk iki ikonun anlamı (şimdilik "Toplanma Alanı", "Eşya
-Sabitleme"); A/B/C'nin adları (şimdilik Ayaz, Berna, Cem); portre görselleri; sorun/eşya listesi.
+**Ekipten bekleyen kararlar:** A/B/C'nin adları (şimdilik Ayaz, Berna, Cem); portre görselleri; ikon görselleri
+(şimdilik harf kısaltmaları); bütçe dengesi.
 
 ---
 

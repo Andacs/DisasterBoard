@@ -6,10 +6,12 @@
 
 class ADBGameMode;
 class UFont;
+class UTextureRenderTarget2D;
 struct FDBLine;
 
 // Bütün arayüz Canvas ile çiziliyor (asset yok). Ölçüler 1080p'ye göre yazılır, S ile ölçeklenir.
-// Tıklanabilir alanlar her karede Hits'e yazılır; PlayerController tıklamayı önce buraya sorar.
+// Takvim sayfaları (menü, Ayarlar, Emeği Geçenler) aynı yardımcılarla sayfanın dokusuna çizilir; böylece yazılar
+// takvimle birlikte eğik görünür. Tıklanabilir alanlar her karede Hits'e (sayfalarda sayfa pikseliyle) yazılır.
 UCLASS()
 class DISASTERBOARD_API ADBHUD : public AHUD
 {
@@ -22,6 +24,10 @@ public:
 	bool IsOverButton(const FVector2D& P) const;
 	bool IsOverUI(const FVector2D& P) const;
 
+	// Test: takvim sayfasındaki bir düğmenin ekrandaki yeri (sayfa dokusu ↔ fare eşlemesini doğrulamak için)
+	bool PageButtonScreenPos(FName Id, bool bTop, FVector2D& OutScreen) const;
+	FVector2D DebugDot = FVector2D(-1.f, -1.f);
+
 private:
 	struct FHit
 	{
@@ -30,7 +36,10 @@ private:
 		int32 Index;
 	};
 	TArray<FHit> Hits;
+	TArray<FHit> TopHits;    // menü sayfası (sayfa pikseli)
+	TArray<FHit> UnderHits;  // Ayarlar / Emeği Geçenler sayfası
 	TArray<FBox2D> Blockers;
+	bool bPageHover = false;
 
 	ADBGameMode* GM = nullptr;
 	float S = 1.f;
@@ -40,8 +49,11 @@ private:
 	UPROPERTY() TObjectPtr<UFont> Font;
 	float FontBaseH = 1.f;
 	float PanelSlide = 0.f;   // hazırlık masası çekmecesi: 0 kapalı (sağ kenarda kulp), 1 açık
+	float ColorGain = 1.f;    // sayfa dokusu ışıksız malzemede: sahneye uysun diye renk çarpanı
 
 	// Çizim yardımcıları (piksel)
+	// Sayfa dokusu ışıksız malzemede: sahnedeki ışıklı kağıtla aynı parlaklıkta görünsün diye çarpan (ölçülerek ayarlandı)
+	FLinearColor Gn(const FLinearColor& C) const { return FLinearColor(C.R * ColorGain, C.G * ColorGain, C.B * ColorGain, C.A); }
 	void Box(float X, float Y, float BW, float BH, const FLinearColor& C);
 	void Box(const FBox2D& R, const FLinearColor& C) { Box(R.Min.X, R.Min.Y, R.GetSize().X, R.GetSize().Y, C); }
 	void Frame(const FBox2D& R, const FLinearColor& C, float T);
@@ -62,26 +74,33 @@ private:
 	bool Hover(const FBox2D& R) const { return R.IsInside(Mouse); }
 	FBox2D Rect(float X, float Y, float BW, float BH) const { return FBox2D(FVector2D(X, Y), FVector2D(X + BW, Y + BH)); }
 
-	// Bölümler
-	void DrawMenu();
+	// Takvim sayfaları
+	void DrawMenuPages();
+	void RenderPage(UTextureRenderTarget2D* RT, bool bTop, const FVector2D& PageMouse, TArray<FHit>& OutHits);
+	void DrawMainPage(bool bEnabled);
+	void DrawSubPage(bool bEnabled);
+	const TArray<FHit>* ActivePageHits(FVector2D& OutPageMouse, const FVector2D& Screen) const;
+
+	// Tahta ekranı
 	void DrawMarkers();
-	void DrawTimer();
+	void DrawMoney();
 	void DrawScannerAndA();
 	void DrawBottomBar();
 	void DrawPanel();
+	void DrawDrawerHandle();
 	void DrawTalk();
 	void DrawToast();
 	void DrawTooltip();
 	void DrawSelectionCursor();
-	void DrawQuake();
 	void DrawResult();
 	void Portrait(int32 Who, const FVector2D& C, float R);
-	void ItemIcon(int32 Item, const FVector2D& C, float R, bool bName, float NamePx);
+	void ItemIcon(int32 Item, const FVector2D& C, float R);
 	void ToolIcon(int32 Tool, const FVector2D& C, float R);
+	void KitBadge(int32 Kit, const FBox2D& R, float Px);
 
 	FBox2D PanelRect() const;
 	FBox2D DrawerHandleRect() const;
-	void DrawDrawerHandle();
 	FBox2D BottomBarRect() const;
 	FBox2D ScannerRect() const;
+	FBox2D MoneyRect() const;
 };

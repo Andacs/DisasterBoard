@@ -10,6 +10,7 @@ class UPrimitiveComponent;
 class UStaticMesh;
 class UStaticMeshComponent;
 class UMaterialInterface;
+class UTextureRenderTarget2D;
 
 // Odanın tamamı koddan: zemin, iki duvar, kaide, tahta, binalar, duvardaki takvim, üç kamera.
 // Seviye dosyasında yalnızca ışık var; modelciden mesh gelince ilgili parça burada değiştirilir.
@@ -30,13 +31,24 @@ public:
 	UPROPERTY(EditAnywhere, Category = "DB|Tahta") float TileCm = 6.6f;         // karonun üst yüzü
 	UPROPERTY(EditAnywhere, Category = "DB|Tahta") float BoardCm = 128.f;       // dış ölçü
 	UPROPERTY(EditAnywhere, Category = "DB|Tahta") float BoardTopZ = 13.8f;     // karoların üstü
-	UPROPERTY(EditAnywhere, Category = "DB|Tahta") float BuildingScale = 0.62f; // bina 2×2 karoya sığsın
+	UPROPERTY(EditAnywhere, Category = "DB|Tahta") float BuildingScale = 0.608f; // 24'lük bina plakası = 2×2 karo (14,6 cm)
+	UPROPERTY(EditAnywhere, Category = "DB|Tahta") float WalkerSpeed = 26.f;     // tahliyede sakinler (cm/sn)
 	UPROPERTY(EditAnywhere, Category = "DB|Oda") float WallX = 100.7f;          // takvimin duvarı
 	UPROPERTY(EditAnywhere, Category = "DB|Oda") float WallY = 100.7f;          // yan duvar
 	UPROPERTY(EditAnywhere, Category = "DB|Oda") float FloorZ = -160.7f;
 	UPROPERTY(EditAnywhere, Category = "DB|Takvim") FVector2D CalendarYZ = FVector2D(-2.4f, 88.9f);   // duvarda merkez
 	UPROPERTY(EditAnywhere, Category = "DB|Takvim") FVector2D CalendarSize = FVector2D(88.5f, 64.3f); // yatay
 	UPROPERTY(EditAnywhere, Category = "DB|Takvim") float PageFlipDegPerSec = 300.f;
+	UPROPERTY(EditAnywhere, Category = "DB|Takvim") float PageGain = 1.1f;       // ışıksız sayfa dokusu sahneyle aynı parlaklıkta görünsün
+	UPROPERTY(EditAnywhere, Category = "DB|Takvim") bool bFlipPageU = false;     // doku aynalı görünürse
+	UPROPERTY(EditAnywhere, Category = "DB|Takvim") bool bFlipPageV = false;
+
+	UPROPERTY() TObjectPtr<UTextureRenderTarget2D> TopRT;    // menü (üst sayfa)
+	UPROPERTY() TObjectPtr<UTextureRenderTarget2D> UnderRT;  // Ayarlar / Emeği Geçenler (alt sayfa)
+	FVector2D PageTextureSize() const { return FVector2D(1024.f, 744.f); }
+	// Ekrandaki nokta sayfanın neresine denk geliyor (0..1); sayfa düğmelerine tıklamak için
+	bool PagePointFromScreen(const APlayerController* PC, const FVector2D& Screen, bool bTop, FVector2D& OutUV) const;
+	bool PageUVToScreen(const APlayerController* PC, bool bTop, const FVector2D& UV, FVector2D& OutScreen) const;
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") FVector MenuCamLoc = FVector(-245.f, -130.f, 115.f);  // Blender görüntüsü: köşeye çapraz, solda takvim, sağda yan duvar
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") FVector MenuCamLookAt = FVector(60.f, 30.f, 60.f);
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float CalendarCamDistance = 200.f;                 // Ayarlar / Emeği Geçenler
@@ -74,6 +86,7 @@ public:
 	// --- Deprem / geri bildirim ---
 	void StartQuake(const TArray<bool>& SafeBuildings, float Seconds);
 	void PopBuilding(int32 Building);
+	void StartEvacuation(int32 FromBuilding, int32 ToBuilding);   // tsunami: sakinler sokaklardan sığınağa yürür
 	void ApplyExposure(float EV100);
 
 private:
@@ -88,6 +101,18 @@ private:
 	UPROPERTY() TObjectPtr<USceneComponent> CalendarRoot;
 	UPROPERTY() TObjectPtr<USceneComponent> PageHinge;
 	UPROPERTY() TObjectPtr<UStaticMeshComponent> ScanBeam;
+	UPROPERTY() TObjectPtr<UStaticMesh> PlaneMesh;
+	UPROPERTY() TObjectPtr<UMaterialInterface> PageMaterial;
+	UPROPERTY() TObjectPtr<UStaticMeshComponent> TopPagePlane;
+	UPROPERTY() TObjectPtr<UStaticMeshComponent> UnderPagePlane;
+	UPROPERTY() TArray<TObjectPtr<USceneComponent>> Walkers;
+	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> SeaTiles;
+	TArray<FVector> EvacPath;
+	float EvacT = -1.f;
+	float WaveT = 0.f;
+	UStaticMeshComponent* PagePlane(USceneComponent* Parent, const FVector& Loc, UTextureRenderTarget2D* RT);
+	FVector PointOnPath(float Dist) const;
+	float PathLength() const;
 
 	TArray<float> BuildingHeights;
 	TArray<float> PopTime;

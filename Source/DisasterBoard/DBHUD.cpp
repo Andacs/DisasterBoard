@@ -7,7 +7,9 @@
 #include "Engine/Canvas.h"
 #include "Engine/Engine.h"
 #include "Engine/Font.h"
+#include "Engine/TextureRenderTarget2D.h"
 #include "GlobalRenderResources.h"
+#include "Kismet/KismetRenderingLibrary.h"
 
 namespace
 {
@@ -31,7 +33,7 @@ namespace
 
 void ADBHUD::Box(float X, float Y, float BW, float BH, const FLinearColor& C)
 {
-	FCanvasTileItem T(FVector2D(X, Y), FVector2D(BW, BH), C);
+	FCanvasTileItem T(FVector2D(X, Y), FVector2D(BW, BH), Gn(C));
 	T.BlendMode = SE_BLEND_Translucent;
 	Canvas->DrawItem(T);
 }
@@ -54,21 +56,21 @@ void ADBHUD::Card(const FBox2D& R, const FLinearColor& Fill, const FLinearColor&
 
 void ADBHUD::Disc(const FVector2D& C, float R, const FLinearColor& Col, int32 Sides)
 {
-	FCanvasNGonItem N(C, FVector2D(R, R), Sides, Col);
+	FCanvasNGonItem N(C, FVector2D(R, R), Sides, Gn(Col));
 	Canvas->DrawItem(N);
 }
 
 void ADBHUD::Tri(const FVector2D& A, const FVector2D& B, const FVector2D& C, const FLinearColor& Col)
 {
 	FCanvasTriangleItem T(A, B, C, GWhiteTexture);
-	T.SetColor(Col);
+	T.SetColor(Gn(Col));
 	T.BlendMode = SE_BLEND_Translucent;
 	Canvas->DrawItem(T);
 }
 
 void ADBHUD::Line(const FVector2D& A, const FVector2D& B, float T, const FLinearColor& C)
 {
-	Canvas->K2_DrawLine(A, B, T, C);
+	Canvas->K2_DrawLine(A, B, T, Gn(C));
 }
 
 void ADBHUD::TickMark(const FVector2D& C, float Size, const FLinearColor& Col)
@@ -108,9 +110,15 @@ void ADBHUD::Txt(const FString& T, float X, float Y, float Px, const FLinearColo
 		const float TW = Measure(T, Px).X;
 		X -= (Align == 1) ? TW * 0.5f : TW;
 	}
-	FCanvasTextItem It(FVector2D(X, Y), FText::FromString(T), Font, C);
+	FCanvasTextItem It(FVector2D(X, Y), FText::FromString(T), Font, Gn(C));
 	It.Scale = FVector2D(Px / FontBaseH);
 	It.BlendMode = SE_BLEND_Translucent;
+	if (ColorGain != 1.f)
+	{
+		// Sayfa dokusu ekranda ~%40'a küçülüyor: ince harfler açık kalıyordu (mürekkep 99 ölçüldü), aynı renkte kontur kalınlaştırır
+		It.bOutlined = true;
+		It.OutlineColor = Gn(C);
+	}
 	Canvas->DrawItem(It);
 }
 
@@ -145,11 +153,7 @@ float ADBHUD::Para(const FString& T, float X, float Y, float Px, float MaxW, con
 	int32 Left = MaxChars < 0 ? MAX_int32 : MaxChars;
 	for (const FString& L : Wrap(T, Px, MaxW))
 	{
-		if (Y + Px > MaxY)
-		{
-			break;
-		}
-		if (Left <= 0)
+		if (Y + Px > MaxY || Left <= 0)
 		{
 			break;
 		}
@@ -207,16 +211,12 @@ void ADBHUD::Portrait(int32 Who, const FVector2D& C, float R)
 	Txt(Name, C.X, Tag.Min.Y + 4.f * S, 18.f * S, Ink, 1);
 }
 
-void ADBHUD::ItemIcon(int32 Item, const FVector2D& C, float R, bool bName, float NamePx)
+void ADBHUD::ItemIcon(int32 Item, const FVector2D& C, float R)
 {
 	const FDBItemDef& D = FDBContent::Get().Items[Item];
 	Disc(C, R + 2.f * S, Ink);
 	Disc(C, R, D.Color);
-	Txt(D.Icon, C.X, C.Y - R * 0.5f, R, Paper, 1);
-	if (bName)
-	{
-		Txt(D.Name, C.X, C.Y + R + 6.f * S, NamePx, Ink, 1);
-	}
+	Txt(D.Icon, C.X, C.Y - R * 0.5f, R, Ink, 1);
 }
 
 void ADBHUD::ToolIcon(int32 Tool, const FVector2D& C, float R)
@@ -228,31 +228,80 @@ void ADBHUD::ToolIcon(int32 Tool, const FVector2D& C, float R)
 	Txt(D.Icon, C.X, C.Y - R * 0.45f, R * 0.9f, Paper, 1);
 }
 
-// Çekmece sağ ortada; açılınca sola kayar (çizim 5). Kapalıyken yalnızca kulp görünür.
+void ADBHUD::KitBadge(int32 Kit, const FBox2D& R, float Px)
+{
+	const FDBKitDef& K = FDBContent::Get().Kits[Kit];
+	Box(R, K.Color);
+	Txt(K.Short, R.GetCenter().X, R.GetCenter().Y - Px * 0.55f, Px, Paper, 1);
+}
+
 FBox2D ADBHUD::PanelRect() const
 {
+	// Çekmece sağ ortada; açılınca sola kayar (çizim 5)
 	const float PW = 700.f * S;
 	const float X = W - 24.f * S - PW + (1.f - PanelSlide) * (PW + 30.f * S);
-	return Rect(X, H * 0.45f - 300.f * S, PW, 600.f * S);
+	return Rect(X, H * 0.40f - 345.f * S, PW, 690.f * S);
 }
+
 FBox2D ADBHUD::DrawerHandleRect() const
 {
 	const FBox2D P = PanelRect();
 	return Rect(P.Min.X - 46.f * S, P.GetCenter().Y - 100.f * S, 48.f * S, 200.f * S);
 }
+
 FBox2D ADBHUD::BottomBarRect() const { return Rect(W * 0.5f - 380.f * S, H - 182.f * S, 760.f * S, 164.f * S); }
 FBox2D ADBHUD::ScannerRect() const { return Rect(178.f * S, H - 200.f * S, 84.f * S, 150.f * S); }
+FBox2D ADBHUD::MoneyRect() const { return Rect(W * 0.5f - 140.f * S, 16.f * S, 280.f * S, 58.f * S); }
 
 // ---------------------------------------------------------------- giriş
 
+const TArray<ADBHUD::FHit>* ADBHUD::ActivePageHits(FVector2D& OutPageMouse, const FVector2D& Screen) const
+{
+	if (!GM || !GM->World)
+	{
+		return nullptr;
+	}
+	bool bTop;
+	if (GM->IsMenuReady())
+	{
+		bTop = true;
+	}
+	else if (GM->IsMenuPageReady())
+	{
+		bTop = false;
+	}
+	else
+	{
+		return nullptr;
+	}
+	FVector2D UV;
+	if (!GM->World->PagePointFromScreen(PlayerOwner, Screen, bTop, UV))
+	{
+		return nullptr;
+	}
+	OutPageMouse = UV * GM->World->PageTextureSize();
+	return bTop ? &TopHits : &UnderHits;
+}
+
 bool ADBHUD::IsOverButton(const FVector2D& P) const
 {
+	if (GM && (GM->Phase == EDBPhase::Menu || GM->Phase == EDBPhase::MenuPage))
+	{
+		return bPageHover;
+	}
 	return Hits.ContainsByPredicate([&P](const FHit& Hh) { return Hh.R.IsInside(P); });
 }
 
 bool ADBHUD::IsOverUI(const FVector2D& P) const
 {
 	return IsOverButton(P) || Blockers.ContainsByPredicate([&P](const FBox2D& R) { return R.IsInside(P); });
+}
+
+bool ADBHUD::PageButtonScreenPos(FName Id, bool bTop, FVector2D& OutScreen) const
+{
+	const TArray<FHit>& L = bTop ? TopHits : UnderHits;
+	const FHit* Hh = L.FindByPredicate([Id](const FHit& X) { return X.Id == Id; });
+	return Hh && GM && GM->World && GM->World->PageUVToScreen(PlayerOwner, bTop, Hh->R.GetCenter() / GM->World->PageTextureSize(), OutScreen);
 }
 
 bool ADBHUD::HandleClick(const FVector2D& P)
@@ -266,15 +315,9 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 		GM->AdvanceTalk();
 		return true;
 	}
-	for (int32 i = Hits.Num() - 1; i >= 0; --i)
+
+	auto Dispatch = [this](FName Id, int32 Ix)
 	{
-		const FHit& Hh = Hits[i];
-		if (!Hh.R.IsInside(P))
-		{
-			continue;
-		}
-		const FName Id = Hh.Id;
-		const int32 Ix = Hh.Index;
 		if (Id == TEXT("Play")) GM->ClickPlay();
 		else if (Id == TEXT("Settings")) GM->OpenMenuPage(EDBMenuPage::Settings);
 		else if (Id == TEXT("Credits")) GM->OpenMenuPage(EDBMenuPage::Credits);
@@ -285,6 +328,7 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 		else if (Id == TEXT("Scanner")) GM->StartScan();
 		else if (Id == TEXT("PanelClose")) GM->ClosePanel();
 		else if (Id == TEXT("Drawer")) GM->TogglePanel();
+		else if (Id == TEXT("Kit")) GM->SetDraftKit(Ix);
 		else if (Id == TEXT("Item")) GM->AddItem(Ix);
 		else if (Id == TEXT("Draft")) GM->RemoveDraftAt(Ix);
 		else if (Id == TEXT("Pack")) GM->PackBag();
@@ -293,7 +337,32 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 		else if (Id == TEXT("Bag")) GM->SelectBag(Ix);
 		else if (Id == TEXT("Again")) GM->Restart(true);
 		else if (Id == TEXT("Menu")) GM->Restart(false);
-		return true;
+	};
+
+	if (GM->Phase == EDBPhase::Menu || GM->Phase == EDBPhase::MenuPage)
+	{
+		FVector2D PM;
+		if (const TArray<FHit>* PH = ActivePageHits(PM, P))
+		{
+			for (int32 i = PH->Num() - 1; i >= 0; --i)
+			{
+				if ((*PH)[i].R.IsInside(PM))
+				{
+					Dispatch((*PH)[i].Id, (*PH)[i].Index);
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	for (int32 i = Hits.Num() - 1; i >= 0; --i)
+	{
+		if (Hits[i].R.IsInside(P))
+		{
+			Dispatch(Hits[i].Id, Hits[i].Index);
+			return true;
+		}
 	}
 	return IsOverUI(P);
 }
@@ -330,7 +399,11 @@ void ADBHUD::DrawHUD()
 	{
 	case EDBPhase::Menu:
 	case EDBPhase::MenuPage:
-		DrawMenu();
+		DrawMenuPages();
+		if (DebugDot.X >= 0.f)
+		{
+			Disc(DebugDot, 7.f * S, Red);
+		}
 		return;
 	case EDBPhase::ToBoard:
 		return;
@@ -341,17 +414,16 @@ void ADBHUD::DrawHUD()
 	if (GM->Phase != EDBPhase::Result)
 	{
 		DrawMarkers();
-	}
-	if (GM->Phase != EDBPhase::Result)
-	{
 		DrawScannerAndA();
 		DrawBottomBar();
+		DrawMoney();
 	}
 	const float Dt = GetWorld()->GetDeltaSeconds();
-	PanelSlide = FMath::FInterpTo(PanelSlide, GM->bPanelOpen ? 1.f : 0.f, Dt, 10.f);
-	if (FMath::Abs(PanelSlide - (GM->bPanelOpen ? 1.f : 0.f)) < 0.002f)
+	const float Target = GM->bPanelOpen ? 1.f : 0.f;
+	PanelSlide = FMath::FInterpTo(PanelSlide, Target, Dt, 10.f);
+	if (FMath::Abs(PanelSlide - Target) < 0.002f)
 	{
-		PanelSlide = GM->bPanelOpen ? 1.f : 0.f;
+		PanelSlide = Target;
 	}
 	if (PanelSlide > 0.001f)
 	{
@@ -361,90 +433,138 @@ void ADBHUD::DrawHUD()
 	{
 		DrawDrawerHandle();
 	}
-	if (GM->Phase != EDBPhase::Talk && GM->Phase != EDBPhase::Result && GM->Phase != EDBPhase::Quake)
+	if (GM->Phase != EDBPhase::Talk && GM->Phase != EDBPhase::Result)
 	{
 		DrawTooltip();
 		DrawSelectionCursor();
 	}
-	if (GM->Phase != EDBPhase::Quake && GM->Phase != EDBPhase::Result)
+	if (GM->Phase != EDBPhase::Result)
 	{
 		DrawToast();
 	}
 	DrawTalk();
-	if (GM->Phase == EDBPhase::Quake)
-	{
-		DrawQuake();
-	}
 	if (GM->Phase == EDBPhase::Result)
 	{
 		DrawResult();
 	}
 }
 
-// ---------------------------------------------------------------- takvim menüsü
+// ---------------------------------------------------------------- takvim sayfaları (dokuya çizilir)
 
-void ADBHUD::DrawMenu()
+void ADBHUD::DrawMenuPages()
 {
-	FVector2D Mn, Mx;
-	if (!GM->World->GetPageScreenRect(PlayerOwner, Mn, Mx))
+	ADBWorld* Wd = GM->World;
+	FVector2D TopMouse(-1.f, -1.f), UnderMouse(-1.f, -1.f), UV;
+	if (GM->IsMenuReady() && Wd->PagePointFromScreen(PlayerOwner, Mouse, true, UV))
 	{
-		Mn = FVector2D(W * 0.36f, H * 0.08f);
-		Mx = FVector2D(W * 0.64f, H * 0.92f);
+		TopMouse = UV * Wd->PageTextureSize();
 	}
-	const float PW = Mx.X - Mn.X;
-	const float PH = Mx.Y - Mn.Y;
-	const float U1 = PH / 100.f;
-	const float CX = Mn.X + PW * 0.5f;
-	const float BandH = PH * 0.18f;
-
-	if (GM->Phase == EDBPhase::Menu)
+	if (GM->IsMenuPageReady() && Wd->PagePointFromScreen(PlayerOwner, Mouse, false, UV))
 	{
-		if (!GM->IsMenuReady())
-		{
-			return;
-		}
-		// Yatay sayfa: başlık, altında 2×2 düğme
-		Txt(TEXT("EKİM 2026"), CX, Mn.Y + BandH * 0.5f - 4.5f * U1, 9.f * U1, Paper, 1);
-		Txt(TEXT("DisasterBoard"), CX, Mn.Y + BandH + 4.f * U1, 12.f * U1, Ink, 1);
-		Txt(TEXT("Depreme hazır mısın?"), CX, Mn.Y + BandH + 18.f * U1, 6.f * U1, DarkK, 1);
-		const TCHAR* Labels[] = { TEXT("Oyna"), TEXT("Ayarlar"), TEXT("Emeği Geçenler"), TEXT("Çıkış") };
-		const FName Ids[] = { TEXT("Play"), TEXT("Settings"), TEXT("Credits"), TEXT("Quit") };
-		for (int32 i = 0; i < 4; ++i)
-		{
-			const FBox2D R = Rect(Mn.X + PW * (i % 2 == 0 ? 0.08f : 0.52f), Mn.Y + BandH + (32.f + (i / 2) * 22.f) * U1, PW * 0.40f, 17.f * U1);
-			Button(Ids[i], -1, R, Labels[i], 7.5f * U1, i == 0 ? Coral : CardC, DarkK, i == 0 ? Paper : Ink);
-		}
-		return;
+		UnderMouse = UV * Wd->PageTextureSize();
 	}
+	RenderPage(Wd->TopRT, true, TopMouse, TopHits);
+	RenderPage(Wd->UnderRT, false, UnderMouse, UnderHits);
+	bPageHover = TopHits.ContainsByPredicate([&](const FHit& Hh) { return Hh.R.IsInside(TopMouse); })
+		|| UnderHits.ContainsByPredicate([&](const FHit& Hh) { return Hh.R.IsInside(UnderMouse); });
+}
 
-	if (!GM->IsMenuPageReady())
+void ADBHUD::RenderPage(UTextureRenderTarget2D* RT, bool bTop, const FVector2D& PageMouse, TArray<FHit>& OutHits)
+{
+	if (!RT)
 	{
 		return;
 	}
+	UCanvas* PageCanvas = nullptr;
+	FVector2D Size;
+	FDrawToRenderTargetContext Ctx;
+	UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(this, RT, PageCanvas, Size, Ctx);
+	if (!PageCanvas)
+	{
+		return;
+	}
+	// Ekran çizimini sakla, sayfaya çiz, geri yükle
+	UCanvas* const ScreenCanvas = Canvas;
+	const float SW = W, SH = H, SS = S;
+	const FVector2D SMouse = Mouse;
+	TArray<FHit> ScreenHits = MoveTemp(Hits);
+	Hits.Reset();
 
-	const bool bSettings = GM->MenuPage == EDBMenuPage::Settings;
-	Txt(bSettings ? TEXT("AYARLAR") : TEXT("EMEĞİ GEÇENLER"), CX, Mn.Y + BandH * 0.5f - 3.2f * U1, 6.4f * U1, Paper, 1);
-	float Y = Mn.Y + BandH + 6.f * U1;
+	Canvas = PageCanvas;
+	W = Size.X;
+	H = Size.Y;
+	S = 2.2f;
+	Mouse = PageMouse;
+	ColorGain = GM->World->PageGain;
+	if (bTop)
+	{
+		DrawMainPage(GM->IsMenuReady());
+	}
+	else
+	{
+		DrawSubPage(GM->IsMenuPageReady());
+	}
+	OutHits = MoveTemp(Hits);
+
+	ColorGain = 1.f;
+	Canvas = ScreenCanvas;
+	W = SW;
+	H = SH;
+	S = SS;
+	Mouse = SMouse;
+	Hits = MoveTemp(ScreenHits);
+	UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(this, Ctx);
+}
+
+void ADBHUD::DrawMainPage(bool bEnabled)
+{
+	const float U1 = H / 100.f;
+	const float CX = W * 0.5f;
+	const float BandH = H * 0.18f;
+	Box(0.f, 0.f, W, H, U(248, 240, 224));
+	Box(0.f, 0.f, W, BandH, U(232, 128, 104));
+	Txt(TEXT("EKİM 2026"), CX, BandH * 0.5f - 4.5f * U1, 9.f * U1, Paper, 1);
+	Txt(TEXT("DisasterBoard"), CX, BandH + 4.f * U1, 12.f * U1, Ink, 1);
+	Txt(TEXT("Afetlere hazır mısın?"), CX, BandH + 18.f * U1, 6.f * U1, DarkK, 1);
+	const TCHAR* Labels[] = { TEXT("Oyna"), TEXT("Ayarlar"), TEXT("Emeği Geçenler"), TEXT("Çıkış") };
+	const FName Ids[] = { TEXT("Play"), TEXT("Settings"), TEXT("Credits"), TEXT("Quit") };
+	for (int32 i = 0; i < 4; ++i)
+	{
+		const FBox2D R = Rect(W * (i % 2 == 0 ? 0.08f : 0.52f), BandH + (32.f + (i / 2) * 22.f) * U1, W * 0.40f, 17.f * U1);
+		Button(Ids[i], -1, R, Labels[i], 7.5f * U1, i == 0 ? Coral : CardC, DarkK, i == 0 ? Paper : Ink, bEnabled);
+	}
+}
+
+void ADBHUD::DrawSubPage(bool bEnabled)
+{
+	const float U1 = H / 100.f;
+	const float CX = W * 0.5f;
+	const float BandH = H * 0.18f;
+	const bool bSettings = GM->MenuPage != EDBMenuPage::Credits;
+	Box(0.f, 0.f, W, H, U(248, 240, 224));
+	Box(0.f, 0.f, W, BandH, U(96, 170, 164));
+	Txt(bSettings ? TEXT("AYARLAR") : TEXT("EMEĞİ GEÇENLER"), CX, BandH * 0.5f - 4.5f * U1, 9.f * U1, Paper, 1);
+	float Y = BandH + 5.f * U1;
 	if (bSettings)
 	{
-		Button(TEXT("Fullscreen"), -1, Rect(Mn.X + PW * 0.1f, Y, PW * 0.8f, 10.f * U1),
-			FString::Printf(TEXT("Ekran: %s"), *GM->FullscreenLabel()), 4.8f * U1, CardC, DarkK, Ink);
-		Y += 13.f * U1;
-		Button(TEXT("Quality"), -1, Rect(Mn.X + PW * 0.1f, Y, PW * 0.8f, 10.f * U1),
-			FString::Printf(TEXT("Grafik: %s"), *GM->QualityLabel()), 4.8f * U1, CardC, DarkK, Ink);
-		Y += 16.f * U1;
-		Para(TEXT("Esc ya da sağ tık: geri / seçimi bırak. F5: baştan oyna."), Mn.X + PW * 0.1f, Y, 3.6f * U1, PW * 0.8f, DarkK);
+		Button(TEXT("Fullscreen"), -1, Rect(W * 0.15f, Y, W * 0.7f, 14.f * U1),
+			FString::Printf(TEXT("Ekran: %s"), *GM->FullscreenLabel()), 6.5f * U1, CardC, DarkK, Ink, bEnabled);
+		Y += 18.f * U1;
+		Button(TEXT("Quality"), -1, Rect(W * 0.15f, Y, W * 0.7f, 14.f * U1),
+			FString::Printf(TEXT("Grafik: %s"), *GM->QualityLabel()), 6.5f * U1, CardC, DarkK, Ink, bEnabled);
+		Y += 19.f * U1;
+		Txt(TEXT("Esc / sağ tık: geri   ·   F5: baştan oyna"), CX, Y, 4.6f * U1, DarkK, 1);
 	}
 	else
 	{
 		const TArray<FString>& Lines = FDBContent::Get().Credits;
 		for (int32 i = 0; i < Lines.Num(); ++i)
 		{
-			Txt(Lines[i], CX, Y, (i == 0 ? 6.f : 4.4f) * U1, i == 0 ? Coral : Ink, 1);
-			Y += (Lines[i].IsEmpty() ? 1.5f : (i == 0 ? 7.f : 5.6f)) * U1;
+			Txt(Lines[i], CX, Y, (i == 0 ? 6.5f : 4.9f) * U1, i == 0 ? Coral : Ink, 1);
+			Y += (Lines[i].IsEmpty() ? 1.2f : (i == 0 ? 7.5f : 5.9f)) * U1;
 		}
 	}
-	Button(TEXT("Back"), -1, Rect(Mn.X + PW * 0.3f, Mx.Y - 14.f * U1, PW * 0.4f, 9.f * U1), TEXT("Geri"), 4.8f * U1, Coral, DarkK, Paper);
+	Button(TEXT("Back"), -1, Rect(W * 0.35f, H - 15.f * U1, W * 0.3f, 11.f * U1), TEXT("Geri"), 6.f * U1, Coral, DarkK, Paper, bEnabled);
 }
 
 // ---------------------------------------------------------------- tahta üstü
@@ -469,7 +589,7 @@ void ADBHUD::DrawMarkers()
 		const float Age = GM->Now - (bSolved ? GM->SolveTime[p] : GM->RevealTime[p]);
 		const float Pop = Age < 0.35f ? FMath::Sin(FMath::Clamp(Age / 0.35f, 0.f, 1.f) * PI * 0.75f) * 1.22f : 1.f;
 		const bool bHov = PC && PC->HoveredBuilding == B;
-		float R = 23.f * S * FMath::Max(0.2f, Pop) * (bHov ? 1.18f : 1.f);
+		float R = 21.f * S * FMath::Max(0.2f, Pop) * (bHov ? 1.18f : 1.f);
 		if (!bSolved)
 		{
 			R *= 1.f + 0.06f * FMath::Sin(GM->Now * 6.f + p);
@@ -489,21 +609,25 @@ void ADBHUD::DrawMarkers()
 	}
 }
 
-void ADBHUD::DrawTimer()
+void ADBHUD::DrawMoney()
 {
-	if (!GM->IsTimerVisible())
+	if (!GM->bPanelOpen && !GM->bPlayStarted)
 	{
 		return;
 	}
-	const FBox2D R = Rect(W * 0.5f - 180.f * S, 18.f * S, 360.f * S, 80.f * S);
+	const FBox2D R = MoneyRect();
+	if (GM->IsTalking(FDBContent::Get().PanelIntroC, 2))
+	{
+		Glow(R);
+	}
 	Card(R, Paper, DarkK);
 	Blockers.Add(R);
-	const int32 Sec = FMath::CeilToInt(FMath::Max(0.f, GM->TimeLeft));
-	const bool bLow = GM->TimeLeft < 30.f;
-	Txt(TEXT("DEPREME KALAN"), R.Min.X + 20.f * S, R.Min.Y + 12.f * S, 18.f * S, DarkK);
-	Txt(FString::Printf(TEXT("Hazır: %d / %d"), GM->NumSolved(), GM->Solved.Num()), R.Min.X + 20.f * S, R.Min.Y + 44.f * S, 22.f * S, Green);
-	const float Pulse = bLow ? 1.f + 0.06f * FMath::Sin(GM->Now * 10.f) : 1.f;
-	Txt(FString::Printf(TEXT("%d:%02d"), Sec / 60, Sec % 60), R.Max.X - 20.f * S, R.Min.Y + 12.f * S, 50.f * S * Pulse, bLow ? Red : Ink, 2);
+	const FVector2D Coin(R.Min.X + 32.f * S, R.GetCenter().Y);
+	Disc(Coin, 17.f * S, U(214, 160, 56));
+	Disc(Coin, 12.f * S, U(240, 196, 86));
+	Txt(TEXT("TL"), Coin.X, Coin.Y - 7.f * S, 13.f * S, U(120, 84, 30), 1);
+	Txt(TEXT("Bütçe"), R.Min.X + 60.f * S, R.Min.Y + 15.f * S, 22.f * S, DarkK);
+	Txt(FString::Printf(TEXT("%d TL"), GM->Money), R.Max.X - 18.f * S, R.Min.Y + 9.f * S, 34.f * S, Ink, 2);
 }
 
 void ADBHUD::DrawScannerAndA()
@@ -520,7 +644,6 @@ void ADBHUD::DrawScannerAndA()
 	}
 	const bool bHov = bCan && Hover(R);
 	const FBox2D RR = bHov ? R.ShiftBy(FVector2D(0.f, -4.f * S)) : R;
-	// Antenler
 	Line(FVector2D(RR.Min.X + 22.f * S, RR.Min.Y), FVector2D(RR.Min.X + 12.f * S, RR.Min.Y - 34.f * S), 3.f * S, Ink);
 	Line(FVector2D(RR.Max.X - 24.f * S, RR.Min.Y), FVector2D(RR.Max.X - 16.f * S, RR.Min.Y - 46.f * S), 3.f * S, Ink);
 	Disc(FVector2D(RR.Min.X + 12.f * S, RR.Min.Y - 34.f * S), 5.f * S, Coral);
@@ -556,16 +679,17 @@ void ADBHUD::DrawBottomBar()
 	Blockers.Add(BR);
 	const bool bPlay = GM->Phase == EDBPhase::Play;
 
-	// Şehir araçları
+	// Şehir önlemleri (bedeli bütçeden düşer)
 	const float X = BR.Min.X + 20.f * S;
 	const float Y = BR.Min.Y + 40.f * S;
-	Txt(TEXT("Şehir araçları"), X, BR.Min.Y + 10.f * S, 19.f * S, DarkK);
+	Txt(TEXT("Şehir önlemleri"), X, BR.Min.Y + 10.f * S, 19.f * S, DarkK);
 	if (GM->IsTalking(C.PanelIntroC, 1))
 	{
 		Glow(Rect(X, Y, 4.f * 112.f * S + 3.f * 10.f * S, 112.f * S));
 	}
 	for (int32 t = 0; t < C.Tools.Num() && t < 4; ++t)
 	{
+		const FDBToolDef& T = C.Tools[t];
 		const FBox2D R = Rect(X + t * 122.f * S, Y, 112.f * S, 112.f * S);
 		const bool bSel = GM->SelTool == t;
 		const bool bHov = bPlay && Hover(R);
@@ -575,13 +699,15 @@ void ADBHUD::DrawBottomBar()
 		{
 			Frame(RR.ExpandBy(3.f * S), Teal, 4.f * S);
 		}
-		ToolIcon(t, FVector2D(RR.GetCenter().X, RR.Min.Y + 36.f * S), 24.f * S);
-		float LY = RR.Min.Y + 68.f * S;
-		for (const FString& L : Wrap(C.Tools[t].Name, 16.f * S, 100.f * S))
+		ToolIcon(t, FVector2D(RR.GetCenter().X, RR.Min.Y + 28.f * S), 20.f * S);
+		float LY = RR.Min.Y + 52.f * S;
+		for (const FString& L : Wrap(T.Name, 15.f * S, 102.f * S))
 		{
-			Txt(L, RR.GetCenter().X, LY, 16.f * S, Ink, 1);
-			LY += 18.f * S;
+			Txt(L, RR.GetCenter().X, LY, 15.f * S, Ink, 1);
+			LY += 16.f * S;
 		}
+		const bool bAfford = GM->Money >= T.Cost;
+		Txt(FString::Printf(TEXT("%d TL"), T.Cost), RR.GetCenter().X, RR.Max.Y - 22.f * S, 16.f * S, bAfford ? U(150, 110, 30) : Red, 1);
 		if (bPlay)
 		{
 			Hit(TEXT("Tool"), t, RR);
@@ -596,7 +722,7 @@ void ADBHUD::DrawBottomBar()
 	const float BX = X + 4.f * 122.f * S + 14.f * S;
 	Txt(TEXT("Sırt çantası"), BX, BR.Min.Y + 10.f * S, 19.f * S, DarkK);
 	const FBox2D Pack = Rect(BX, Y - 2.f * S, 200.f * S, 116.f * S);
-	if (GM->IsTalking(C.PanelIntroC, 2))
+	if (GM->IsTalking(C.PanelIntroC, 3))
 	{
 		Glow(Pack);
 	}
@@ -621,17 +747,17 @@ void ADBHUD::DrawBottomBar()
 		const bool bHov = bPlay && Hover(R);
 		const FBox2D RR = (bSel || bHov) ? R.ShiftBy(FVector2D(0.f, -3.f * S)) : R;
 		Box(RR, bSel ? U(255, 248, 220) : Paper);
-		Frame(RR, bSel ? Teal : Ink, bSel ? 4.f * S : 2.f * S);
+		KitBadge(Bag.Kit, Rect(RR.Min.X, RR.Min.Y, RR.GetSize().X, 20.f * S), 13.f * S);
 		for (int32 k = 0; k < Bag.Items.Num(); ++k)
 		{
-			ItemIcon(Bag.Items[k], FVector2D(RR.Min.X + 13.f * S + k * 19.5f * S, RR.GetCenter().Y), 8.5f * S, false, 0.f);
+			ItemIcon(Bag.Items[k], FVector2D(RR.Min.X + 13.f * S + k * 19.5f * S, RR.Min.Y + 34.f * S), 8.f * S);
 		}
+		Frame(RR, bSel ? Teal : Ink, bSel ? 4.f * S : 2.f * S);
 		if (bPlay)
 		{
 			Hit(TEXT("Bag"), b, RR);
 		}
 	}
-
 }
 
 void ADBHUD::DrawDrawerHandle()
@@ -648,11 +774,11 @@ void ADBHUD::DrawDrawerHandle()
 	Box(Rect(RR.Min.X + 10.f * S, RR.Min.Y + 14.f * S, 6.f * S, RR.GetSize().Y - 28.f * S), U(120, 84, 56));
 	const TCHAR* Word = TEXT("HAZIRLIK");
 	const float LetterPx = 17.f * S;
-	float Y = RR.GetCenter().Y - 8.f * LetterPx * 0.55f;
+	float LY = RR.GetCenter().Y - 8.f * LetterPx * 0.55f;
 	for (int32 i = 0; Word[i]; ++i)
 	{
-		Txt(FString::Chr(Word[i]), RR.GetCenter().X + 5.f * S, Y, LetterPx, Ink, 1);
-		Y += LetterPx * 1.1f;
+		Txt(FString::Chr(Word[i]), RR.GetCenter().X + 5.f * S, LY, LetterPx, Ink, 1);
+		LY += LetterPx * 1.1f;
 	}
 	Blockers.Add(R);
 	if (bCan)
@@ -673,30 +799,44 @@ void ADBHUD::DrawPanel()
 
 	Txt(TEXT("Hazırlık Masası"), X0, Y0 + 16.f * S, 34.f * S, Ink);
 	const FBox2D XR = Rect(P.Max.X - 68.f * S, Y0 + 14.f * S, 50.f * S, 50.f * S);
-	if (GM->IsTalking(C.BagIntroB, 4))
+	if (GM->IsTalking(C.BagIntroB, 5))
 	{
 		Glow(XR);
 	}
 	Button(TEXT("PanelClose"), -1, XR, TEXT("X"), 26.f * S, Coral, Ink, Paper, bEdit);
-	Txt(TEXT("Eşyaya tıkla, çantaya girsin. Çantadakine tıkla, çıksın."), X0, Y0 + 62.f * S, 18.f * S, DarkK);
+	Txt(TEXT("Önce çantanın türünü seç, sonra eşyalara tıkla."), X0, Y0 + 62.f * S, 17.f * S, DarkK);
 
-	// Eşyalar
+	// Çanta türü sekmeleri
+	const float TabY = Y0 + 92.f * S;
 	if (GM->IsTalking(C.BagIntroB, 2))
 	{
-		Glow(Rect(X0, Y0 + 94.f * S, 4.f * 150.f * S + 3.f * 12.f * S, 2.f * 112.f * S + 12.f * S));
+		Glow(Rect(X0, TabY, 3.f * 208.f * S + 2.f * 14.f * S, 44.f * S));
 	}
-	for (int32 i = 0; i < C.Items.Num() && i < 8; ++i)
+	for (int32 k = 0; k < C.Kits.Num() && k < 3; ++k)
 	{
-		const FBox2D R = Rect(X0 + (i % 4) * 162.f * S, Y0 + 94.f * S + (i / 4) * 124.f * S, 150.f * S, 112.f * S);
+		const FBox2D R = Rect(X0 + k * 222.f * S, TabY, 208.f * S, 44.f * S);
+		const bool bSel = GM->DraftKit == k;
+		Button(TEXT("Kit"), k, R, C.Kits[k].Short, 19.f * S, bSel ? C.Kits[k].Color : CardC, bSel ? Ink : DarkK, bSel ? Paper : Ink, bEdit);
+	}
+
+	// Eşyalar 4×3
+	const float GY = Y0 + 148.f * S;
+	if (GM->IsTalking(C.BagIntroB, 3))
+	{
+		Glow(Rect(X0, GY, 4.f * 150.f * S + 3.f * 12.f * S, 3.f * 92.f * S + 2.f * 8.f * S));
+	}
+	for (int32 i = 0; i < C.Items.Num() && i < 12; ++i)
+	{
+		const FBox2D R = Rect(X0 + (i % 4) * 162.f * S, GY + (i / 4) * 100.f * S, 150.f * S, 92.f * S);
 		const bool bIn = GM->Draft.Contains(i);
 		const bool bHov = bEdit && Hover(R);
 		const FBox2D RR = bHov ? R.ShiftBy(FVector2D(0.f, -4.f * S)) : R;
 		Card(RR, bIn ? U(226, 240, 214) : Paper, bIn ? Green : DarkK, bHov ? 7.f : 4.f);
-		ItemIcon(i, FVector2D(RR.GetCenter().X, RR.Min.Y + 42.f * S), 28.f * S, false, 0.f);
-		Txt(C.Items[i].Name, RR.GetCenter().X, RR.Min.Y + 78.f * S, 18.f * S, Ink, 1);
+		ItemIcon(i, FVector2D(RR.GetCenter().X, RR.Min.Y + 34.f * S), 22.f * S);
+		Txt(C.Items[i].Name, RR.GetCenter().X, RR.Min.Y + 62.f * S, 16.f * S, Ink, 1);
 		if (bIn)
 		{
-			TickMark(FVector2D(RR.Max.X - 20.f * S, RR.Min.Y + 20.f * S), 22.f * S, Green);
+			TickMark(FVector2D(RR.Max.X - 18.f * S, RR.Min.Y + 18.f * S), 20.f * S, Green);
 		}
 		if (bEdit)
 		{
@@ -705,17 +845,18 @@ void ADBHUD::DrawPanel()
 	}
 
 	// Hazırlanan çanta
-	const float BY = Y0 + 94.f * S + 2.f * 124.f * S + 8.f * S;
-	Txt(FString::Printf(TEXT("Çanta (%d/%d)"), GM->Draft.Num(), GM->BagCapacity), X0, BY, 22.f * S, Ink);
+	const float BY = GY + 3.f * 100.f * S + 4.f * S;
+	const FDBKitDef& Kit = C.Kits[FMath::Clamp(GM->DraftKit, 0, C.Kits.Num() - 1)];
+	Txt(FString::Printf(TEXT("%s (%d/%d)"), *Kit.Name, GM->Draft.Num(), GM->BagCapacity), X0, BY, 20.f * S, Ink);
 	for (int32 k = 0; k < GM->BagCapacity && k < 4; ++k)
 	{
-		const FBox2D R = Rect(X0 + k * 104.f * S, BY + 32.f * S, 94.f * S, 94.f * S);
+		const FBox2D R = Rect(X0 + k * 96.f * S, BY + 30.f * S, 86.f * S, 86.f * S);
 		if (GM->Draft.IsValidIndex(k))
 		{
 			const bool bHov = bEdit && Hover(R);
 			Card(R, Paper, bHov ? Coral : DarkK, 3.f);
-			ItemIcon(GM->Draft[k], FVector2D(R.GetCenter().X, R.Min.Y + 36.f * S), 22.f * S, false, 0.f);
-			Txt(C.Items[GM->Draft[k]].Name, R.GetCenter().X, R.Min.Y + 66.f * S, 14.f * S, Ink, 1);
+			ItemIcon(GM->Draft[k], FVector2D(R.GetCenter().X, R.Min.Y + 32.f * S), 20.f * S);
+			Txt(C.Items[GM->Draft[k]].Name, R.GetCenter().X, R.Min.Y + 60.f * S, 13.f * S, Ink, 1);
 			if (bHov)
 			{
 				Cross(FVector2D(R.Max.X - 14.f * S, R.Min.Y + 14.f * S), 16.f * S, Coral);
@@ -727,42 +868,37 @@ void ADBHUD::DrawPanel()
 		}
 		else
 		{
-			Box(R, U(255, 255, 255, 70));
-			Frame(R, U(140, 100, 66, 140), 2.f * S);
+			Box(R, WithA(Kit.Color, 0.18f));
+			Frame(R, WithA(Kit.Color, 0.7f), 2.f * S);
 		}
 	}
-	const FBox2D PackR = Rect(X0 + 4.f * 104.f * S + 6.f * S, BY + 32.f * S, 222.f * S, 56.f * S);
-	if (GM->IsTalking(C.BagIntroB, 3))
+	const FBox2D PackR = Rect(X0 + 4.f * 96.f * S + 16.f * S, BY + 30.f * S, 252.f * S, 50.f * S);
+	if (GM->IsTalking(C.BagIntroB, 4))
 	{
 		Glow(PackR);
 	}
 	Button(TEXT("Pack"), -1, PackR, TEXT("Çantayı Hazırla"), 22.f * S, Green, Ink, Paper, bEdit && GM->Draft.Num() > 0);
-	Button(TEXT("Clear"), -1, Rect(X0 + 4.f * 104.f * S + 6.f * S, BY + 94.f * S, 222.f * S, 32.f * S), TEXT("Boşalt"), 17.f * S,
+	Button(TEXT("Clear"), -1, Rect(PackR.Min.X, BY + 86.f * S, 252.f * S, 30.f * S), TEXT("Boşalt"), 16.f * S,
 		CardC, DarkK, Ink, bEdit && GM->Draft.Num() > 0);
 
-	// Alt: hazır çantalar (sol) ve not kağıdı (sağ alt)
-	const float AY = BY + 32.f * S + 94.f * S + 20.f * S;
-	const float NoteW = 420.f * S;
-	Txt(TEXT("Hazır çantalar"), X0, AY, 20.f * S, Ink);
-	float LY = AY + 30.f * S;
+	// Alt: hazır çantalar (sol) ve not kağıdı (sağ, panelin altına sarkar)
+	const float AY = BY + 30.f * S + 86.f * S + 16.f * S;
+	const float NoteW = 460.f * S;
+	Txt(TEXT("Hazır çantalar"), X0, AY, 18.f * S, Ink);
+	float LY = AY + 26.f * S;
 	const float ListW = P.Max.X - 24.f * S - NoteW - 16.f * S - X0;
 	if (GM->Bags.Num() == 0)
 	{
-		Txt(TEXT("Henüz yok."), X0, LY, 16.f * S, DarkK);
+		Txt(TEXT("Henüz yok."), X0, LY, 15.f * S, DarkK);
 	}
 	for (int32 b = 0; b < GM->Bags.Num(); ++b)
 	{
 		const FDBBag& Bag = GM->Bags[b];
-		TArray<FString> Names;
-		for (int32 It : Bag.Items)
-		{
-			Names.Add(C.Items[It].Name);
-		}
-		const FString L = FString::Printf(TEXT("%d. %s%s"), b + 1, Bag.bUsed ? TEXT("(kullanıldı) ") : TEXT(""), *FString::Join(Names, TEXT(", ")));
-		LY = Para(L, X0, LY, 15.f * S, ListW, Bag.bUsed ? U(140, 128, 110) : Ink, 1.2f, -1, P.Max.Y + 200.f * S) + 6.f * S;
+		const FString L = FString::Printf(TEXT("%d. %s%s"), b + 1, *C.Kits[Bag.Kit].Short, Bag.bUsed ? TEXT(" (gönderildi)") : TEXT(""));
+		Txt(L, X0, LY, 15.f * S, Bag.bUsed ? U(140, 128, 110) : Ink);
+		LY += 19.f * S;
 	}
 
-	// Not kağıdı panelin altına bantla tutturulmuş, aşağı sarkar (çizim 5)
 	const FBox2D NR = Rect(P.Max.X - 24.f * S - NoteW, AY - 6.f * S, NoteW, 350.f * S);
 	Blockers.Add(NR);
 	if (GM->IsTalking(C.BagIntroB, 1))
@@ -776,7 +912,7 @@ void ADBHUD::DrawPanel()
 	Disc(FVector2D(NR.Max.X - 196.f * S, NR.Min.Y + 25.f * S), 5.f * S, Coral);
 	Txt(TEXT("çanta"), NR.Max.X - 186.f * S, NR.Min.Y + 16.f * S, 14.f * S, DarkK);
 	Disc(FVector2D(NR.Max.X - 128.f * S, NR.Min.Y + 25.f * S), 5.f * S, Teal);
-	Txt(TEXT("şehir aracı"), NR.Max.X - 118.f * S, NR.Min.Y + 16.f * S, 14.f * S, DarkK);
+	Txt(TEXT("şehir önlemi"), NR.Max.X - 118.f * S, NR.Min.Y + 16.f * S, 14.f * S, DarkK);
 	float NY = NR.Min.Y + 46.f * S;
 	for (int32 p = 0; p < C.Problems.Num(); ++p)
 	{
@@ -790,13 +926,13 @@ void ADBHUD::DrawPanel()
 		if (bS)
 		{
 			TickMark(Dot, 16.f * S, Green);
+			Txt(C.Buildings[Pr.Building].Name + TEXT(": hazır"), NR.Min.X + 32.f * S, NY, 14.f * S, U(140, 128, 110));
+			NY += 19.f * S;
+			continue;
 		}
-		else
-		{
-			Disc(Dot, 5.f * S, Pr.Tool >= 0 ? Teal : Coral);
-		}
-		const FString L = C.Buildings[Pr.Building].Name + TEXT(": ") + Pr.Short;
-		NY = Para(L, NR.Min.X + 32.f * S, NY, 15.f * S, NR.GetSize().X - 46.f * S, bS ? U(140, 128, 110) : Ink, 1.18f, -1, NR.Max.Y - 6.f * S) + 5.f * S;
+		Disc(Dot, 5.f * S, Pr.Tool >= 0 ? Teal : Coral);
+		const FString L = FString::Printf(TEXT("[%s] %s: %s"), *Pr.Hazard, *C.Buildings[Pr.Building].Name, *Pr.Short);
+		NY = Para(L, NR.Min.X + 32.f * S, NY, 14.f * S, NR.GetSize().X - 46.f * S, Ink, 1.16f, -1, NR.Max.Y - 6.f * S) + 5.f * S;
 	}
 }
 
@@ -873,7 +1009,7 @@ void ADBHUD::DrawToast()
 	{
 		TW = FMath::Max(TW, Measure(L, Px).X);
 	}
-	const float Y0 = 30.f * S;
+	const float Y0 = 92.f * S;
 	const FBox2D R = Rect(W * 0.5f - (TW + 48.f * S) * 0.5f, Y0, TW + 48.f * S, Lines.Num() * Px * 1.25f + 26.f * S);
 	Card(R, WithA(GM->bToastBad ? U(250, 222, 212) : U(236, 246, 228), A), WithA(GM->bToastBad ? Red : Green, A), 6.f);
 	float Y = R.Min.Y + 13.f * S;
@@ -898,11 +1034,11 @@ void ADBHUD::DrawTooltip()
 	FString Sub;
 	if (bKnown)
 	{
-		Sub = GM->Solved[P] ? TEXT("Hazır.") : C.Problems[P].Short;
+		Sub = GM->Solved[P] ? FString(TEXT("Hazır.")) : FString::Printf(TEXT("[%s] %s"), *C.Problems[P].Hazard, *C.Problems[P].Short);
 	}
 	else if (GM->NumRevealed() > 0)
 	{
-		Sub = TEXT("Tarayıcı sorun bulmadı.");
+		Sub = (B == C.ShelterBuilding) ? TEXT("Tsunami ve sel için güvenli toplanma yeri.") : TEXT("Tarayıcı sorun bulmadı.");
 	}
 	FString Act;
 	if (GM->Phase == EDBPhase::Play && bKnown && !GM->Solved[P])
@@ -947,23 +1083,13 @@ void ADBHUD::DrawSelectionCursor()
 	{
 		ToolIcon(GM->SelTool, C, 16.f * S);
 	}
-	else if (GM->SelBag >= 0)
+	else if (GM->Bags.IsValidIndex(GM->SelBag))
 	{
-		Box(Rect(C.X - 16.f * S, C.Y - 14.f * S, 32.f * S, 30.f * S), U(206, 116, 88));
-		Frame(Rect(C.X - 16.f * S, C.Y - 14.f * S, 32.f * S, 30.f * S), Ink, 2.f * S);
-		Frame(Rect(C.X - 8.f * S, C.Y - 22.f * S, 16.f * S, 9.f * S), Ink, 2.f * S);
+		KitBadge(GM->Bags[GM->SelBag].Kit, Rect(C.X - 44.f * S, C.Y - 12.f * S, 88.f * S, 24.f * S), 14.f * S);
 	}
 }
 
-// ---------------------------------------------------------------- deprem ve sonuç
-
-void ADBHUD::DrawQuake()
-{
-	const float Shake = FMath::Sin(GM->Now * 47.f) * 8.f * S;
-	Txt(TEXT("DEPREM!"), W * 0.5f + Shake + 4.f * S, 128.f * S + 5.f * S, 96.f * S, U(0, 0, 0, 120), 1);
-	Txt(TEXT("DEPREM!"), W * 0.5f + Shake, 128.f * S, 96.f * S, Red, 1);
-
-}
+// ---------------------------------------------------------------- sonuç
 
 void ADBHUD::DrawResult()
 {
@@ -971,36 +1097,36 @@ void ADBHUD::DrawResult()
 	Box(0.f, 0.f, W, H, U(30, 20, 10, 120));
 	Blockers.Add(Rect(0.f, 0.f, W, H));
 	const float CW = 1180.f * S;
-	const FBox2D R = Rect(W * 0.5f - CW * 0.5f, 50.f * S, CW, H - 100.f * S);
+	const FBox2D R = Rect(W * 0.5f - CW * 0.5f, 40.f * S, CW, H - 80.f * S);
 	Card(R, Paper, DarkK, 10.f);
 
 	const bool bWon = GM->bWon;
-	Txt(bWon ? TEXT("Kasaba depreme hazır!") : TEXT("Deprem kasabayı hazırlıksız yakaladı"), R.GetCenter().X, R.Min.Y + 28.f * S, 44.f * S,
+	Txt(bWon ? TEXT("Kasaba afetlere hazır!") : TEXT("Kasaba afetlere hazır değildi"), R.GetCenter().X, R.Min.Y + 26.f * S, 44.f * S,
 		bWon ? Green : Red, 1);
-	Txt(FString::Printf(TEXT("Hazır bina: %d / %d   ·   Yanlış deneme: %d"), GM->NumSolved(), GM->Solved.Num(), GM->Mistakes),
-		R.GetCenter().X, R.Min.Y + 86.f * S, 26.f * S, Ink, 1);
+	Txt(FString::Printf(TEXT("Hazır: %d / %d   ·   Yanlış deneme: %d   ·   Kalan bütçe: %d TL"), GM->NumSolved(), GM->Solved.Num(),
+		GM->Mistakes, GM->Money), R.GetCenter().X, R.Min.Y + 84.f * S, 24.f * S, Ink, 1);
 
-	float Y = R.Min.Y + 140.f * S;
+	float Y = R.Min.Y + 132.f * S;
 	const float TextX = R.Min.X + 84.f * S;
 	for (int32 p = 0; p < C.Problems.Num(); ++p)
 	{
 		const FDBProblemDef& Pr = C.Problems[p];
 		const bool bS = GM->Solved[p];
-		const FVector2D Ic(R.Min.X + 50.f * S, Y + 13.f * S);
-		Disc(Ic, 15.f * S, bS ? U(226, 244, 220) : U(250, 222, 212));
+		const FVector2D Ic(R.Min.X + 50.f * S, Y + 12.f * S);
+		Disc(Ic, 14.f * S, bS ? U(226, 244, 220) : U(250, 222, 212));
 		if (bS)
 		{
-			TickMark(Ic, 22.f * S, Green);
+			TickMark(Ic, 20.f * S, Green);
 		}
 		else
 		{
-			Cross(Ic, 20.f * S, Red);
+			Cross(Ic, 18.f * S, Red);
 		}
-		Txt(C.Buildings[Pr.Building].Name + (bS ? FString() : FString(TEXT("  (hazır değildi)"))), TextX, Y, 26.f * S, bS ? Ink : Red);
-		Y = Para(Pr.Lesson, TextX, Y + 33.f * S, 21.f * S, CW - 130.f * S, DarkK, 1.22f, -1, R.Max.Y - 110.f * S) + 16.f * S;
+		Txt(FString::Printf(TEXT("%s  ·  %s"), *C.Buildings[Pr.Building].Name, *Pr.Hazard), TextX, Y, 23.f * S, bS ? Ink : Red);
+		Y = Para(Pr.Lesson, TextX, Y + 29.f * S, 18.f * S, CW - 130.f * S, DarkK, 1.2f, -1, R.Max.Y - 100.f * S) + 9.f * S;
 	}
 
-	const float BY = R.Max.Y - 92.f * S;
-	Button(TEXT("Again"), -1, Rect(R.GetCenter().X - 290.f * S, BY, 270.f * S, 64.f * S), TEXT("Tekrar Oyna"), 26.f * S, Coral, Ink, Paper);
-	Button(TEXT("Menu"), -1, Rect(R.GetCenter().X + 20.f * S, BY, 270.f * S, 64.f * S), TEXT("Menü"), 26.f * S, CardC, DarkK, Ink);
+	const float BY = R.Max.Y - 86.f * S;
+	Button(TEXT("Again"), -1, Rect(R.GetCenter().X - 290.f * S, BY, 270.f * S, 62.f * S), TEXT("Tekrar Oyna"), 26.f * S, Coral, Ink, Paper);
+	Button(TEXT("Menu"), -1, Rect(R.GetCenter().X + 20.f * S, BY, 270.f * S, 62.f * S), TEXT("Menü"), 26.f * S, CardC, DarkK, Ink);
 }
