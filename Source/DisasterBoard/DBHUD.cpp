@@ -1739,7 +1739,13 @@ void ADBHUD::DrawComic()
 
 	if (UTexture2D* Img = LoadPng(FString::Printf(TEXT("Cizgiroman/sahne%d.png"), Ix + 1)))
 	{
-		DrawTex(Img, P, 0.f, FVector2D(0.5f, 0.5f));
+		// Revizyon 3: hafif kamera hareketi: yavaş yakınlaşma, sahneden sahneye yönü değişen kayma (doku penceresiyle)
+		const float U = FMath::Clamp(T / FMath::Max(1.f, GM->ComicSeconds), 0.f, 1.f);
+		const float Ease = U * U * (3.f - 2.f * U);
+		const float Win = 1.f / (1.f + 0.09f * Ease);
+		const FVector2D Dir = (Ix % 2 == 0) ? FVector2D(1.f, 0.4f) : FVector2D(-1.f, -0.3f);
+		const FVector2D Cn = FVector2D(0.5f, 0.5f) + Dir * (1.f - Win) * 0.5f * Ease;
+		DrawTexUV(Img, P, Cn - FVector2D(Win * 0.5f), Cn + FVector2D(Win * 0.5f));
 	}
 	else
 	{
@@ -1815,11 +1821,24 @@ void ADBHUD::DrawComic()
 		}
 	}
 
-	// Altyazı kutusu (çizgi roman anlatıcı kutusu)
+	// Atmosfer: süzülen toz / ışıltı; sahne başında kâğıttan açılma
+	Sparkles(P, 26, GM->Now, 0.55f, 77u + Ix);
+	if (T < 0.45f)
+	{
+		Box(P, WithA(Paper, 1.f - T / 0.45f));
+	}
+
+	// Altyazı kutusu (çizgi roman anlatıcı kutusu): yuvarlak, sahne başında yaylanarak gelir
 	const FString& Cap = C.Comic[Ix];
 	const TArray<FString> Lines = Wrap(Cap, 30.f * S, 900.f * S);
-	const FBox2D CapR = Rect(P.Min.X + 30.f * S, P.Max.Y - 40.f * S - Lines.Num() * 38.f * S, 960.f * S, Lines.Num() * 38.f * S + 24.f * S);
-	Card(CapR, NoteY, Ink, 6.f);
+	FBox2D CapR = Rect(P.Min.X + 30.f * S, P.Max.Y - 40.f * S - Lines.Num() * 38.f * S, 960.f * S, Lines.Num() * 38.f * S + 24.f * S);
+	{
+		const float Pa = FMath::Clamp((T - 0.2f) / 0.35f, 0.f, 1.f);
+		const float K = Pa >= 1.f ? 1.f : 0.85f + 0.15f * Pa + 0.08f * FMath::Sin(Pa * PI);
+		const FVector2D C0 = CapR.GetCenter(), Hs = CapR.GetExtent() * K;
+		CapR = FBox2D(C0 - Hs, C0 + Hs);
+	}
+	RoundCard(CapR, NoteY, Ink, 16.f * S, 6.f);
 	float Y = CapR.Min.Y + 12.f * S;
 	const int32 Shown = FMath::FloorToInt(T * 40.f);
 	int32 Left = Shown;
@@ -1971,9 +1990,16 @@ void ADBHUD::DrawMini()
 	const bool bNut = GM->Mini == EDBMini::Nut;
 	Box(0.f, 0.f, W, H, U(40, 30, 22, 120));
 	Blockers.Add(Rect(0.f, 0.f, W, H));
-	const FBox2D R = Rect(W * 0.5f - 400.f * S, H * 0.5f - 280.f * S, 800.f * S, 540.f * S);
+	FBox2D R = Rect(W * 0.5f - 400.f * S, H * 0.5f - 280.f * S, 800.f * S, 540.f * S);
+	// Revizyon 9: hata anında pencere sallanır, kenarı kırmızı yanar
+	const float BadAge = GM->Now - GM->MiniMsgTime;
+	const bool bShake = GM->bMiniMsgBad && BadAge >= 0.f && BadAge < 0.45f;
+	if (bShake)
+	{
+		R = R.ShiftBy(FVector2D(FMath::Sin(BadAge * 70.f) * 14.f * S * (1.f - BadAge / 0.45f), 0.f));
+	}
 	const float CX = R.GetCenter().X;
-	Card(R, Paper, Ink, 8.f);
+	RoundCard(R, Paper, bShake ? Red : Ink, 24.f * S, 8.f);
 	Txt(bNut ? TEXT("Yangın musluğunu tamir et") : TEXT("Rögar kapağını yerine oturt"), CX, R.Min.Y + 20.f * S, 32.f * S, Ink, 1);
 	const FString How = bNut
 		? TEXT("Basılı tut: anahtar somunu sıkar ve gittikçe hızlanır. Yeşil çizgiye gelince bırak!")
@@ -2003,8 +2029,18 @@ void ADBHUD::DrawMini()
 	}
 	else
 	{
-		const float A = FMath::Clamp((GM->Now - GM->MiniWinAt) / 0.25f, 0.f, 1.f);
+		// Kazanınca: büyükten oturan damga + işin yerinden fışkıran su
+		const float Age = GM->Now - GM->MiniWinAt;
+		const float A = FMath::Clamp(Age / 0.25f, 0.f, 1.f);
 		TickMark(FVector2D(CX + 300.f * S, R.Min.Y + 150.f * S), 70.f * S * A + 10.f * S, Green);
+		Fountain(FVector2D(CX, R.Min.Y + (bNut ? 372.f : 268.f) * S), Age, 46, U(110, 170, 222), 11u);
+		const float Sc = 1.f + 1.2f * FMath::Exp(-Age * 9.f);
+		const FString Stamp = bNut ? TEXT("TAMİR!") : TEXT("YERİNE OTURDU!");
+		const float Px = 64.f * S * Sc;
+		const float SW = Measure(Stamp, Px).X + 50.f * S * Sc;
+		const FBox2D SR = Rect(CX - SW * 0.5f, R.Min.Y + 150.f * S - Px * 0.2f, SW, Px * 1.25f);
+		RoundCard(SR, WithA(U(236, 246, 228), FMath::Min(1.f, Age * 6.f)), Green, 18.f * S, 6.f);
+		Txt(Stamp, CX, SR.Min.Y + Px * 0.12f, Px, WithA(Green, FMath::Min(1.f, Age * 6.f)), 1);
 	}
 	// Basılı tutarken düğme gibi çöker: oyuncu basılı tuttuğunu görsün
 	const FBox2D Pad = Rect(R.Min.X + 24.f * S, R.Min.Y + 130.f * S, 132.f * S, 46.f * S);
@@ -2070,10 +2106,18 @@ void ADBHUD::DrawManholeGame(const FBox2D& R)
 	const float Z1 = Tr.Min.X + (GM->MiniZone + GM->MiniZoneHalf) * TW;
 	const bool bIn = FMath::Abs(GM->MiniPos - GM->MiniZone) <= GM->MiniZoneHalf;
 	const FBox2D Zone = FBox2D(FVector2D(Z0, Tr.Min.Y - 8.f * S), FVector2D(Z1, Tr.Max.Y + 8.f * S));
+	if (bIn)
+	{
+		Frame(Zone.ExpandBy((4.f + 3.f * FMath::Sin(FxNow * 12.f)) * S), U(255, 230, 120, 200), 3.f * S);   // yeşilde: parlıyor
+	}
 	Box(Zone, bIn ? U(90, 200, 110, 200) : U(90, 186, 104, 140));
 	Frame(Zone, U(40, 150, 70), 3.f * S);
 	// Kapak
 	const FVector2D Cv(Tr.Min.X + GM->MiniPos * TW, Tr.GetCenter().Y);
+	if (bIn)
+	{
+		Sparkles(FBox2D(Cv - FVector2D(60.f * S), Cv + FVector2D(60.f * S)), 10, FxNow * 2.f, 0.9f, 5u);
+	}
 	Disc(Cv + FVector2D(3.f, 5.f) * S, 40.f * S, ShadowC);
 	Disc(Cv, 40.f * S, U(56, 58, 64));
 	Disc(Cv, 33.f * S, U(96, 98, 106));
@@ -2406,4 +2450,58 @@ void ADBHUD::DrawDoHint()
 	Txt(Lbl, L.GetCenter().X, L.Min.Y + 7.f * S, 24.f * S, Ink, 1);
 	const FVector2D Tip(FMath::Clamp(T.GetCenter().X, L.Min.X + 20.f * S, L.Max.X - 20.f * S), T.Min.Y - 10.f * S);
 	Tri(FVector2D(Tip.X - 12.f * S, L.Max.Y - 1.f), FVector2D(Tip.X + 12.f * S, L.Max.Y - 1.f), FVector2D(Tip.X, Tip.Y - 6.f * S * Pulse), Ink);
+}
+
+// ---------------------------------------------------------------- 2D efekt yardımcıları (hikâye, mini oyun)
+
+void ADBHUD::DrawTexUV(UTexture2D* T, const FBox2D& R, const FVector2D& UV0, const FVector2D& UV1, float Alpha)
+{
+	if (!T || !T->GetResource())
+	{
+		return;
+	}
+	FCanvasTileItem It(R.Min, T->GetResource(), R.GetSize(), UV0, UV1, Gn(FLinearColor(1.f, 1.f, 1.f, Alpha)));
+	It.BlendMode = SE_BLEND_Translucent;
+	Canvas->DrawItem(It);
+}
+
+void ADBHUD::Sparkles(const FBox2D& Area, int32 N, float T, float Alpha, uint32 Seed)
+{
+	// Yavaşça yükselen, yanıp sönen küçük ışıltılar (tohumlu: her karede aynı parçacıklar sürekli hareket eder)
+	FRandomStream Rs(Seed);
+	const FVector2D Sz = Area.GetSize();
+	for (int32 i = 0; i < N; ++i)
+	{
+		const float X0 = Rs.FRand(), Y0 = Rs.FRand(), Sp = Rs.FRandRange(0.03f, 0.09f), Ph = Rs.FRand() * 6.f;
+		const float Y = FMath::Fmod(Y0 - T * Sp + 10.f, 1.f);
+		const float X = X0 + 0.02f * FMath::Sin(T * 1.3f + Ph);
+		const float Tw = 0.5f + 0.5f * FMath::Sin(T * 3.f + Ph);
+		const FVector2D P(Area.Min.X + X * Sz.X, Area.Min.Y + Y * Sz.Y);
+		const float Rr = (1.5f + 2.5f * Tw) * S;
+		Disc(P, Rr, U(255, 240, 190, uint8(255 * Alpha * Tw * FMath::Sin(Y * PI))), 8);
+	}
+}
+
+void ADBHUD::Fountain(const FVector2D& Origin, float Age, int32 N, const FLinearColor& Col, uint32 Seed)
+{
+	// Yukarı fışkırıp yay çizerek düşen damlalar (yaş 0-1,2 sn)
+	if (Age < 0.f || Age > 1.2f)
+	{
+		return;
+	}
+	FRandomStream Rs(Seed);
+	for (int32 i = 0; i < N; ++i)
+	{
+		const float Ang = Rs.FRandRange(-PI * 0.85f, -PI * 0.15f);
+		const float Sp = Rs.FRandRange(260.f, 560.f) * S;
+		const float Delay = Rs.FRandRange(0.f, 0.25f);
+		const float T = Age - Delay;
+		if (T < 0.f)
+		{
+			continue;
+		}
+		const FVector2D P = Origin + FVector2D(FMath::Cos(Ang), FMath::Sin(Ang)) * Sp * T + FVector2D(0.f, 900.f * S * T * T);
+		const float A = FMath::Clamp(1.f - T / 1.f, 0.f, 1.f);
+		Disc(P, (3.f + 3.f * A) * S, WithA(Col, A), 10);
+	}
 }

@@ -423,7 +423,7 @@ void ADBPlayerController::DBTest()
 	Add([] {});
 	Add([] {});
 	Add([] {});
-	Add([] {});
+	Add([this] { Shot(TEXT("15b2_rogar_a")); });
 	Add([this] { Shot(TEXT("15c_rogar_kondu")); GM()->ClickCell(FIntPoint(8, 6)); });
 	Add([] {});
 	Add([] {});
@@ -433,8 +433,8 @@ void ADBPlayerController::DBTest()
 	// İngiliz anahtarı: somunu yeşil çizgiye kadar sık
 	Add([this] { ADBGameMode* M = GM(); M->SelectTool(3); M->ClickBuilding(11); });
 	Add([this] { Shot(TEXT("15d_somun_oyunu")); });
-	Add([] {});
-	Add([] {});
+	Add([this] { Shot(TEXT("15d2_somun_a")); });
+	Add([this] { Shot(TEXT("15d3_somun_b")); });
 	Add([this] { Shot(TEXT("15e_musluk_tamir")); });
 	// Yangın musluğu: kitapçının sokağına yenisi
 	Add([this] { ADBGameMode* M = GM(); M->SelectTool(2); M->ClickBuilding(5); });

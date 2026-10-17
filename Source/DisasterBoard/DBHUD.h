@@ -100,6 +100,9 @@ private:
 	bool bTasksOpen = true;
 	float DoMissTime = -100.f;   // tutorial: yanlış yere tıklandı, "Bu tuşa bas" etiketi sallanır
 	void DrawDoHint();
+	void DrawTexUV(UTexture2D* T, const FBox2D& R, const FVector2D& UV0, const FVector2D& UV1, float Alpha = 1.f);
+	void Sparkles(const FBox2D& Area, int32 N, float T, float Alpha, uint32 Seed);
+	void Fountain(const FVector2D& Origin, float Age, int32 N, const FLinearColor& Col, uint32 Seed);
 	UFont* MakeRuntimeFont(const TCHAR* File);
 	void DrawWind();
 	void DrawMini();
