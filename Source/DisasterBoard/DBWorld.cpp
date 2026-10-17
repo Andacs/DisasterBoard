@@ -644,7 +644,14 @@ void ADBWorld::UpdateBoardCam(float Dt)
 	// Bakış noktası tahtanın ortasına göre döner: hangi açıdan bakılırsa bakılsın tahta ortada kalır
 	const FVector Focus = FVector(BoardFocus.X, BoardFocus.Y, 0.f).RotateAngleAxis(ViewYaw, FVector::UpVector) + FVector(0.f, 0.f, BoardFocus.Z);
 	const FRotator Rot(BoardCamPitch, BoardCamYaw + ViewYaw, 0.f);
-	const FVector CamLoc = Focus - Rot.Vector() * ViewDist;
+	FVector CamLoc = Focus - Rot.Vector() * ViewDist;
+	// Başarı anında kısa sarsıntı (yumuşak, 0,4 sn'de söner)
+	ShakeAmp = FMath::FInterpTo(ShakeAmp, 0.f, Dt, 7.f);
+	if (ShakeAmp > 0.01f)
+	{
+		const float T = GetWorld()->GetTimeSeconds();
+		CamLoc += FVector(FMath::Sin(T * 61.f), FMath::Cos(T * 53.f), FMath::Sin(T * 47.f) * 0.6f) * ShakeAmp * 2.2f;
+	}
 	BoardCam->SetActorLocationAndRotation(CamLoc, Rot);
 	// Kamera bir duvarın arkasına geçtiyse o duvarı (ve üstündekileri) gizle; yoksa yalnızca duvarın arkası görünüyordu
 	const bool bShowX = CamLoc.X < WallX - 2.f || FMath::IsNearlyZero(ViewYawTarget);

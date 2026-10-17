@@ -84,7 +84,7 @@ namespace
 		C.HydrantAddTool = YanginMuslugu;
 		C.NewHydrantBuilding = Kitapci;
 		C.NewHydrantCell = FIntPoint(8, 3);
-		C.StartMoney = 100;
+		C.StartMoney = 120;   // 3 sipariş (her kitten bir, revizyon belgesi): çanta geliri 90, önlemler 185 TL
 		C.KitReward = 30;
 
 		C.Buildings = {
@@ -163,13 +163,6 @@ namespace
 			  TEXT("Her evde ilk yardım çantası olmalı. Düzenli ilaç kullananlar birkaç günlük ilacını, gözlük kullananlar yedek gözlüğünü çantaya koymalı."),
 			  TEXT("Ayşe Teyze sık sık küçük yaralar alıyor. Evinde hangi çanta olmalı?"),
 			  { KalpIlaci, Gozluk } },
-			{ Okul, TEXT("İlk yardım"),
-			  TEXT("Okulun revirindeki ilk yardım çantası boş."),
-			  TEXT("Okulda yüzlerce öğrenci var ama revirdeki ilk yardım çantası bomboş."),
-			  -1, IlkYardim,
-			  TEXT("Okulda ilk yardım çantası kolay ulaşılan yerde durmalı; astımlı öğrencilerin spreyi her zaman yakında olmalı."),
-			  TEXT("Revirdeki çanta bomboş. Yaralanan bir öğrenciye ne lazım?"),
-			  { AstimSpreyi } },
 			{ YilmazEv, TEXT("Deprem"),
 			  TEXT("Yılmazların deprem anında alacakları bir çantası yok."),
 			  TEXT("Yılmaz ailesi depreme hiç hazırlık yapmamış; kapının yanında hazır bir çantaları yok."),
@@ -177,13 +170,6 @@ namespace
 			  TEXT("Deprem çantasında su, el feneri ve düdük olmalı; bebekli aileler mama ve bez eklemeli. Çanta kapının yakınında durmalı."),
 			  TEXT("Sarsıntıda kapıdan çıkarken kapacakları bir çantaları yok."),
 			  { BebekMamasi, BebekBezi } },
-			{ OgrenciEv, TEXT("Deprem"),
-			  TEXT("Öğrenci evinde depremden sonrası için hiçbir hazırlık yok."),
-			  TEXT("Öğrenciler depremden sonraki ilk saatlerde ne yiyip içeceklerini hiç düşünmemiş."),
-			  -1, Deprem,
-			  TEXT("Deprem çantasına dolu bir powerbank koy; evcil hayvanını unutma, onun için de mama bulundur."),
-			  TEXT("Depremden sonraki ilk saatlerde ne yiyip içecekler?"),
-			  { Powerbank, KediMamasi } },
 			{ Firin, TEXT("Yangın"),
 			  TEXT("Fırında sürekli ateş yanıyor ama yangın malzemesi yok."),
 			  TEXT("Fırında sabahtan akşama ateş yanıyor; bir yangın çıkarsa müdahale edecek hiçbir şey yok."),
@@ -253,7 +239,7 @@ namespace
 			{ S::B, TEXT("Çanta gelince önce temel kiti seç: içindekiler kendiliğinden eklenir.") },
 			{ S::B, TEXT("Sonra çanta önlerinden geçerken kişiye özel eşyaları ekle. İlk çantada doğru olanlar parlar!") },
 			{ S::B, TEXT("En alta inince teslim edilir. Yanlışsa çanta baştan gelir.") },
-			{ S::B, TEXT("Bitince masayı kapat.") },
+			{ S::B, TEXT("Bitince soldaki kulpa basıp masayı kapat.") },
 		};
 		// HUD hedefleri: 1 önlemler, 2 bütçe, 3 önlemler, 4 çekmece
 		C.PanelIntroC = {

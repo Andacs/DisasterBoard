@@ -116,6 +116,8 @@ public:
 	// Oyuncu tahtayı döndürür: alttaki oklar / Q-E → tahta masadan kalkar, 90° döner, yerine iner (kamera sabit)
 	void TurnBoard(int32 Dir);
 	UPROPERTY() TObjectPtr<UDBSfxWave> SfxWave;      // GameMode verir: tahta sesleri
+	void Shake(float Amount) { ShakeAmp = FMath::Max(ShakeAmp, Amount); }
+	float ShakeAmp = 0.f;
 	void Gust(float Strength) { GustAmp = FMath::Max(GustAmp, Strength); }   // takvim sayfasına rüzgar
 	bool IsBoardTurning() const { return TurnT >= 0.f; }
 	// Yakınlaştırma (tekerlek); yumuşak geçiş

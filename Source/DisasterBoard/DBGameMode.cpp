@@ -213,10 +213,58 @@ void ADBGameMode::Tick(float Dt)
 
 // ---------------------------------------------------------------- menü
 
+float ADBGameMode::FarkindalikYuzde() const
+{
+	const FDBContent& C = FDBContent::Get();
+	int32 Talked = 0;
+	for (int32 B : TalkedResidents)
+	{
+		Talked += C.Residents.IsValidIndex(B) ? 1 : 0;
+	}
+	const float Max = C.Residents.Num() + 2.f * Solved.Num();
+	return Max > 0.f ? 100.f * (Talked + 2.f * NumSolved()) / Max : 0.f;
+}
+
+void ADBGameMode::PauseToCalendar()
+{
+	if (!bMenuConfirm || bPausedGame)
+	{
+		return;
+	}
+	bMenuConfirm = false;
+	bPausedGame = true;
+	SavedPhase = Phase;
+	ClearSelection();
+	CloseNpc();
+	MenuUIDelay = CalendarBlendSeconds;
+	SetPhase(EDBPhase::Menu);
+	if (APlayerController* P = PC())
+	{
+		P->SetViewTargetWithBlend(World->MenuCam, CalendarBlendSeconds, VTBlend_EaseInOut, 2.f);
+	}
+	PlaySfx(EDBSfx::Wind, 0.7f, 0.6f, 1.f, -0.6f);
+}
+
+void ADBGameMode::ResumeFromCalendar()
+{
+	bPausedGame = false;
+	SetPhase(SavedPhase);
+	if (APlayerController* P = PC())
+	{
+		P->SetViewTargetWithBlend(World->BoardCam, CameraBlendSeconds * 0.7f, VTBlend_EaseInOut, 2.2f);
+	}
+	PlaySfx(EDBSfx::Wind, 0.7f, -0.6f, 0.9f, 0.6f);
+}
+
 void ADBGameMode::ClickPlay()
 {
 	if (!IsMenuReady())
 	{
+		return;
+	}
+	if (bPausedGame)
+	{
+		ResumeFromCalendar();
 		return;
 	}
 	BeginBoardTransition();
@@ -456,6 +504,7 @@ void ADBGameMode::ShowNpc(int32 Building)
 		return;
 	}
 	const int32 P = ProblemOfBuilding(Building);
+	TalkedResidents.Add(Building);
 	NpcBuilding = Building;
 	NpcTime = Now;
 	if (P != INDEX_NONE && Solved[P]) NpcKind = 2;
@@ -1047,6 +1096,7 @@ void ADBGameMode::ShowToast(const FString& Text, bool bBad, int32 Building)
 	if (bBad)
 	{
 		PlaySfx(EDBSfx::Bad, 0.7f);
+		FxBadTime = Now;
 	}
 	ToastBuilding = Building;
 }
@@ -1157,6 +1207,9 @@ void ADBGameMode::Solve(int32 Problem, int32 Building)
 {
 	Solved[Problem] = true;
 	PlaySfx(EDBSfx::Good, 1.f);
+	FxGoodTime = Now;
+	FxBuilding = Building;
+	World->Shake(0.6f);
 	SolveTime[Problem] = Now;
 	SelTool = -1;
 	World->PopBuilding(Building);
@@ -1216,6 +1269,12 @@ void ADBGameMode::Back()
 	if (bMenuConfirm)
 	{
 		bMenuConfirm = false;
+		return;
+	}
+	// Oyunda kapatılacak bir şey yoksa Esc / sağ tık duraklatma menüsünü açar
+	if (Phase == EDBPhase::Play && Mini == EDBMini::None && NpcBuilding < 0 && SelTool < 0 && SelBag < 0 && !bPanelOpen)
+	{
+		AskMenu();
 		return;
 	}
 	switch (Phase)

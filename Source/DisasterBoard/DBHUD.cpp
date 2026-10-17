@@ -174,11 +174,20 @@ bool ADBHUD::Button(FName Id, int32 Index, const FBox2D& R, const FString& Label
 	const FLinearColor& Edge, const FLinearColor& TextC, bool bEnabled, bool bSelected)
 {
 	const bool bHov = bEnabled && Hover(R);
-	const FBox2D RR = bHov ? R.ShiftBy(FVector2D(0.f, -3.f * S)) : R;
+	FBox2D RR = bHov ? R.ShiftBy(FVector2D(0.f, -3.f * S)) : R;
+	// Basılınca kısa çökme + geri yaylanma (revizyon 7: daha güçlü tıklama geri bildirimi)
+	const float PA = FxNow - PressTime;
+	if (Id == PressId && Index == PressIndex && PA >= 0.f && PA < 0.28f)
+	{
+		const float K = 1.f - 0.1f * FMath::Sin(PA / 0.28f * PI) * FMath::Exp(-PA * 4.f) + 0.03f * FMath::Sin(PA / 0.28f * 2.f * PI);
+		const FVector2D C0 = RR.GetCenter(), Hs = RR.GetExtent() * K;
+		RR = FBox2D(C0 - Hs, C0 + Hs);
+	}
 	FLinearColor F = Fill;
 	if (bHov)
 	{
 		F = FLinearColor::LerpUsingHSV(Fill, FLinearColor::White, 0.18f);
+		Frame(RR.ExpandBy(4.f * S), U(255, 214, 90, 150), 3.f * S);   // üzerine gelince sıcak çerçeve
 	}
 	if (!bEnabled)
 	{
@@ -349,10 +358,12 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 	{
 		for (int32 i = Hits.Num() - 1; i >= 0; --i)
 		{
-			if ((Hits[i].Id == TEXT("MenuYes") || Hits[i].Id == TEXT("MenuNo")) && Hits[i].R.IsInside(P))
+			if ((Hits[i].Id == TEXT("MenuYes") || Hits[i].Id == TEXT("MenuNo") || Hits[i].Id == TEXT("MenuCal")) && Hits[i].R.IsInside(P))
 			{
 				GM->PlaySfx(EDBSfx::Click, 0.9f);
-				if (Hits[i].Id == TEXT("MenuYes")) GM->Restart(false); else GM->bMenuConfirm = false;
+				if (Hits[i].Id == TEXT("MenuYes")) GM->Restart(false);
+				else if (Hits[i].Id == TEXT("MenuCal")) GM->PauseToCalendar();
+				else GM->bMenuConfirm = false;
 				return true;
 			}
 		}
@@ -380,6 +391,9 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 	auto Dispatch = [this](FName Id, int32 Ix)
 	{
 		GM->PlaySfx(EDBSfx::Click, 0.9f, 0.f, FMath::FRandRange(0.94f, 1.06f));
+		PressId = Id;
+		PressIndex = Ix;
+		PressTime = FxNow;
 		if (Id == TEXT("Play")) GM->ClickPlay();
 		else if (Id == TEXT("Settings")) GM->OpenMenuPage(EDBMenuPage::Settings);
 		else if (Id == TEXT("Credits")) GM->OpenMenuPage(EDBMenuPage::Credits);
@@ -413,6 +427,8 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 		else if (Id == TEXT("MenuAsk")) GM->AskMenu();
 		else if (Id == TEXT("MenuYes")) GM->Restart(false);
 		else if (Id == TEXT("MenuNo")) GM->bMenuConfirm = false;
+		else if (Id == TEXT("MenuCal")) GM->PauseToCalendar();
+		else if (Id == TEXT("TasksToggle")) bTasksOpen = !bTasksOpen;
 	};
 
 	if (GM->Phase == EDBPhase::Menu || GM->Phase == EDBPhase::MenuPage)
@@ -517,6 +533,11 @@ void ADBHUD::DrawHUD()
 		DrawScannerAndA();
 		DrawBottomBar();
 		DrawMoney();
+		DrawMeters();
+		if (GM->Phase == EDBPhase::Play)
+		{
+			DrawTasks();
+		}
 	}
 	const float Dt = GetWorld()->GetDeltaSeconds();
 	const float Target = GM->bPanelOpen ? 1.f : 0.f;
@@ -571,6 +592,7 @@ void ADBHUD::DrawHUD()
 	{
 		DrawMenuButton();
 	}
+	DrawEventFx();
 	if (GM->bMenuConfirm)
 	{
 		DrawMenuConfirm();
@@ -666,7 +688,7 @@ void ADBHUD::DrawMainPage(bool bEnabled)
 		Txt(TEXT("DisasterBoard"), CX, BandH + 4.f * U1, 12.f * U1, Ink, 1);
 	}
 	Txt(TEXT("Afetlere hazır mısın?"), CX, BandH + 18.f * U1, 6.f * U1, DarkK, 1);
-	const TCHAR* Labels[] = { TEXT("Oyna"), TEXT("Ayarlar"), TEXT("Emeği Geçenler"), TEXT("Çıkış") };
+	const TCHAR* Labels[] = { GM->bPausedGame ? TEXT("Devam et") : TEXT("Oyna"), TEXT("Ayarlar"), TEXT("Emeği Geçenler"), TEXT("Çıkış") };
 	const FName Ids[] = { TEXT("Play"), TEXT("Settings"), TEXT("Credits"), TEXT("Quit") };
 	for (int32 i = 0; i < 4; ++i)
 	{
@@ -745,7 +767,7 @@ void ADBHUD::DrawMarkers()
 		if (UTexture2D* Mark = LoadPng(bSolved ? TEXT("Ikonlar/isaret_tamam.png") : TEXT("Ikonlar/isaret_uyari.png")))
 		{
 			// Tasarımcının işareti (96×96): alt ucu sivri, binayı gösterir
-			DrawTex(Mark, Rect(Sp.X - R * 1.25f, Sp.Y - R * 1.0f, R * 2.5f, R * 2.5f), 0.f, FVector2D(0.5f, 0.5f));
+			DrawTex(Mark, Rect(Sp.X - R * 1.25f, Sp.Y - R * 1.25f, R * 2.5f, R * 2.5f), 0.f, FVector2D(0.5f, 0.5f));
 		}
 		else
 		{
@@ -775,7 +797,7 @@ void ADBHUD::DrawMarkers()
 			const FLinearColor WantC = bKit ? C.Kits[Pr.Kit].Color : C.Tools[Pr.Tool].Color;
 			const float Px = 16.f * S;
 			const float LW = Measure(Want, Px).X + 18.f * S;
-			const FBox2D L = Rect(Sp.X + R + 6.f * S, Sp.Y - 12.f * S, LW, 24.f * S);
+			const FBox2D L = Rect(Sp.X + R * 1.3f + 6.f * S, Sp.Y - 12.f * S, LW, 24.f * S);
 			Box(L.ShiftBy(FVector2D(2.f, 3.f) * S), ShadowC);
 			Box(L, WantC);
 			Frame(L, Ink, 1.5f * S);
@@ -814,7 +836,28 @@ void ADBHUD::DrawMoney()
 		Txt(TEXT("TL"), Coin.X, Coin.Y - 7.f * S, 13.f * S, U(120, 84, 30), 1);
 	}
 	Txt(TEXT("Bütçe"), R.Min.X + 60.f * S, R.Min.Y + 15.f * S, 22.f * S, DarkK);
-	Txt(FString::Printf(TEXT("%d TL"), GM->Money), R.Max.X - 18.f * S, R.Min.Y + 9.f * S, 34.f * S, Ink, 2);
+	if (ShownMoney < 0.f || LastMoney == INT_MIN)
+	{
+		ShownMoney = GM->Money;
+		LastMoney = GM->Money;
+	}
+	if (GM->Money != LastMoney)
+	{
+		MoneyFxs.Add({ GM->Money - LastMoney, FxNow });   // her değişim kendi uçan yazısı
+		LastMoney = GM->Money;
+	}
+	ShownMoney = FMath::FInterpConstantTo(ShownMoney, (float)GM->Money, GetWorld()->GetDeltaSeconds(), 90.f);
+	const bool bUp = ShownMoney < GM->Money - 0.5f, bDown = ShownMoney > GM->Money + 0.5f;
+	Txt(FString::Printf(TEXT("%d TL"), FMath::RoundToInt(ShownMoney)), R.Max.X - 18.f * S, R.Min.Y + 9.f * S, 34.f * S, bUp ? Green : (bDown ? Red : Ink), 2);
+	MoneyFxs.RemoveAll([this](const FMoneyFx& M) { return FxNow - M.T > 1.4f; });
+	for (int32 k = 0; k < MoneyFxs.Num(); ++k)
+	{
+		const FMoneyFx& M = MoneyFxs[k];
+		const float A = (FxNow - M.T) / 1.4f;
+		const float Y = R.Max.Y + 6.f * S + A * 46.f * S + k * 30.f * S;   // aynı anda gelenler alt alta
+		Txt(FString::Printf(TEXT("%s%d TL"), M.Delta > 0 ? TEXT("+") : TEXT(""), M.Delta), R.Max.X - 18.f * S, Y, 30.f * S,
+			WithA(M.Delta > 0 ? Green : Red, 1.f - A * A), 2);
+	}
 }
 
 void ADBHUD::DrawScannerAndA()
@@ -1000,13 +1043,12 @@ void ADBHUD::DrawPanel()
 	const float Y0 = P.Min.Y;
 
 	Txt(TEXT("Çanta Fabrikası"), X0, Y0 + 14.f * S, 32.f * S, Ink);
-	const FBox2D XR = Rect(P.Max.X - 66.f * S, Y0 + 12.f * S, 48.f * S, 48.f * S);
-	TgClose = XR;
+	// Revizyon 8: gereksiz çarpı kaldırıldı; masa soldaki kulpla (ya da Esc / sağ tık) kapanır
+	TgClose = DrawerHandleRect();
 	if (GM->IsTalking(C.BagIntroB, 5))
 	{
-		Glow(XR);
+		Glow(TgClose);
 	}
-	Button(TEXT("PanelClose"), -1, XR, TEXT("X"), 26.f * S, Coral, Ink, Paper, bEdit);
 
 	// Bant: sağda, yukarıdan aşağı (Purble Place'teki gibi ama dikey ve durmaz)
 	const float BeltL = P.Max.X - 154.f * S;
@@ -1202,7 +1244,7 @@ void ADBHUD::DrawTalk()
 		TailB = FVector2D(BR.Min.X + 2.f, BR.Max.Y - 40.f * S);
 		TailTip = FVector2D(W * 0.5f - 310.f * S, H - 330.f * S);
 	}
-	Card(BR, Paper, Ink, 8.f);
+	RoundCard(BR, Paper, Ink, 22.f * S, 8.f);
 	Tri(TailA, TailB, TailTip, Paper);
 	Line(TailA, TailTip, 2.5f * S, Ink);
 	Line(TailB, TailTip, 2.5f * S, Ink);
@@ -1575,8 +1617,19 @@ void ADBHUD::DrawTasks()
 		return;
 	}
 	const float X = 22.f * S;
-	const float Wd = 430.f * S;
+	const float Wd = 380.f * S;
 	const int32 Cur = GM->CurrentTask();
+	// Başlık şeridi her zaman; liste açılır-kapanır (revizyon 6: sade, sıralı, aktif görev belirgin)
+	if (!bTasksOpen)
+	{
+		const FBox2D Hd = Rect(X, 78.f * S, 230.f * S, 40.f * S);
+		RoundCard(Hd, NoteY, DarkK, 10.f * S, 4.f);
+		Txt(FString::Printf(TEXT("GÖREVLER  %d / %d  +"), GM->NumSolved(), GM->Solved.Num()), X + 14.f * S, Hd.Min.Y + 8.f * S, 20.f * S, Ink);
+		Hit(TEXT("TasksToggle"), -1, Hd);
+		Blockers.Add(Hd);
+		TgTasks = Hd;
+		return;
+	}
 	// Önce yüksekliği hesapla
 	float Hgt = 56.f * S;
 	for (int32 p = 0; p < C.Problems.Num(); ++p)
@@ -1584,18 +1637,17 @@ void ADBHUD::DrawTasks()
 		if (!GM->Revealed[p]) continue;
 		Hgt += (p == Cur) ? (34.f + 22.f * Wrap(C.Problems[p].Hint, 17.f * S, Wd - 60.f * S).Num() + 34.f) * S : 26.f * S;
 	}
-	const FBox2D R = Rect(X, 18.f * S, Wd, Hgt + 8.f * S);
+	const FBox2D R = Rect(X, 78.f * S, Wd, Hgt + 8.f * S);
 	TgTasks = R;
 	if (GM->IsTalking(C.AfterScan, 0) || GM->IsTalking(C.BagIntroB, 1))
 	{
 		Glow(R);
 	}
-	Box(R.ShiftBy(FVector2D(5.f, 7.f) * S), ShadowC);
-	Box(R, NoteY);
-	Box(Rect(R.GetCenter().X - 50.f * S, R.Min.Y - 10.f * S, 100.f * S, 24.f * S), U(255, 255, 255, 150));
+	RoundCard(R, NoteY, DarkK, 12.f * S, 5.f);
 	Blockers.Add(R);
 	Txt(TEXT("GÖREVLER"), X + 18.f * S, R.Min.Y + 14.f * S, 24.f * S, Ink);
-	Txt(FString::Printf(TEXT("%d / %d"), GM->NumSolved(), GM->Solved.Num()), R.Max.X - 18.f * S, R.Min.Y + 16.f * S, 20.f * S, DarkK, 2);
+	Txt(FString::Printf(TEXT("%d / %d   -"), GM->NumSolved(), GM->Solved.Num()), R.Max.X - 18.f * S, R.Min.Y + 16.f * S, 20.f * S, DarkK, 2);
+	Hit(TEXT("TasksToggle"), -1, Rect(R.Min.X, R.Min.Y, R.GetSize().X, 46.f * S));
 	float Y = R.Min.Y + 52.f * S;
 	int32 Num = 0;
 	for (int32 p = 0; p < C.Problems.Num(); ++p)
@@ -1834,7 +1886,7 @@ void ADBHUD::DrawNpc()
 	Pos.Y = FMath::Max(Pos.Y, 84.f * S);
 	const FBox2D R = Rect(Pos.X, Pos.Y, BW, BH);
 	const FVector2D T0(FMath::Clamp(A.X, R.Min.X + 30.f * S, R.Max.X - 70.f * S), R.Max.Y - 2.f);
-	Card(R, Paper, Ink, 6.f);
+	RoundCard(R, Paper, Ink, 20.f * S, 6.f);
 	Tri(T0, T0 + FVector2D(40.f * S, 0.f), A, Paper);
 	Line(T0, A, 2.5f * S, Ink);
 	Line(T0 + FVector2D(40.f * S, 0.f), A, 2.5f * S, Ink);
@@ -2154,12 +2206,135 @@ void ADBHUD::DrawMenuButton()
 
 void ADBHUD::DrawMenuConfirm()
 {
-	Box(0.f, 0.f, W, H, U(40, 30, 22, 120));
+	// Duraklatma (revizyon 7): Oyuna devam / Takvime dön (ilerleme korunur) / Ana menü (baştan)
+	Box(0.f, 0.f, W, H, U(40, 30, 22, 130));
 	Blockers.Add(Rect(0.f, 0.f, W, H));
-	const FBox2D R = Rect(W * 0.5f - 300.f * S, H * 0.5f - 120.f * S, 600.f * S, 240.f * S);
-	Card(R, Paper, Ink, 8.f);
-	Txt(TEXT("Menüye dönülsün mü?"), R.GetCenter().X, R.Min.Y + 30.f * S, 30.f * S, Ink, 1);
-	Txt(TEXT("Kasabadaki ilerleme sıfırlanır."), R.GetCenter().X, R.Min.Y + 80.f * S, 20.f * S, DarkK, 1);
-	Button(TEXT("MenuYes"), -1, Rect(R.Min.X + 40.f * S, R.Max.Y - 80.f * S, 240.f * S, 54.f * S), TEXT("Menüye dön"), 22.f * S, Coral, Ink, Paper);
-	Button(TEXT("MenuNo"), -1, Rect(R.Max.X - 280.f * S, R.Max.Y - 80.f * S, 240.f * S, 54.f * S), TEXT("Oyuna devam"), 22.f * S, CardC, DarkK, Ink);
+	const FBox2D R = Rect(W * 0.5f - 280.f * S, H * 0.5f - 210.f * S, 560.f * S, 420.f * S);
+	RoundCard(R, Paper, Ink, 26.f * S, 8.f);
+	Txt(TEXT("Duraklatıldı"), R.GetCenter().X, R.Min.Y + 26.f * S, 34.f * S, Ink, 1);
+	const float BX = R.Min.X + 60.f * S, BW2 = R.GetSize().X - 120.f * S;
+	Button(TEXT("MenuNo"), -1, Rect(BX, R.Min.Y + 96.f * S, BW2, 64.f * S), TEXT("Oyuna devam"), 26.f * S, Coral, Ink, Paper);
+	Button(TEXT("MenuCal"), -1, Rect(BX, R.Min.Y + 184.f * S, BW2, 64.f * S), TEXT("Takvime dön"), 26.f * S, CardC, DarkK, Ink);
+	Txt(TEXT("ilerleme korunur, takvimden \"Devam et\""), R.GetCenter().X, R.Min.Y + 252.f * S, 16.f * S, DarkK, 1);
+	Button(TEXT("MenuYes"), -1, Rect(BX, R.Min.Y + 290.f * S, BW2, 64.f * S), TEXT("Ana menü"), 26.f * S, CardC, DarkK, Ink);
+	Txt(TEXT("kasaba baştan başlar"), R.GetCenter().X, R.Min.Y + 358.f * S, 16.f * S, Red, 1);
+}
+
+// ---------------------------------------------------------------- revizyon: yuvarlak kart, yüzdeler, efektler
+
+void ADBHUD::RoundBox(const FBox2D& R, float Radius, const FLinearColor& C)
+{
+	const float Rd = FMath::Min(Radius, FMath::Min(R.GetSize().X, R.GetSize().Y) * 0.5f);
+	Box(Rect(R.Min.X + Rd, R.Min.Y, R.GetSize().X - 2.f * Rd, R.GetSize().Y), C);
+	Box(Rect(R.Min.X, R.Min.Y + Rd, Rd, R.GetSize().Y - 2.f * Rd), C);
+	Box(Rect(R.Max.X - Rd, R.Min.Y + Rd, Rd, R.GetSize().Y - 2.f * Rd), C);
+	// Köşeler: çeyrek daireler (tam disk, kenar kutularıyla çakışan yarısı aynı renkte)
+	const int32 N = 20;
+	const FVector2D Cs[4] = { FVector2D(R.Min.X + Rd, R.Min.Y + Rd), FVector2D(R.Max.X - Rd, R.Min.Y + Rd),
+		FVector2D(R.Max.X - Rd, R.Max.Y - Rd), FVector2D(R.Min.X + Rd, R.Max.Y - Rd) };
+	const float A0[4] = { PI, 1.5f * PI, 0.f, 0.5f * PI };
+	for (int32 c = 0; c < 4; ++c)
+	{
+		for (int32 k = 0; k < N; ++k)
+		{
+			const float A = A0[c] + 0.5f * PI * k / N, B = A0[c] + 0.5f * PI * (k + 1) / N;
+			Tri(Cs[c], Cs[c] + FVector2D(FMath::Cos(A), FMath::Sin(A)) * Rd, Cs[c] + FVector2D(FMath::Cos(B), FMath::Sin(B)) * Rd, C);
+		}
+	}
+}
+
+void ADBHUD::RoundCard(const FBox2D& R, const FLinearColor& Fill, const FLinearColor& Edge, float Radius, float Shadow)
+{
+	// Revizyon 7: konuşma balonları köşeli değil, çizimlerle uyumlu yumuşak
+	RoundBox(R.ShiftBy(FVector2D(Shadow * 0.6f, Shadow) * S), Radius, WithA(ShadowC, Fill.A));
+	RoundBox(R.ExpandBy(2.5f * S), Radius + 2.5f * S, Edge);
+	RoundBox(R, Radius, Fill);
+}
+
+void ADBHUD::DrawMeters()
+{
+	// Revizyon 11-12: Kasaba Hazırlık % ve Şehir Farkındalık % (bütçenin sağında), dolarken nabız atar
+	if (!GM->bPanelOpen && !GM->bPlayStarted)
+	{
+		return;
+	}
+	const float Dt = GetWorld()->GetDeltaSeconds();
+	const float H1 = GM->HazirlikYuzde(), F1 = GM->FarkindalikYuzde();
+	const bool bRise1 = ShownHazirlik < H1 - 0.5f, bRise2 = ShownFarkindalik < F1 - 0.5f;
+	ShownHazirlik = FMath::FInterpConstantTo(ShownHazirlik, H1, Dt, 40.f);
+	ShownFarkindalik = FMath::FInterpConstantTo(ShownFarkindalik, F1, Dt, 40.f);
+	const FBox2D M = MoneyRect();
+	const FBox2D R = Rect(M.Max.X + 16.f * S, M.Min.Y, 300.f * S, M.GetSize().Y + 22.f * S);
+	RoundCard(R, Paper, DarkK, 12.f * S, 5.f);
+	Blockers.Add(R);
+	auto Bar = [&](float Y, const TCHAR* Name, float V, const FLinearColor& Col, bool bRise)
+	{
+		Txt(Name, R.Min.X + 14.f * S, Y, 17.f * S, DarkK);
+		Txt(FString::Printf(TEXT("%%%d"), FMath::RoundToInt(V)), R.Max.X - 14.f * S, Y - 2.f * S, 20.f * S, bRise ? Col : Ink, 2);
+		const FBox2D B = Rect(R.Min.X + 14.f * S, Y + 22.f * S, R.GetSize().X - 28.f * S, 9.f * S);
+		RoundBox(B, 4.5f * S, U(214, 204, 190));
+		if (V > 0.5f)
+		{
+			RoundBox(Rect(B.Min.X, B.Min.Y, B.GetSize().X * V / 100.f, B.GetSize().Y), 4.5f * S, Col);
+		}
+		if (bRise)
+		{
+			Frame(B.ExpandBy(3.f * S), WithA(Col, 0.5f + 0.5f * FMath::Sin(FxNow * 18.f)), 2.f * S);
+		}
+	};
+	Bar(R.Min.Y + 8.f * S, TEXT("Kasaba Hazırlık"), ShownHazirlik, Green, bRise1);
+	Bar(R.Min.Y + 44.f * S, TEXT("Şehir Farkındalık"), ShownFarkindalik, Teal, bRise2);
+}
+
+void ADBHUD::DrawEventFx()
+{
+	const float Dt = GetWorld()->GetDeltaSeconds();
+	// Başarı: ekran kenarında yeşil parlama + işaretin yerinden konfeti. Hata: kırmızı parlama.
+	auto Edge = [&](float Age, const FLinearColor& Col)
+	{
+		if (Age < 0.f || Age > 0.7f)
+		{
+			return;
+		}
+		const float A = FMath::Sin(PI * FMath::Clamp(Age / 0.7f, 0.f, 1.f)) * 0.55f;
+		for (int32 k = 0; k < 6; ++k)
+		{
+			const float T = (6 - k) * 9.f * S;
+			const FLinearColor C = WithA(Col, A * (k + 1) / 6.f * 0.35f);
+			Box(0.f, 0.f, W, T, C);
+			Box(0.f, H - T, W, T, C);
+			Box(0.f, T, T, H - 2.f * T, C);
+			Box(W - T, T, T, H - 2.f * T, C);
+		}
+	};
+	Edge(GM->Now - GM->FxGoodTime, U(120, 220, 110));
+	Edge(GM->Now - GM->FxBadTime, U(230, 80, 60));
+	if (GM->FxGoodTime != LastFxGood)
+	{
+		LastFxGood = GM->FxGoodTime;
+		FVector2D P(W * 0.5f, H * 0.4f);
+		if (GM->FxBuilding >= 0)
+		{
+			PlayerOwner->ProjectWorldLocationToScreen(GM->World->MarkerAnchor(GM->FxBuilding), P);
+		}
+		const FLinearColor Pal[] = { Coral, Teal, Green, U(255, 214, 90), U(172, 152, 204), U(132, 176, 212) };
+		for (int32 i = 0; i < 40; ++i)
+		{
+			const float Ang = FMath::FRandRange(-PI, 0.f);
+			const float Sp = FMath::FRandRange(220.f, 520.f) * S;
+			Confetti.Add({ P, FVector2D(FMath::Cos(Ang), FMath::Sin(Ang)) * Sp, Pal[i % 6], FMath::FRandRange(0.f, 6.f) });
+		}
+	}
+	for (FConfetti& C : Confetti)
+	{
+		C.V.Y += 900.f * S * Dt;
+		C.V *= 1.f - 1.2f * Dt;
+		C.P += C.V * Dt;
+		C.Rot += Dt * 9.f;
+		const FVector2D Ax(FMath::Cos(C.Rot) * 6.f * S, FMath::Sin(C.Rot) * 6.f * S);
+		const FVector2D Ay(-FMath::Sin(C.Rot) * 3.5f * S, FMath::Cos(C.Rot) * 3.5f * S);
+		Tri(C.P - Ax - Ay, C.P + Ax - Ay, C.P + Ax + Ay, C.C);
+		Tri(C.P - Ax - Ay, C.P + Ax + Ay, C.P - Ax + Ay, C.C);
+	}
+	Confetti.RemoveAll([this](const FConfetti& C) { return C.P.Y > H + 20.f; });
 }

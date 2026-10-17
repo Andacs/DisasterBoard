@@ -364,15 +364,11 @@ void ADBPlayerController::DBTest()
 	Add([this] { Shot(TEXT("09b_canta_hazir_iniyor")); GM()->SetBagT(0.999f); });
 	Add([] {});
 	Add([this] { Shot(TEXT("09c_teslim_edildi")); });
-	// Okul: bilerek astım spreyi unutuldu
-	Add([this, Fab] { Fab(0, {}); GM()->SetBagT(0.999f); });
+	// 3 sipariş (revizyon: her kitten bir). Yılmazlar: önce bilerek eksik (mama ve bez yok), sonra doğru
+	Add([this, Fab] { Fab(1, {}); GM()->SetBagT(0.999f); });
 	Add([this] { Shot(TEXT("09d_yanlis_canta")); });
 	Add([] {});
-	Add([this, Fab] { Fab(0, { 9 }); GM()->SetBagT(0.999f); });
-	Add([] {});
 	Add([this, Fab] { Fab(1, { 11, 12 }); GM()->SetBagT(0.999f); });
-	Add([] {});
-	Add([this] { GM()->CycleOrder(1); });
 	Add([] {});
 	Add([this, Fab] { Fab(2, { 16, 14 }); GM()->SetBagT(0.999f); });
 	Add([] {});
@@ -429,16 +425,17 @@ void ADBPlayerController::DBTest()
 	// Yangın musluğu: kitapçının sokağına yenisi
 	Add([this] { ADBGameMode* M = GM(); M->SelectTool(2); M->ClickBuilding(5); });
 	Add([this] { Shot(TEXT("15f_yeni_musluk")); });
-	Add([this] { ADBGameMode* M = GM(); M->SelectTool(4); M->ClickBuilding(4); M->SelectTool(1); M->ClickBuilding(10); });
-	Add([this] { Shot(TEXT("16_tahliye")); });
-	Add([this] { GM()->ClickBuilding(8); });   // Can derdini anlatır, "Çantasını hazırla"
-	Add([this] { Shot(TEXT("16b_can_konusuyor")); GM()->NpcOpenFactory(); });
-	Add([] {});
-	Add([this] { Shot(TEXT("17_binadan_siparis")); });
+	// Duraklatma: menü → Takvime dön (ilerleme korunur) → takvimde "Devam et" → kalınan yer
 	Add([this] { GM()->AskMenu(); });
-	Add([this] { Shot(TEXT("17a_menu_onay")); });
-	Add([this] { GM()->bMenuConfirm = false; });
-	Add([this, Fab] { Fab(1, { 15, 13 }); GM()->SetBagT(0.999f); });
+	Add([this] { Shot(TEXT("17a_duraklat")); });
+	Add([this] { GM()->PauseToCalendar(); });
+	Add([] {});
+	Add([this] { Shot(TEXT("17b_takvim_devam")); UE_LOG(LogDBInput, Log, TEXT("DB_TEST takvim phase=%d paused=%d"), (int32)GM()->Phase, GM()->bPausedGame ? 1 : 0); });
+	Add([this] { GM()->ClickPlay(); });
+	Add([] {});
+	Add([this] { UE_LOG(LogDBInput, Log, TEXT("DB_TEST devam phase=%d cozulen=%d"), (int32)GM()->Phase, GM()->NumSolved()); });
+	Add([this] { ADBGameMode* M = GM(); M->SelectTool(4); M->ClickBuilding(4); M->SelectTool(1); M->ClickBuilding(10); });
+	Add([this] { Shot(TEXT("16_tahliye_konfeti")); });
 	Add([] {});
 	Add([] {});
 	Add([this] { Shot(TEXT("18_sonuc")); });

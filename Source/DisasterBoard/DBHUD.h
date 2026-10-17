@@ -80,6 +80,23 @@ private:
 	void DrawCursorFx();
 	void DrawMenuButton();
 	void DrawMenuConfirm();
+	// Revizyon (17 Ekim akşam): yuvarlak kart, yüzdeler, uçan para, başarı/hata efektleri, düğme basışı, görev şeridi
+	void RoundCard(const FBox2D& R, const FLinearColor& Fill, const FLinearColor& Edge, float Radius, float Shadow = 6.f);
+	void RoundBox(const FBox2D& R, float Radius, const FLinearColor& C);
+	void DrawMeters();
+	void DrawEventFx();
+	float ShownMoney = -1.f;
+	int32 LastMoney = INT_MIN;
+	struct FMoneyFx { int32 Delta; float T; };
+	TArray<FMoneyFx> MoneyFxs;
+	float ShownHazirlik = 0.f, ShownFarkindalik = 0.f;
+	float LastFxGood = -100.f;
+	struct FConfetti { FVector2D P, V; FLinearColor C; float Rot; };
+	TArray<FConfetti> Confetti;
+	FName PressId;
+	int32 PressIndex = -1;
+	float PressTime = -100.f;
+	bool bTasksOpen = true;
 	UFont* MakeRuntimeFont(const TCHAR* File);
 	void DrawWind();
 	void DrawMini();

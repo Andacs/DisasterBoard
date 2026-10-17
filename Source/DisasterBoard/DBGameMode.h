@@ -89,8 +89,23 @@ public:
 	float WindTime = -100.f;     // HUD: takvime yaklaşırken yandan rüzgar çizgileri
 	bool bBeltFast = false;      // TESLİM basılı tutuluyor: bant hızlı akar (PlayerController bırakınca kapatır)
 	UPROPERTY(EditAnywhere, Category = "DB") float BeltFastFactor = 4.f;
-	bool bMenuConfirm = false;   // oyundan menüye dönüş onayı açık
-	void AskMenu() { bMenuConfirm = true; CloseNpc(); }
+	bool bMenuConfirm = false;   // duraklatma menüsü açık (Oyuna devam / Takvime dön / Ana menü)
+	void AskMenu() { if (Mini == EDBMini::None) { bMenuConfirm = true; CloseNpc(); } }
+	// Takvime dön: ilerleme korunur, takvimde "Devam et" ile kalınan yere dönülür
+	bool bPausedGame = false;
+	EDBPhase SavedPhase = EDBPhase::Play;
+	void PauseToCalendar();
+	void ResumeFromCalendar();
+
+	// Kasaba Hazırlık % (çözülen istekler) ve Şehir Farkındalık % (konuşulan kasabalılar + çözülenler, revizyon 11-12)
+	TSet<int32> TalkedResidents;
+	float HazirlikYuzde() const { return Solved.Num() ? 100.f * NumSolved() / Solved.Num() : 0.f; }
+	float FarkindalikYuzde() const;
+
+	// Geri bildirim olayları (HUD çizer): başarı / hata anı ve yeri
+	float FxGoodTime = -100.f;
+	float FxBadTime = -100.f;
+	int32 FxBuilding = -1;
 	int32 ComicIndex = 0;
 
 	// --- Çanta fabrikası (Purble Place gibi; bant yukarıdan aşağı akar, durmaz) ---
