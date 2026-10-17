@@ -53,8 +53,58 @@ void ADBHUD::Frame(const FBox2D& R, const FLinearColor& C, float T)
 	Box(R.Max.X - T, R.Min.Y + T, T, Sz.Y - 2.f * T, C);
 }
 
+// El çizimi çerçeveler (Andaç, 17 Ekim ~22.30: "aşırı yapay duruyor"): Content/Arayuz/ui_*.png 9 dilime bölünüp
+// her boyuta esnetilir, dolgu rengine boyanır. Dosya yoksa eski düz kutu çizilir.
+namespace
+{
+	constexpr float UiSrcBorder = 72.f;   // dokuda köşe bölgesi (8 px boşluk + yuvarlak köşe + 14 px kontur)
+	const FLinearColor PanelBase = U(246, 238, 220);
+	const FLinearColor DugmeBase = U(242, 242, 242);
+	FLinearColor TintFrom(const FLinearColor& Fill, const FLinearColor& Base)
+	{
+		return FLinearColor(FMath::Min(1.f, Fill.R / Base.R), FMath::Min(1.f, Fill.G / Base.G), FMath::Min(1.f, Fill.B / Base.B), Fill.A);
+	}
+}
+
+bool ADBHUD::Nine(UTexture2D* T, const FBox2D& R, float DstB, const FLinearColor& Tint)
+{
+	if (!T || !T->GetResource() || R.GetSize().X <= 1.f || R.GetSize().Y <= 1.f)
+	{
+		return false;
+	}
+	const float D = FMath::Min(DstB, 0.5f * FMath::Min(R.GetSize().X, R.GetSize().Y));
+	const float Bu = UiSrcBorder / T->GetSizeX(), Bv = UiSrcBorder / T->GetSizeY();
+	const float Xs[4] = { R.Min.X, R.Min.X + D, R.Max.X - D, R.Max.X };
+	const float Ys[4] = { R.Min.Y, R.Min.Y + D, R.Max.Y - D, R.Max.Y };
+	const float Us[4] = { 0.f, Bu, 1.f - Bu, 1.f };
+	const float Vs[4] = { 0.f, Bv, 1.f - Bv, 1.f };
+	for (int32 j = 0; j < 3; ++j)
+	{
+		for (int32 i = 0; i < 3; ++i)
+		{
+			const FVector2D Sz(Xs[i + 1] - Xs[i], Ys[j + 1] - Ys[j]);
+			if (Sz.X <= 0.01f || Sz.Y <= 0.01f)
+			{
+				continue;
+			}
+			FCanvasTileItem It(FVector2D(Xs[i], Ys[j]), T->GetResource(), Sz, FVector2D(Us[i], Vs[j]), FVector2D(Us[i + 1], Vs[j + 1]), Gn(Tint));
+			It.BlendMode = SE_BLEND_Translucent;
+			Canvas->DrawItem(It);
+		}
+	}
+	return true;
+}
+
 void ADBHUD::Card(const FBox2D& R, const FLinearColor& Fill, const FLinearColor& Edge, float Shadow)
 {
+	const bool bNote = Fill.Equals(NoteY, 0.02f);
+	if (UTexture2D* T = LoadPng(bNote ? TEXT("Arayuz/ui_not.png") : TEXT("Arayuz/ui_panel.png")))
+	{
+		const float D = FMath::Clamp(FMath::Min(R.GetSize().X, R.GetSize().Y) * 0.3f, 6.f * S, 16.f * S);
+		Nine(T, R.ShiftBy(FVector2D(Shadow * 0.6f, Shadow) * S), D, FLinearColor(0.f, 0.f, 0.f, 0.22f * Fill.A));
+		Nine(T, R, D, bNote ? FLinearColor(1.f, 1.f, 1.f, Fill.A) : TintFrom(Fill, PanelBase));
+		return;
+	}
 	Box(R.ShiftBy(FVector2D(Shadow * 0.6f, Shadow) * S), WithA(ShadowC, Fill.A));
 	Box(R, Fill);
 	Frame(R, Edge, 2.5f * S);
@@ -193,7 +243,18 @@ bool ADBHUD::Button(FName Id, int32 Index, const FBox2D& R, const FString& Label
 	{
 		F.A *= 0.45f;
 	}
-	Card(RR, F, bEnabled ? Edge : WithA(Edge, 0.5f), bHov ? 7.f : 4.f);
+	if (UTexture2D* BT = LoadPng(TEXT("Arayuz/ui_dugme.png")))
+	{
+		const float D = FMath::Min(20.f * S, RR.GetSize().Y * 0.42f);
+		const float Sh = bHov ? 6.f : 3.5f;
+		Nine(BT, RR.ShiftBy(FVector2D(Sh * 0.5f, Sh) * S), D, FLinearColor(0.f, 0.f, 0.f, 0.22f * F.A));
+		Nine(BT, RR, D, TintFrom(F, DugmeBase));
+		RR = RR.ShiftBy(FVector2D(0.f, -2.f * S));   // alt kalınlık şeridi: yazı görsel ortada dursun
+	}
+	else
+	{
+		Card(RR, F, bEnabled ? Edge : WithA(Edge, 0.5f), bHov ? 7.f : 4.f);
+	}
 	if (bSelected)
 	{
 		Frame(RR.ExpandBy(4.f * S), Teal, 4.f * S);
@@ -290,7 +351,7 @@ FBox2D ADBHUD::PanelRect() const
 FBox2D ADBHUD::DrawerHandleRect() const
 {
 	const FBox2D P = PanelRect();
-	return Rect(P.Min.X - 46.f * S, P.GetCenter().Y - 100.f * S, 48.f * S, 200.f * S);
+	return Rect(P.Min.X - 58.f * S, P.GetCenter().Y - 100.f * S, 60.f * S, 200.f * S);
 }
 
 FBox2D ADBHUD::BottomBarRect() const { return Rect(W * 0.5f - 325.f * S, H - 192.f * S, 650.f * S, 174.f * S); }
@@ -1077,13 +1138,24 @@ void ADBHUD::DrawDrawerHandle()
 	const bool bHov = bCan && Hover(R);
 	const FBox2D RR = bHov ? R.ShiftBy(FVector2D(-5.f * S, 0.f)) : R;
 	Card(RR, U(206, 160, 112), Ink, 5.f);
-	Box(Rect(RR.Min.X + 10.f * S, RR.Min.Y + 14.f * S, 6.f * S, RR.GetSize().Y - 28.f * S), U(120, 84, 56));
+	float LetterX = RR.GetCenter().X + 5.f * S;
+	if (UTexture2D* K = LoadPng(TEXT("Arayuz/ui_kulp.png")))
+	{
+		// Dokunun oranı 1:4; kulp çubuğu ortada: kartın sol yarısına oturur, harfler sağda
+		const float KH = RR.GetSize().Y - 16.f * S, KW = KH * 0.25f;
+		DrawTex(K, Rect(RR.Min.X + 17.f * S - KW * 0.5f, RR.Min.Y + 8.f * S, KW, KH), 0.f, FVector2D(0.5f, 0.5f));
+		LetterX = RR.Max.X - 15.f * S;
+	}
+	else
+	{
+		Box(Rect(RR.Min.X + 10.f * S, RR.Min.Y + 14.f * S, 6.f * S, RR.GetSize().Y - 28.f * S), U(120, 84, 56));
+	}
 	const TCHAR* Word = TEXT("HAZIRLIK");
 	const float LetterPx = 17.f * S;
 	float LY = RR.GetCenter().Y - 8.f * LetterPx * 0.55f;
 	for (int32 i = 0; Word[i]; ++i)
 	{
-		Txt(FString::Chr(Word[i]), RR.GetCenter().X + 5.f * S, LY, LetterPx, Ink, 1);
+		Txt(FString::Chr(Word[i]), LetterX, LY, LetterPx, Ink, 1);
 		LY += LetterPx * 1.1f;
 	}
 	Blockers.Add(R);
@@ -1166,9 +1238,7 @@ void ADBHUD::DrawPanel()
 	{
 		Glow(Card0);
 	}
-	Box(Card0.ShiftBy(FVector2D(4.f, 6.f) * S), ShadowC);
-	Box(Card0, NoteY);
-	Frame(Card0, Ink, 2.f * S);
+	Card(Card0, NoteY, Ink, 6.f);
 	const TArray<int32> Pending = GM->PendingOrders();
 	if (Ord >= 0)
 	{
@@ -2046,6 +2116,13 @@ void ADBHUD::DrawNpc()
 
 void ADBHUD::TurnArrow(const FVector2D& C, float R, int32 Dir, const FLinearColor& Col)
 {
+	if (UTexture2D* T = LoadPng(Dir > 0 ? TEXT("Arayuz/ui_ok_sag.png") : TEXT("Arayuz/ui_ok_sol.png")))
+	{
+		// Etkin değilken soluk (Col gri gelir)
+		const bool bOff = Col.Equals(U(170, 160, 150), 0.02f);
+		DrawTex(T, Rect(C.X - R * 1.5f, C.Y - R * 1.6f, R * 3.f, R * 3.f), 0.f, FVector2D(0.5f, 0.5f), bOff ? FLinearColor(1.f, 1.f, 1.f, 0.35f) : FLinearColor::White);
+		return;
+	}
 	// Üstten dönen yay + ok ucu: sağ ok saat yönünde, sol ok tersine
 	const float A0 = FMath::DegreesToRadians(Dir > 0 ? 160.f : 380.f);
 	const float A1 = FMath::DegreesToRadians(Dir > 0 ? 380.f : 160.f);
@@ -2424,6 +2501,14 @@ void ADBHUD::RoundBox(const FBox2D& R, float Radius, const FLinearColor& C)
 
 void ADBHUD::RoundCard(const FBox2D& R, const FLinearColor& Fill, const FLinearColor& Edge, float Radius, float Shadow)
 {
+	const bool bNote = Fill.Equals(NoteY, 0.02f);
+	if (UTexture2D* T = LoadPng(bNote ? TEXT("Arayuz/ui_not.png") : TEXT("Arayuz/ui_balon.png")))
+	{
+		const float D = FMath::Clamp(Radius * 1.35f, 8.f * S, 34.f * S);
+		Nine(T, R.ShiftBy(FVector2D(Shadow * 0.6f, Shadow) * S), D, FLinearColor(0.f, 0.f, 0.f, 0.22f * Fill.A));
+		Nine(T, R, D, bNote ? FLinearColor(1.f, 1.f, 1.f, Fill.A) : TintFrom(Fill, PanelBase));
+		return;
+	}
 	// Revizyon 7: konuşma balonları köşeli değil, çizimlerle uyumlu yumuşak
 	RoundBox(R.ShiftBy(FVector2D(Shadow * 0.6f, Shadow) * S), Radius, WithA(ShadowC, Fill.A));
 	RoundBox(R.ExpandBy(2.5f * S), Radius + 2.5f * S, Edge);
@@ -2716,7 +2801,13 @@ void ADBHUD::Star(const FVector2D& C, float R, const FLinearColor& Col, float Ro
 
 void ADBHUD::DrawAchBadge(int32 Index, const FVector2D& C, float R, bool bOn)
 {
-	// Rozet: altın madalya + yıldız (açık), gri + soru işareti (kapalı)
+	// Rozet: altın madalya + yıldız (açık), gri + kilit (kapalı)
+	if (UTexture2D* T = LoadPng(bOn ? TEXT("Arayuz/ui_rozet.png") : TEXT("Arayuz/ui_rozet_kilit.png")))
+	{
+		const float Rr = R * 1.3f;
+		DrawTex(T, Rect(C.X - Rr, C.Y - Rr, 2.f * Rr, 2.f * Rr), 0.f, FVector2D(0.5f, 0.5f), bOn ? FLinearColor::White : FLinearColor(1.f, 1.f, 1.f, 0.8f));
+		return;
+	}
 	Disc(C + FVector2D(2.f, 3.f) * S, R + 3.f * S, ShadowC);
 	Disc(C, R + 3.f * S, bOn ? U(150, 100, 30) : U(150, 140, 130));
 	Disc(C, R, bOn ? U(246, 196, 64) : U(214, 206, 196));
@@ -2852,7 +2943,14 @@ void ADBHUD::DrawPhotoToast()
 	{
 		Box(Ph, FLinearColor(1.f, 1.f, 1.f, Dev));
 	}
-	Box(Rect(R.GetCenter().X - 30.f * S, R.Min.Y - 8.f * S, 60.f * S, 18.f * S), U(250, 232, 150, 200));   // bant
+	if (UTexture2D* Bant = LoadPng(TEXT("Arayuz/ui_bant.png")))
+	{
+		DrawTex(Bant, Rect(R.GetCenter().X - 48.f * S, R.Min.Y - 18.f * S, 96.f * S, 36.f * S), -4.f, FVector2D(0.5f, 0.5f));
+	}
+	else
+	{
+		Box(Rect(R.GetCenter().X - 30.f * S, R.Min.Y - 8.f * S, 60.f * S, 18.f * S), U(250, 232, 150, 200));   // bant
+	}
 	Txt(TEXT("Albüme eklendi"), R.GetCenter().X, Ph.Max.Y + 8.f * S, 17.f * S, Ink, 1);
 }
 
@@ -3009,11 +3107,23 @@ void ADBHUD::DrawResult()
 	const float Rise = FMath::Pow(1.f - FMath::Clamp(T / 0.45f, 0.f, 1.f), 3.f) * 300.f * S;
 	const FBox2D R = Rect(W * 0.5f - AW * 0.5f, 26.f * S + Rise, AW, H - 52.f * S);
 	RoundCard(R, U(206, 172, 128), U(120, 84, 56), 26.f * S, 10.f);
-	RoundBox(R.ExpandBy(-14.f * S), 18.f * S, U(214, 182, 140));
-	for (int32 k = 0; k < 140; ++k)
+	if (UTexture2D* Kraft = LoadPng(TEXT("Arayuz/ui_kraft.png")); Kraft && Kraft->GetResource())
 	{
-		const float Fx = FMath::Frac(FMath::Sin(k * 12.9898f) * 43758.5453f), Fy = FMath::Frac(FMath::Sin(k * 78.233f) * 12543.1234f);
-		Box(Rect(R.Min.X + 20.f * S + Fx * (AW - 40.f * S), R.Min.Y + 20.f * S + Fy * (R.GetSize().Y - 40.f * S), 6.f * S, 1.5f * S), U(180, 146, 104, 120));
+		// Döşenen kraft dokusu (kenarları dikişsiz): ~420 px'lik karolar
+		const FBox2D In = R.ExpandBy(-14.f * S);
+		const float Tile = 420.f * S;
+		FCanvasTileItem It(In.Min, Kraft->GetResource(), In.GetSize(), FVector2D(0.f, 0.f), In.GetSize() / Tile, Gn(FLinearColor::White));
+		It.BlendMode = SE_BLEND_Opaque;
+		Canvas->DrawItem(It);
+	}
+	else
+	{
+		RoundBox(R.ExpandBy(-14.f * S), 18.f * S, U(214, 182, 140));
+		for (int32 k = 0; k < 140; ++k)
+		{
+			const float Fx = FMath::Frac(FMath::Sin(k * 12.9898f) * 43758.5453f), Fy = FMath::Frac(FMath::Sin(k * 78.233f) * 12543.1234f);
+			Box(Rect(R.Min.X + 20.f * S + Fx * (AW - 40.f * S), R.Min.Y + 20.f * S + Fy * (R.GetSize().Y - 40.f * S), 6.f * S, 1.5f * S), U(180, 146, 104, 120));
+		}
 	}
 	for (float Xd = R.Min.X + 30.f * S; Xd < R.Max.X - 30.f * S; Xd += 22.f * S)
 	{
@@ -3105,8 +3215,15 @@ void ADBHUD::DrawResult()
 		}
 		// Bant parçası (üstte, biraz eğik görünsün diye iki üçgenle)
 		const FVector2D Tc(Pr.GetCenter().X + FMath::Sin(p * 1.3f) * 30.f * S, Pr.Min.Y);
-		Tri(Tc + FVector2D(-40.f, -10.f) * S, Tc + FVector2D(40.f, -4.f) * S, Tc + FVector2D(38.f, 14.f) * S, U(250, 232, 150, 190));
-		Tri(Tc + FVector2D(-40.f, -10.f) * S, Tc + FVector2D(38.f, 14.f) * S, Tc + FVector2D(-42.f, 8.f) * S, U(250, 232, 150, 190));
+		if (UTexture2D* Bant = LoadPng(TEXT("Arayuz/ui_bant.png")))
+		{
+			DrawTex(Bant, Rect(Tc.X - 58.f * S, Tc.Y - 22.f * S, 116.f * S, 44.f * S), FMath::Sin(p * 2.1f) * 7.f, FVector2D(0.5f, 0.5f), FLinearColor(1.f, 1.f, 1.f, 0.92f));
+		}
+		else
+		{
+			Tri(Tc + FVector2D(-40.f, -10.f) * S, Tc + FVector2D(40.f, -4.f) * S, Tc + FVector2D(38.f, 14.f) * S, U(250, 232, 150, 190));
+			Tri(Tc + FVector2D(-40.f, -10.f) * S, Tc + FVector2D(38.f, 14.f) * S, Tc + FVector2D(-42.f, 8.f) * S, U(250, 232, 150, 190));
+		}
 		// Afet etiketi + tik
 		const FDBProblemDef& Pd = C.Problems[p];
 		const float HW = Measure(Pd.Hazard, 15.f * S).X + 18.f * S;

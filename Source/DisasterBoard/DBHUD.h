@@ -83,6 +83,7 @@ private:
 	void DrawTray(const FVector2D& C, float Sc, int32 Kit, const TArray<int32>& Personal);
 	void DrawDeliveryBag(const FVector2D& C, float Sc, const FLinearColor& Body, float Flap, bool bKitMark, int32 Kit);
 	void DrawRadar(const FVector2D& C, float R, bool bScanning);
+	bool Nine(UTexture2D* T, const FBox2D& R, float DstB, const FLinearColor& Tint);   // el çizimi çerçeve, 9 dilim
 	float ResultStart = -1.f;
 	int32 ResultPhotosShown = 0;
 	int32 ResultHover = -1;

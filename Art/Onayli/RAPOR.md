@@ -1,15 +1,15 @@
-# Onaylı varlıklar (44 / 85)
+# Onaylı varlıklar (48 / 85)
 
-2D: 44 / 53 · 3D: 0 / 32. Bu dosyayı `Tools/varlik_kontrol.py` yazar, elle değiştirme.
+2D: 48 / 53 · 3D: 0 / 32. Bu dosyayı `Tools/varlik_kontrol.py` yazar, elle değiştirme.
 
 | Dosya | Tür | Durum | Tarih | Not |
 |---|---|---|---|---|
 | `Karakterler/A_durus.png` | 2D | ONAYLI | 17.10 15:16 | - |
 | `Karakterler/A_goster.png` | 2D | ONAYLI | 17.10 15:16 | - |
-| `Karakterler/B_durus.png` | 2D | bekliyor | | |
-| `Karakterler/B_goster.png` | 2D | bekliyor | | |
-| `Karakterler/C_durus.png` | 2D | bekliyor | | |
-| `Karakterler/C_goster.png` | 2D | bekliyor | | |
+| `Karakterler/B_durus.png` | 2D | ONAYLI | 17.10 22:10 | - |
+| `Karakterler/B_goster.png` | 2D | ONAYLI | 17.10 22:10 | - |
+| `Karakterler/C_durus.png` | 2D | ONAYLI | 17.10 22:11 | - |
+| `Karakterler/C_goster.png` | 2D | ONAYLI | 17.10 22:11 | - |
 | `Cizgiroman/sahne1.png` | 2D | bekliyor | | |
 | `Cizgiroman/sahne2.png` | 2D | bekliyor | | |
 | `Cizgiroman/sahne3.png` | 2D | bekliyor | | |
