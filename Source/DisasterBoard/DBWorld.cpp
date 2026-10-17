@@ -2239,28 +2239,7 @@ void ADBWorld::BuildDesk()
 	};
 	Die(FVector(72.f, -88.f, 0.f), 18.f);
 	Die(FVector(84.f, -98.f, 0.f), -24.f);
-	// Andaç (18 Ekim ~01.00): kahve kupası ve lastik ördek kaldırıldı; zarlar ve lamba kaldı
-	// Masa lambası (sağ arkada): taban, iki kol, başlık, ampul + nokta ışık (tıklayınca yanar)
-	{
-		USceneComponent* L = Node(R, FVector(-34.f, 86.f, 0.f));   // tahtanın arkası ile yan duvar (Y 100,7) arası
-		L->SetRelativeRotation(FRotator(0.f, -45.f, 0.f));
-		Part(L, CylinderMesh, FVector(0, 0, 1.f), FVector(14.f, 14.f, 2.f), RGB(70, 152, 146), FRotator::ZeroRotator, true);
-		Part(L, CylinderMesh, FVector(0, 0, 14.f), FVector(1.6f, 1.6f, 26.f), RGB(60, 64, 72), FRotator(0.f, 0.f, 12.f), true);
-		LampHead = Node(L, FVector(0.f, -5.5f, 27.f));
-		Part(LampHead, CylinderMesh, FVector(6.f, 0.f, -1.f), FVector(1.4f, 1.4f, 14.f), RGB(60, 64, 72), FRotator(-70.f, 0.f, 0.f), true);
-		Part(LampHead, ConeMesh, FVector(13.f, 0.f, -5.f), FVector(11.f, 11.f, 9.f), RGB(70, 152, 146), FRotator(-40.f, 0.f, 0.f), true);
-		LampBulb = Part(LampHead, SphereMesh, FVector(14.5f, 0.f, -8.5f), FVector(4.f, 4.f, 4.f), RGB(200, 196, 180));
-		LampLight = NewObject<UPointLightComponent>(this);
-		LampLight->SetupAttachment(LampHead);
-		LampLight->SetRelativeLocation(FVector(16.f, 0.f, -12.f));
-		LampLight->SetIntensityUnits(ELightUnits::Lumens);
-		LampLight->SetIntensity(0.f);
-		LampLight->SetLightColor(FLinearColor(1.f, 0.82f, 0.58f));
-		LampLight->SetAttenuationRadius(220.f);
-		LampLight->SetCastShadows(false);
-		LampLight->RegisterComponent();
-		Add(L, EDesk::Lamp);
-	}
+	// Andaç (18 Ekim ~02.00): masa lambası kaldırıldı; masada yalnız iki zar
 }
 
 int32 ADBWorld::DeskFromComponent(const UPrimitiveComponent* Comp) const
