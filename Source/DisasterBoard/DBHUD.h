@@ -54,6 +54,13 @@ private:
 	FVector2D Mouse = FVector2D::ZeroVector;
 	UPROPERTY() TObjectPtr<UFont> Font;
 	float FontBaseH = 1.f;
+	UPROPERTY() TObjectPtr<UFont> FontBold;   // başlıklar ve düğmeler (Baloo 2 Bold); metinler Font (Baloo 2 Medium)
+	bool bBoldText = false;                    // Button etiketini kalın yazdırır
+	// Baloo 2'nin satırı Roboto'dan uzun (1,60 / 1,17 em), büyük harfi kısa: aynı Px'te aynı görünsün diye ölçek ve
+	// taban çizgisi düzeltmesi (fonttools ile ölçüldü; font değişirse yeniden ölç)
+	float FontScaleFix = 1.f;
+	float FontBaselineFix = 0.f;
+	UFont* PickFont(float Px) const { return (FontBold && (bBoldText || Px >= 24.f * S)) ? FontBold.Get() : Font.Get(); }
 	float PanelSlide = 0.f;   // hazırlık masası çekmecesi: 0 kapalı (sağ kenarda kulp), 1 açık
 	float ColorGain = 1.f;
 
@@ -73,7 +80,7 @@ private:
 	void DrawCursorFx();
 	void DrawMenuButton();
 	void DrawMenuConfirm();
-	UFont* MakeRuntimeFont();
+	UFont* MakeRuntimeFont(const TCHAR* File);
 	void DrawWind();
 	void DrawMini();
 	void DrawNutGame(const FBox2D& R);

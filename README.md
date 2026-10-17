@@ -39,7 +39,7 @@ Her satır: ad · üretici/sağlayıcı · bağlantı · lisans (gerçek koşull
 | Ses | Kullanılmadı | Hazır ses ya da müzik yok. Müzik ve ses efektleri oyun içinde koddan üretiliyor (`Source/DisasterBoard/DBMusic.cpp`, `DBSfx.cpp`); bkz. yapay zekâ beyanı. |
 | Kod | Kullanıldı | **Unreal Engine 5.8** · Epic Games · [Unreal Engine EULA](https://www.unrealengine.com/eula) · oyun motoru. Derleme, paketleme, trailer ve teslim betikleri (`Build/`, `Tools/`) takımın jam öncesi hazırladığı genel araçlardır (madde 3.1); oyuna girmez. |
 | Metin | Kullanıldı | **Claude (Anthropic)** · oyun içi konuşmaların, sorun notlarının ve sonuç ekranındaki hazırlık bilgilerinin ilk taslağı · `Source/DisasterBoard/DBData.cpp` |
-| Diğer | Kullanıldı | Yazı tipi **Roboto Medium** · Google (Christian Robertson) · [Roboto](https://fonts.google.com/specimen/Roboto) · Apache License 2.0 (lisans metni `Content/Fonts/Arayuz_LICENSE.txt`, motorla gelen kopya) · bütün arayüz ve takvim yazıları (`Content/Fonts/Arayuz.ttf`), değiştirilmedi. |
+| Diğer | Kullanıldı | Yazı tipi **Baloo 2** · Ek Type · [Google Fonts](https://fonts.google.com/specimen/Baloo+2) ([kaynak](https://github.com/google/fonts/tree/main/ofl/baloo2)) · SIL Open Font License 1.1 (lisans metni `Content/Fonts/Arayuz_OFL.txt`) · bütün arayüz ve takvim yazıları. Değişiklik: değişken fonttan fonttools ile sabit Medium (`Arayuz.ttf`) ve Bold (`Arayuz_Kalin.ttf`) kalınlıkları üretildi; harflere dokunulmadı. |
 
 Repoda yeniden dağıtımı kısıtlı ham asset yoktur.
 

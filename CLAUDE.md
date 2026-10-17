@@ -300,7 +300,12 @@ Kesim artık ayrı küçük lekeleri saymıyor (`govde_kutusu`, 8 px ızgarada b
 - **Takvim yazıları bulanıktı:** motorun küçük bitmap fontu 3-4 kat büyütülüyordu. Artık `Content/Fonts/Arayuz.ttf`
   Runtime font olarak kuruluyor (harfler istenen boyutta çizilir; şimdilik motorla gelen Roboto Medium, README'de
   beyanlı). 2048 + mip doku denendi: mipler canvas çiziminden sonra güncellenmediği için sayfa boş göründü, 1024'e
-  dönüldü (yakın planda yetiyor). Yakından bakınca keskin. **Tema fontu seçimi bekliyor.**
+  dönüldü (yakın planda yetiyor). Yakından bakınca keskin.
+- **Tema fontu Baloo 2** (Andaç seçti; örnek sayfa `Docs/font_secenekleri.png`: Fredoka'da İ ş ğ yoktu, elendi;
+  Patrick Hand düğmede cılızdı). Değişken fonttan fonttools ile Medium (`Arayuz.ttf`, metin) ve Bold
+  (`Arayuz_Kalin.ttf`, başlık ≥24 px ve düğmeler) üretildi. Baloo'nun satırı uzun / büyük harfi kısa: `FontScaleFix`
+  1,55 ve `FontBaselineFix` ile Roboto'daki yerleşim korundu (ölçüler fonttools'tan). Takvimde kalın yazıda kontur
+  kapalı (tombullaştırıyordu). DBTest 10/10, ekranda görüldü.
 
 **17 Ekim ~15.40: ekip çizimleri oyunda (18 / 73).** `Downloads/Yeni klasör (7)`: 6000×6000 şeffaf PNG'ler, adları şablonla
 uyuşmuyordu; resme bakılıp eşlendi: Mert A pozları, uyarı / tamam işareti, bütçe (para), 3 kit, 10 eşya (su, antiseptik,

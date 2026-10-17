@@ -99,9 +99,9 @@ FVector2D ADBHUD::Measure(const FString& T, float Px) const
 	{
 		return FVector2D::ZeroVector;
 	}
-	const float Sc = Px / FontBaseH;
+	const float Sc = Px / FontBaseH * FontScaleFix;
 	float XL = 0.f, YL = 0.f;
-	Canvas->TextSize(Font, T, XL, YL, Sc, Sc);
+	Canvas->TextSize(PickFont(Px), T, XL, YL, Sc, Sc);
 	return FVector2D(XL, YL);
 }
 
@@ -116,10 +116,10 @@ void ADBHUD::Txt(const FString& T, float X, float Y, float Px, const FLinearColo
 		const float TW = Measure(T, Px).X;
 		X -= (Align == 1) ? TW * 0.5f : TW;
 	}
-	FCanvasTextItem It(FVector2D(X, Y), FText::FromString(T), Font, Gn(C));
-	It.Scale = FVector2D(Px / FontBaseH);
+	FCanvasTextItem It(FVector2D(X, Y - Px * FontBaselineFix), FText::FromString(T), PickFont(Px), Gn(C));
+	It.Scale = FVector2D(Px / FontBaseH * FontScaleFix);
 	It.BlendMode = SE_BLEND_Translucent;
-	if (ColorGain != 1.f)
+	if (ColorGain != 1.f && It.Font == Font.Get())   // kalın (Baloo 2 Bold) zaten dolgun: kontur tombullaştırıyordu
 	{
 		// Sayfa dokusu ekranda ~%40'a küçülüyor: ince harfler açık kalıyordu (mürekkep 99 ölçüldü), aynı renkte kontur kalınlaştırır
 		It.bOutlined = true;
@@ -189,7 +189,9 @@ bool ADBHUD::Button(FName Id, int32 Index, const FBox2D& R, const FString& Label
 	{
 		Frame(RR.ExpandBy(4.f * S), Teal, 4.f * S);
 	}
+	bBoldText = true;
 	Txt(Label, RR.GetCenter().X, RR.GetCenter().Y - Px * 0.52f, Px, bEnabled ? TextC : WithA(TextC, 0.5f), 1);
+	bBoldText = false;
 	if (bEnabled)
 	{
 		Hit(Id, Index, R);
@@ -469,10 +471,18 @@ void ADBHUD::DrawHUD()
 	}
 	if (!Font)
 	{
-		Font = MakeRuntimeFont();
+		Font = MakeRuntimeFont(TEXT("Arayuz.ttf"));
+		FontBold = MakeRuntimeFont(TEXT("Arayuz_Kalin.ttf"));
 		float XL = 0.f, YL = 0.f;
 		Canvas->TextSize(Font, TEXT("Ağ"), XL, YL);
 		FontBaseH = FMath::Max(1.f, YL);
+		if (Font != GEngine->GetLargeFont())
+		{
+			// Baloo 2 (upem 1000): satır 1,602 em, üst 1,078, büyük harf 0,602. Roboto'da satır 1,172, üst 0,928,
+			// büyük harf 0,711. Büyük harf Roboto'nunkinin %96'sı olsun (em = 0,968 Px), taban çizgisi aynı yerde.
+			FontScaleFix = 1.602f * 0.968f;
+			FontBaselineFix = 1.078f * 0.968f - 0.928f / 1.172f;
+		}
 	}
 
 	FxNow = GetWorld()->GetRealTimeSeconds();
@@ -2109,15 +2119,16 @@ void ADBHUD::DrawWind()
 
 // ---------------------------------------------------------------- keskin font, menü düğmesi
 
-UFont* ADBHUD::MakeRuntimeFont()
+UFont* ADBHUD::MakeRuntimeFont(const TCHAR* File)
 {
 	// Motorun varsayılan fontu küçük bir bitmap: takvimde 3-4 kat büyütülünce bulanıklaşıyordu. Runtime font harfleri
-	// istenen boyutta yeniden çizer. Dosya: Content/Fonts/Arayuz.ttf (pakete NonUFS girer; JamKit 04 §5)
-	const FString Path = FPaths::ProjectContentDir() / TEXT("Fonts/Arayuz.ttf");
+	// istenen boyutta yeniden çizer. Dosyalar: Content/Fonts/ (pakete NonUFS girer; JamKit 04 §5).
+	// Tema fontu Baloo 2 (OFL): Arayuz.ttf = Medium (metin), Arayuz_Kalin.ttf = Bold (başlık, düğme)
+	const FString Path = FPaths::ProjectContentDir() / TEXT("Fonts") / File;
 	if (!FPaths::FileExists(Path))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("DB_FONT yok: %s, motor fontu kullaniliyor"), *Path);
-		return GEngine->GetLargeFont();
+		return FCString::Strcmp(File, TEXT("Arayuz.ttf")) == 0 ? GEngine->GetLargeFont() : nullptr;
 	}
 	UFont* F = NewObject<UFont>(this);
 	F->FontCacheType = EFontCacheType::Runtime;
