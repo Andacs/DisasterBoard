@@ -1061,8 +1061,8 @@ void ADBHUD::DrawPanel()
 				const int32 It = C.Stations[K - 1].Items[B];
 				const bool bIn = GM->bBagOnBelt && GM->BagPersonal.Contains(It);
 				Card(BR, bIn ? U(226, 240, 214) : Paper, bIn ? Green : DarkK, bHov ? 6.f : 3.f);
-				ItemIcon(It, FVector2D(BR.Min.X + 30.f * S, BR.GetCenter().Y), 18.f * S);
-				Para(C.Items[It].Name, BR.Min.X + 56.f * S, BR.Min.Y + 12.f * S, 16.f * S, 92.f * S, Ink, 1.1f);
+				ItemIcon(It, FVector2D(BR.Min.X + 30.f * S, BR.GetCenter().Y), 22.f * S);
+				Para(C.Items[It].Name, BR.Min.X + 60.f * S, BR.Min.Y + 12.f * S, 16.f * S, 88.f * S, Ink, 1.1f);
 			}
 			if (!bActive)
 			{

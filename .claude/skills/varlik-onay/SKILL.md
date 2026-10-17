@@ -54,6 +54,11 @@ Yiğit'in okuduğu adımlar: `Docs/YIGIT_KURULUM.md`. "kurulumu kontrol et" ders
 
 Aynı adla yeni dosya gelirse (tasarımcı düzeltti) aynı komutla tekrar kontrol et; onaylıysa eskisinin yerine geçer.
 
+**Büyük tuvale çizilmiş ya da adı farklı ikonlar** (ör. 6000x6000 `kedimama.png`): resme bakıp hangi şablon olduğunu
+anla (`Docs/Sablonlar/OKU_BENI.md` tablosu; emin değilsen Yiğit'e sor), sonra
+`python Tools/varlik_kontrol.py --ikon "<dosya>" esya_kedi_mamasi.png "<dosya2>" kit_deprem.png ...`. Araç kırpar,
+ölçüye ve daireye oturtur, doğru adı koyar, kontrol eder ve hepsini tek seferde oyunda dener.
+
 **Rehber karakterler (A = Mert, B = Asil, C = Yiğit) iki poz olarak gelir:** duruş ve gösterme (kolu kalkık). Büyük
 tuvale çizilmiş, adı farklı olabilir. Hangisinin duruş hangisinin gösterme olduğunu resme bakıp anla (emin değilsen
 Yiğit'e sor), sonra: `python Tools/varlik_kontrol.py --karakter A "<duruş>" "<gösterme>"`. Araç ikisini aynı kesimle

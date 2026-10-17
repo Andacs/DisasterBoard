@@ -5,6 +5,9 @@
 #   python Tools/varlik_kontrol.py --teslim [--kismi]        onaylıları commit + push (hepsi bitmeden: --kismi)
 #   python Tools/varlik_kontrol.py --aktar                   (Andaç) onaylı 2D'leri Content/ altına kopyalar
 #   python Tools/varlik_kontrol.py --geri <dosya adı>        bir onayı geri alır (gözle bakınca sorun görüldüyse)
+#   python Tools/varlik_kontrol.py --ikon <dosya> <hedef ad> [<dosya> <hedef ad> ...]
+#                                       büyük tuvale çizilmiş ikonu kırpıp şablon ölçüsüne (ör. 128x128, daire içine)
+#                                       oturtur, hedef adla kaydeder, sonra normal kontrolden geçirir
 #   python Tools/varlik_kontrol.py --karakter A <duruş> <gösterme>
 #                                       rehber karakterin iki pozunu (büyük tuval olabilir) aynı kesimle 320x512'ye
 #                                       oturtur (ayaklar alt kenarda), sonra normal kontrolden geçirir
@@ -246,6 +249,48 @@ def govde_kutusu(im):
                 tp[x, y] = 255
     tut = tut.resize((gw * g, gh * g), Image.NEAREST).crop((0, 0, W, H))
     return ImageChops.multiply(maske, tut).getbbox()
+
+
+def ikon_hazirla(kaynak, hedef_ad):
+    """Büyük tuvaldeki tek bir çizimi kırpar, şablon ölçüsüne ortalayarak sığdırır. Daire işaretli ikonlarda
+    çizimin köşegeni dairenin içinde kalır (oyun ikonları yuvarlak düğmede gösterir)."""
+    from PIL import Image
+    ad = os.path.basename(hedef_ad)
+    if not ad.lower().endswith(".png"):
+        ad += ".png"
+    k, sebep = eslestir(ad)
+    if k is None or LISTE[k]["tur"] != "2D":
+        print(f"RED    {ad}: {sebep or 'bu bir 2D dosya adı değil'}")
+        return None
+    b = LISTE[k]
+    W, H = b["G"], b["Y"]
+    im = Image.open(kaynak)
+    im.load()
+    if "A" not in im.getbands() and not (im.mode == "P" and "transparency" in im.info):
+        rgba = im.convert("RGBA")
+        neden = ("arka plan siyah: şeffaflık gönderirken kaybolmuş; orijinal PNG'yi dosya/belge olarak iste."
+                 if siyah_zemin(rgba) else "şeffaf arka plan yok.")
+        print(f"RED    {os.path.basename(kaynak)}: {neden}")
+        return None
+    im = im.convert("RGBA")
+    kutu = govde_kutusu(im)
+    if not kutu:
+        print(f"RED    {os.path.basename(kaynak)}: boş (her yer şeffaf).")
+        return None
+    kw, kh = kutu[2] - kutu[0], kutu[3] - kutu[1]
+    olcek = min(W * 0.94 / kw, H * 0.94 / kh)
+    if b["isaret"] == "daire":
+        # Köşegen tam daireye sığınca kare çizimler çok küçük kalıyordu (oyunda okunmuyordu): köşeler dairenin biraz dışına taşabilir
+        olcek = min(W * 0.9 / kw, H * 0.9 / kh, min(W, H) * 1.12 / (kw * kw + kh * kh) ** 0.5)
+    yw, yh = max(1, round(kw * olcek)), max(1, round(kh * olcek))
+    kes = im.crop(kutu).resize((yw, yh), Image.LANCZOS)
+    tuval = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    tuval.alpha_composite(kes, ((W - yw) // 2, (H - yh) // 2))
+    os.makedirs(HAZIR, exist_ok=True)
+    hedef = os.path.join(HAZIR, ad)
+    tuval.save(hedef)
+    print(f"Hazırlandı: {os.path.basename(kaynak)} -> {ad} ({W}x{H}, ölçek %{olcek * 100:.1f})")
+    return hedef
 
 
 def karakter_hazirla(harf, durus, goster):
@@ -600,6 +645,17 @@ def main(argv):
         return teslim("--kismi" in argv)
     if "--aktar" in argv:
         return aktar()
+    if "--ikon" in argv:
+        i = argv.index("--ikon")
+        ciftler = argv[i + 1:]
+        ciftler = [a for a in ciftler if not a.startswith("--")]
+        if len(ciftler) < 2 or len(ciftler) % 2:
+            print("--ikon <dosya> <hedef ad> [<dosya> <hedef ad> ...]")
+            return 1
+        hazir = [h for h in (ikon_hazirla(ciftler[j], ciftler[j + 1]) for j in range(0, len(ciftler), 2)) if h]
+        if hazir:
+            kontrol(hazir, oyun_arg, "--oyunsuz" in argv)
+        return 0
     if "--karakter" in argv:
         i = argv.index("--karakter")
         if i + 3 >= len(argv):

@@ -290,6 +290,15 @@ Asil konuşurken duruş. Test turu 13 kare (B duruş, C gösterme eklendi).
 Gösterme pozunda kolun ötesinde fırçadan kalmış tek bir nokta vardı; kesimi büyütüp karakteri küçültüyordu.
 Kesim artık ayrı küçük lekeleri saymıyor (`govde_kutusu`, 8 px ızgarada bağlantılı parçalar).
 
+**17 Ekim ~15.40: ekip çizimleri oyunda (18 / 73).** `Downloads/Yeni klasör (7)`: 6000×6000 şeffaf PNG'ler, adları şablonla
+uyuşmuyordu; resme bakılıp eşlendi: Mert A pozları, uyarı / tamam işareti, bütçe (para), 3 kit, 10 eşya (su, antiseptik,
+yangın tüpü, powerbank, belgeler, kedi maması, kalp ilacı = `ila.`, astım spreyi, sargı bezi = `bez` (çizim gazlı bez
+rulosu), battaniye = `yorgan_yan`; dik `yorgan` yedekte). Yeni `varlik_kontrol.py --ikon <dosya> <hedef ad> ...`:
+büyük tuvali kırpar, şablona oturtur, adı koyar, kontrol eder, hepsini tek seferde oyunda dener. İlk oturtma (köşegen
+daireye) ikonları çok küçültüyordu: kenar %90, köşegen ×1,12'ye çıktı; fabrika istasyonundaki eşya ikonu 18 → 22.
+Orijinaller `Art/Kaynak/`. Eksik: gözlük, bebek maması, bebek bezi, el feneri, düdük, duman maskesi, 5 önlem ikonu,
+tarayıcı, çanta, logo, hikâye sahneleri, Asil ve Yiğit pozları, bütün 3D.
+
 **17 Ekim ~15.00: geri bildirim (Andaç: kullanıcı geri bildirimi güçlensin). DBSesTest ile ölçüldü, ekranda görüldü:**
 - **Ses efektleri** koddan sentez (`DBSfx`, stereo karıştırıcı, müzikle aynı yol): tık (her düğme, konuşma, bina/ızgara
   tıklaması), rüzgar (takvime yaklaşırken soldan sağa, masaya inerken hafif), sayfa, tahta kalkış (gıcırtı + uğultu) /

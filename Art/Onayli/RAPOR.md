@@ -1,11 +1,11 @@
-# Onaylı varlıklar (2 / 73)
+# Onaylı varlıklar (18 / 73)
 
-2D: 2 / 41 · 3D: 0 / 32. Bu dosyayı `Tools/varlik_kontrol.py` yazar, elle değiştirme.
+2D: 18 / 41 · 3D: 0 / 32. Bu dosyayı `Tools/varlik_kontrol.py` yazar, elle değiştirme.
 
 | Dosya | Tür | Durum | Tarih | Not |
 |---|---|---|---|---|
-| `Karakterler/A_durus.png` | 2D | ONAYLI | 17.10 13:44 | - |
-| `Karakterler/A_goster.png` | 2D | ONAYLI | 17.10 13:44 | - |
+| `Karakterler/A_durus.png` | 2D | ONAYLI | 17.10 15:16 | - |
+| `Karakterler/A_goster.png` | 2D | ONAYLI | 17.10 15:16 | - |
 | `Karakterler/B_durus.png` | 2D | bekliyor | | |
 | `Karakterler/B_goster.png` | 2D | bekliyor | | |
 | `Karakterler/C_durus.png` | 2D | bekliyor | | |
@@ -14,34 +14,34 @@
 | `Cizgiroman/sahne2.png` | 2D | bekliyor | | |
 | `Cizgiroman/sahne3.png` | 2D | bekliyor | | |
 | `Cizgiroman/sahne4.png` | 2D | bekliyor | | |
-| `Ikonlar/esya_sargi_bezi.png` | 2D | bekliyor | | |
-| `Ikonlar/esya_antiseptik.png` | 2D | bekliyor | | |
+| `Ikonlar/esya_sargi_bezi.png` | 2D | ONAYLI | 17.10 15:20 | - |
+| `Ikonlar/esya_antiseptik.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/esya_yara_bandi.png` | 2D | bekliyor | | |
-| `Ikonlar/esya_su.png` | 2D | bekliyor | | |
+| `Ikonlar/esya_su.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/esya_el_feneri.png` | 2D | bekliyor | | |
 | `Ikonlar/esya_duduk.png` | 2D | bekliyor | | |
-| `Ikonlar/esya_yangin_tupu.png` | 2D | bekliyor | | |
+| `Ikonlar/esya_yangin_tupu.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/esya_duman_maskesi.png` | 2D | bekliyor | | |
-| `Ikonlar/esya_kalp_ilaci.png` | 2D | bekliyor | | |
-| `Ikonlar/esya_astim_spreyi.png` | 2D | bekliyor | | |
+| `Ikonlar/esya_kalp_ilaci.png` | 2D | ONAYLI | 17.10 15:20 | - |
+| `Ikonlar/esya_astim_spreyi.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/esya_gozluk.png` | 2D | bekliyor | | |
 | `Ikonlar/esya_bebek_mamasi.png` | 2D | bekliyor | | |
 | `Ikonlar/esya_bebek_bezi.png` | 2D | bekliyor | | |
-| `Ikonlar/esya_kedi_mamasi.png` | 2D | bekliyor | | |
-| `Ikonlar/esya_battaniye.png` | 2D | bekliyor | | |
-| `Ikonlar/esya_powerbank.png` | 2D | bekliyor | | |
-| `Ikonlar/esya_onemli_belgeler.png` | 2D | bekliyor | | |
+| `Ikonlar/esya_kedi_mamasi.png` | 2D | ONAYLI | 17.10 15:20 | - |
+| `Ikonlar/esya_battaniye.png` | 2D | ONAYLI | 17.10 15:20 | - |
+| `Ikonlar/esya_powerbank.png` | 2D | ONAYLI | 17.10 15:20 | - |
+| `Ikonlar/esya_onemli_belgeler.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/onlem_rogar_kapagi.png` | 2D | bekliyor | | |
 | `Ikonlar/onlem_tahliye.png` | 2D | bekliyor | | |
 | `Ikonlar/onlem_yangin_muslugu.png` | 2D | bekliyor | | |
 | `Ikonlar/onlem_ingiliz_anahtari.png` | 2D | bekliyor | | |
 | `Ikonlar/onlem_bina_guclendirme.png` | 2D | bekliyor | | |
-| `Ikonlar/kit_ilk_yardim.png` | 2D | bekliyor | | |
-| `Ikonlar/kit_deprem.png` | 2D | bekliyor | | |
-| `Ikonlar/kit_yangin.png` | 2D | bekliyor | | |
-| `Ikonlar/isaret_uyari.png` | 2D | bekliyor | | |
-| `Ikonlar/isaret_tamam.png` | 2D | bekliyor | | |
-| `Ikonlar/butce.png` | 2D | bekliyor | | |
+| `Ikonlar/kit_ilk_yardim.png` | 2D | ONAYLI | 17.10 15:20 | - |
+| `Ikonlar/kit_deprem.png` | 2D | ONAYLI | 17.10 15:20 | - |
+| `Ikonlar/kit_yangin.png` | 2D | ONAYLI | 17.10 15:20 | - |
+| `Ikonlar/isaret_uyari.png` | 2D | ONAYLI | 17.10 15:17 | - |
+| `Ikonlar/isaret_tamam.png` | 2D | ONAYLI | 17.10 15:17 | - |
+| `Ikonlar/butce.png` | 2D | ONAYLI | 17.10 15:17 | - |
 | `Arayuz/tarayici.png` | 2D | bekliyor | | |
 | `Arayuz/canta.png` | 2D | bekliyor | | |
 | `Arayuz/logo.png` | 2D | bekliyor | | |
