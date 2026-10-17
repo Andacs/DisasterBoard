@@ -16,11 +16,9 @@ Kontrolü Claude yapar; sen dosyayı atarsın, o yerleştirir, oyunda dener, sor
    ```
    git clone https://github.com/Andacs/DisasterBoard.git
    ```
-4. **Test paketi:** Andaç'ın gönderdiği `DisasterBoard_TestKiti.zip`'i aç; içindeki `Windows` klasörünü
-   `DisasterBoard\Build\TestKiti\` altına koy. Sonuç şöyle olmalı:
-   `DisasterBoard\Build\TestKiti\Windows\DisasterBoard.exe`
-   (Unreal kurman ya da derlemen gerekmez; bu klasör git'e girmez.)
-5. **Claude'u repo klasöründe aç** ve yaz: `kurulumu kontrol et`. Eksik bir şey varsa söyler.
+4. **Claude'u repo klasöründe aç** ve yaz: `kurulumu kontrol et`. Eksikleri söyler; oyunun test paketini
+   (361 MB) kendisi indirip `Build\TestKiti\` altına açar. Unreal kurman ya da derlemen gerekmez.
+   (Elle indirmek istersen: https://github.com/Andacs/DisasterBoard/releases/tag/test-kiti-1)
 
 ## Her gün
 

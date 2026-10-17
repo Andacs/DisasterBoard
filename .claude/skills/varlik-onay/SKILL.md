@@ -20,9 +20,14 @@ Yiğit'in okuduğu adımlar: `Docs/YIGIT_KURULUM.md`. "kurulumu kontrol et" ders
 2. Python ve Pillow: `python -c "import PIL"`; yoksa `python -m pip install pillow`.
 3. Blender (3D kontrolü için): `C:\Program Files\Blender Foundation\Blender*\blender.exe` var mı. Başka yerdeyse
    `BLENDER` ortam değişkeni ya da Yiğit'ten yolu iste. Blender yoksa 3D dosyalar kontrol edilemez, 2D'ye devam.
-4. Test paketi (oyun): `Build/TestKiti/Windows/DisasterBoard.exe` var mı. Yoksa Yiğit'ten Andaç'ın gönderdiği
-   `DisasterBoard_TestKiti.zip`'i iste ve repo içinde `Build/TestKiti/` klasörüne aç (bu klasör git'e girmez).
-   Unreal kurmak ya da derlemek gerekmez.
+4. Test paketi (oyun): `Build/TestKiti/Windows/DisasterBoard.exe` var mı. Yoksa kendin indir ve aç (361 MB,
+   birkaç dakika; bu klasör git'e girmez, Unreal kurmak ya da derlemek gerekmez):
+   ```
+   curl -L -o Build/TestKiti.zip https://github.com/Andacs/DisasterBoard/releases/download/test-kiti-1/DisasterBoard_TestKiti.zip
+   ```
+   sonra ZIP'i `Build/TestKiti/` altına aç (PowerShell: `Expand-Archive Build/TestKiti.zip Build/TestKiti`),
+   `Build/TestKiti/Windows/DisasterBoard.exe` oluştuğunu doğrula, `Build/TestKiti.zip`'i sil.
+   Yiğit ZIP'i kendisi indirdiyse onu da aynı yere açabilirsin.
 
 ## Her dosya için
 
