@@ -290,6 +290,18 @@ Asil konuşurken duruş. Test turu 13 kare (B duruş, C gösterme eklendi).
 Gösterme pozunda kolun ötesinde fırçadan kalmış tek bir nokta vardı; kesimi büyütüp karakteri küçültüyordu.
 Kesim artık ayrı küçük lekeleri saymıyor (`govde_kutusu`, 8 px ızgarada bağlantılı parçalar).
 
+**17 Ekim ~16.30, Andaç'ın notları (uygulandı, DBTest ekranında görüldü, 10/10, 65 TL, 2 hata):**
+- **Ünleme tıklamak = binaya tıklamak** (işaret ve istek etiketi `Marker` tıklama alanı; testte gerçek tıklama yolu
+  balonu açtı).
+- **TESLİM basılı tutulunca bant ×4** (`BeltFastFactor`; tuş bırakıldığı an normale döner; ölçüldü: 1,3 sn'de
+  0,30 → 0,67, normalde +0,09). Düğmede "basılı tut: hızlan", basılıyken sarı "HIZLI".
+- **Oyunda Menü düğmesi** (sol üst) → onay penceresi ("Kasabadaki ilerleme sıfırlanır"; Esc / sağ tık vazgeçer).
+- **Seçilen bina jöle gibi esner** (`ADBWorld::JiggleBuilding`: genişleyip uzar, sönerek + sallanma darbesi).
+- **Takvim yazıları bulanıktı:** motorun küçük bitmap fontu 3-4 kat büyütülüyordu. Artık `Content/Fonts/Arayuz.ttf`
+  Runtime font olarak kuruluyor (harfler istenen boyutta çizilir; şimdilik motorla gelen Roboto Medium, README'de
+  beyanlı). 2048 + mip doku denendi: mipler canvas çiziminden sonra güncellenmediği için sayfa boş göründü, 1024'e
+  dönüldü (yakın planda yetiyor). Yakından bakınca keskin. **Tema fontu seçimi bekliyor.**
+
 **17 Ekim ~15.40: ekip çizimleri oyunda (18 / 73).** `Downloads/Yeni klasör (7)`: 6000×6000 şeffaf PNG'ler, adları şablonla
 uyuşmuyordu; resme bakılıp eşlendi: Mert A pozları, uyarı / tamam işareti, bütçe (para), 3 kit, 10 eşya (su, antiseptik,
 yangın tüpü, powerbank, belgeler, kedi maması, kalp ilacı = `ila.`, astım spreyi, sargı bezi = `bez` (çizim gazlı bez

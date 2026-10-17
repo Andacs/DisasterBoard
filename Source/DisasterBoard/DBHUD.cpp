@@ -15,6 +15,7 @@
 #include "Misc/Paths.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
+#include "Fonts/CompositeFont.h"
 
 namespace
 {
@@ -342,6 +343,19 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 	{
 		return false;
 	}
+	if (GM->bMenuConfirm)
+	{
+		for (int32 i = Hits.Num() - 1; i >= 0; --i)
+		{
+			if ((Hits[i].Id == TEXT("MenuYes") || Hits[i].Id == TEXT("MenuNo")) && Hits[i].R.IsInside(P))
+			{
+				GM->PlaySfx(EDBSfx::Click, 0.9f);
+				if (Hits[i].Id == TEXT("MenuYes")) GM->Restart(false); else GM->bMenuConfirm = false;
+				return true;
+			}
+		}
+		return true;
+	}
 	if (GM->Mini != EDBMini::None)
 	{
 		for (const FHit& Hh : Hits)
@@ -392,6 +406,11 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 		else if (Id == TEXT("Music")) GM->ToggleMusic();
 		else if (Id == TEXT("Menu")) GM->Restart(false);
 		else if (Id == TEXT("Turn")) GM->TurnBoard(Ix);
+		else if (Id == TEXT("Marker")) GM->ClickBuilding(Ix);
+		else if (Id == TEXT("Deliver")) GM->bBeltFast = true;
+		else if (Id == TEXT("MenuAsk")) GM->AskMenu();
+		else if (Id == TEXT("MenuYes")) GM->Restart(false);
+		else if (Id == TEXT("MenuNo")) GM->bMenuConfirm = false;
 	};
 
 	if (GM->Phase == EDBPhase::Menu || GM->Phase == EDBPhase::MenuPage)
@@ -450,7 +469,7 @@ void ADBHUD::DrawHUD()
 	}
 	if (!Font)
 	{
-		Font = GEngine->GetLargeFont();
+		Font = MakeRuntimeFont();
 		float XL = 0.f, YL = 0.f;
 		Canvas->TextSize(Font, TEXT("Ağ"), XL, YL);
 		FontBaseH = FMath::Max(1.f, YL);
@@ -538,6 +557,14 @@ void ADBHUD::DrawHUD()
 	{
 		DrawMini();
 	}
+	if (GM->Phase != EDBPhase::Result)
+	{
+		DrawMenuButton();
+	}
+	if (GM->bMenuConfirm)
+	{
+		DrawMenuConfirm();
+	}
 	if (GM->Phase == EDBPhase::Result)
 	{
 		DrawResult();
@@ -589,7 +616,7 @@ void ADBHUD::RenderPage(UTextureRenderTarget2D* RT, bool bTop, const FVector2D& 
 	Canvas = PageCanvas;
 	W = Size.X;
 	H = Size.Y;
-	S = 2.2f;
+	S = 2.2f * Size.Y / 744.f;   // sayfa dokusu büyüdükçe çizim de büyür (tasarım 744 yüksekliğe göre)
 	Mouse = PageMouse;
 	ColorGain = GM->World->PageGain;
 	if (bTop)
@@ -725,6 +752,10 @@ void ADBHUD::DrawMarkers()
 				Txt(TEXT("!"), Sp.X, Sp.Y - R * 0.34f, R * 0.78f, Paper, 1);
 			}
 		}
+		if (GM->Phase == EDBPhase::Play)
+		{
+			Hit(TEXT("Marker"), B, FBox2D(Sp - FVector2D(R * 1.3f, R * 1.2f), Sp + FVector2D(R * 1.3f, R * 1.6f)));
+		}
 		if (!bSolved)
 		{
 			// İstek açıkça: hangi çanta / hangi önlem (ekip: "istekler net belirtilecek")
@@ -739,6 +770,10 @@ void ADBHUD::DrawMarkers()
 			Box(L, WantC);
 			Frame(L, Ink, 1.5f * S);
 			Txt(Want, L.Min.X + 9.f * S, L.Min.Y + 3.f * S, Px, Paper);
+			if (GM->Phase == EDBPhase::Play)
+			{
+				Hit(TEXT("Marker"), B, L);
+			}
 		}
 	}
 }
@@ -1091,8 +1126,16 @@ void ADBHUD::DrawPanel()
 	const FBox2D Del = Rect(BeltL - 14.f * S, BeltBot + 26.f * S, BeltW + 28.f * S, 52.f * S);
 	TgDeliver = Del;
 	if (GM->IsTalking(C.BagIntroB, 4)) Glow(Del);
-	Card(Del, U(244, 230, 204), Ink, 4.f);
-	Txt(TEXT("TESLİM"), Del.GetCenter().X, Del.Min.Y + 14.f * S, 20.f * S, Ink, 1);
+	// Basılı tutunca bant hızlanır (bırakınca normale döner)
+	const bool bFast = GM->bBeltFast;
+	const FBox2D DelR = bFast ? Del.ShiftBy(FVector2D(0.f, 3.f * S)) : Del;
+	Card(DelR, bFast ? U(255, 214, 90) : U(244, 230, 204), Ink, bFast ? 1.f : 4.f);
+	Txt(bFast ? TEXT("HIZLI") : TEXT("TESLİM"), DelR.GetCenter().X, DelR.Min.Y + 7.f * S, 20.f * S, Ink, 1);
+	Txt(bFast ? TEXT(">> >> >>") : TEXT("basılı tut: hızlan"), DelR.GetCenter().X, DelR.Min.Y + 30.f * S, 13.f * S, DarkK, 1);
+	if (GM->bBagOnBelt && bEdit)
+	{
+		Hit(TEXT("Deliver"), -1, Del);
+	}
 	Button(TEXT("BeltReset"), -1, Rect(X0, P.Max.Y - 64.f * S, 160.f * S, 44.f * S), TEXT("Baştan"), 19.f * S, CardC, DarkK, Ink, bEdit && GM->bBagOnBelt);
 	Txt(TEXT("Bant durmaz: çanta önünden geçerken tıkla."), X0 + 176.f * S, P.Max.Y - 52.f * S, 16.f * S, DarkK);
 
@@ -2062,4 +2105,50 @@ void ADBHUD::DrawWind()
 		Tri(C - Ax - Ay, C + Ax - Ay, C + Ax + Ay, Pc);
 		Tri(C - Ax - Ay, C + Ax + Ay, C - Ax + Ay, Pc);
 	}
+}
+
+// ---------------------------------------------------------------- keskin font, menü düğmesi
+
+UFont* ADBHUD::MakeRuntimeFont()
+{
+	// Motorun varsayılan fontu küçük bir bitmap: takvimde 3-4 kat büyütülünce bulanıklaşıyordu. Runtime font harfleri
+	// istenen boyutta yeniden çizer. Dosya: Content/Fonts/Arayuz.ttf (pakete NonUFS girer; JamKit 04 §5)
+	const FString Path = FPaths::ProjectContentDir() / TEXT("Fonts/Arayuz.ttf");
+	if (!FPaths::FileExists(Path))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DB_FONT yok: %s, motor fontu kullaniliyor"), *Path);
+		return GEngine->GetLargeFont();
+	}
+	UFont* F = NewObject<UFont>(this);
+	F->FontCacheType = EFontCacheType::Runtime;
+	F->LegacyFontSize = 32;
+	FTypefaceEntry& E = F->CompositeFont.DefaultTypeface.Fonts.AddDefaulted_GetRef();
+	E.Name = TEXT("Regular");
+	E.Font = FFontData(Path, EFontHinting::Default, EFontLoadingPolicy::LazyLoad);
+	UE_LOG(LogTemp, Log, TEXT("DB_FONT %s"), *Path);
+	return F;
+}
+
+void ADBHUD::DrawMenuButton()
+{
+	// Oyun sırasında takvim menüsüne dönüş (onaylı: kasabadaki ilerleme sıfırlanır)
+	if (GM->Phase == EDBPhase::ToBoard)
+	{
+		return;
+	}
+	const FBox2D R = Rect(20.f * S, 20.f * S, 120.f * S, 44.f * S);
+	Blockers.Add(R);
+	Button(TEXT("MenuAsk"), -1, R, TEXT("Menü"), 19.f * S, CardC, DarkK, Ink, !GM->bMenuConfirm && GM->Mini == EDBMini::None);
+}
+
+void ADBHUD::DrawMenuConfirm()
+{
+	Box(0.f, 0.f, W, H, U(40, 30, 22, 120));
+	Blockers.Add(Rect(0.f, 0.f, W, H));
+	const FBox2D R = Rect(W * 0.5f - 300.f * S, H * 0.5f - 120.f * S, 600.f * S, 240.f * S);
+	Card(R, Paper, Ink, 8.f);
+	Txt(TEXT("Menüye dönülsün mü?"), R.GetCenter().X, R.Min.Y + 30.f * S, 30.f * S, Ink, 1);
+	Txt(TEXT("Kasabadaki ilerleme sıfırlanır."), R.GetCenter().X, R.Min.Y + 80.f * S, 20.f * S, DarkK, 1);
+	Button(TEXT("MenuYes"), -1, Rect(R.Min.X + 40.f * S, R.Max.Y - 80.f * S, 240.f * S, 54.f * S), TEXT("Menüye dön"), 22.f * S, Coral, Ink, Paper);
+	Button(TEXT("MenuNo"), -1, Rect(R.Max.X - 280.f * S, R.Max.Y - 80.f * S, 240.f * S, 54.f * S), TEXT("Oyuna devam"), 22.f * S, CardC, DarkK, Ink);
 }

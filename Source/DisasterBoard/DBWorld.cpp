@@ -249,6 +249,7 @@ void ADBWorld::BuildBuilding(int32 Index)
 	Root->SetRelativeScale3D(FVector(BuildingScale));
 	BuildingRoots.Add(Root);
 	PopTime.Add(0.f);
+	JiggleTime.Add(-1.f);
 	FallRot.Add(FRotator((Index & 1) ? 26.f : -26.f, 0.f, (Index & 2) ? 20.f : -20.f));
 
 	// Kasabalı: plakanın ön köşesinde, yol kenarında (tasarım birimi)
@@ -942,6 +943,21 @@ void ADBWorld::StartQuake(const TArray<bool>& SafeBuildings, float Seconds)
 	QuakeDuration = FMath::Max(0.5f, Seconds);
 }
 
+void ADBWorld::JiggleBuilding(int32 Building)
+{
+	if (JiggleTime.IsValidIndex(Building))
+	{
+		JiggleTime[Building] = 0.f;
+		for (FSway& W : Sways)
+		{
+			if (W.Root == BuildingRoots[Building])
+			{
+				W.Omega += 55.f;
+			}
+		}
+	}
+}
+
 void ADBWorld::PopBuilding(int32 Building)
 {
 	if (PopTime.IsValidIndex(Building))
@@ -1188,21 +1204,39 @@ void ADBWorld::Tick(float Dt)
 		}
 	}
 
-	// Doğru uygulama: kısa zıplama
+	// Doğru uygulama: kısa zıplama; seçilen bina: jöle gibi esneme (genişler-uzar, sönerek). İkisi birlikte çarpılır.
 	for (int32 i = 0; i < PopTime.Num(); ++i)
 	{
-		if (PopTime[i] <= 0.f)
+		const bool bPop = PopTime[i] > 0.f;
+		const bool bJig = JiggleTime.IsValidIndex(i) && JiggleTime[i] >= 0.f;
+		if (!bPop && !bJig)
 		{
 			continue;
 		}
-		PopTime[i] += Dt;
-		const float T = PopTime[i] / 0.45f;
-		const float S = T < 1.f ? 1.f + 0.22f * FMath::Sin(T * PI) : 1.f;
-		BuildingRoots[i]->SetRelativeScale3D(FVector(S * BuildingScale));
-		if (T >= 1.f)
+		float Uni = 1.f;
+		if (bPop)
 		{
-			PopTime[i] = 0.f;
+			PopTime[i] += Dt;
+			const float T = PopTime[i] / 0.45f;
+			Uni = T < 1.f ? 1.f + 0.22f * FMath::Sin(T * PI) : 1.f;
+			if (T >= 1.f)
+			{
+				PopTime[i] = 0.f;
+			}
 		}
+		float Sq = 0.f;
+		if (bJig)
+		{
+			JiggleTime[i] += Dt;
+			const float T = JiggleTime[i];
+			Sq = 0.16f * FMath::Sin(T * 30.f) * FMath::Exp(-T * 5.5f);
+			if (T > 0.8f)
+			{
+				JiggleTime[i] = -1.f;
+				Sq = 0.f;
+			}
+		}
+		BuildingRoots[i]->SetRelativeScale3D(FVector(Uni * (1.f + Sq), Uni * (1.f + Sq), Uni * (1.f - Sq)) * BuildingScale);
 	}
 
 	// Deprem

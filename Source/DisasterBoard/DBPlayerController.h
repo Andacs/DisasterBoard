@@ -45,7 +45,8 @@ private:
 	void OnZoom(const struct FInputActionValue& Value);
 	void OnRotLeft();
 	void OnRotRight();
-	bool bMiniMouse = false;   // mini oyunda basılı tutma Vazgeç düğmesinin dışında başladı
+	bool bMiniMouse = false;
+	bool bLmbPrev = false;     // TESLİM: tuş bırakıldığı an bant normale döner   // mini oyunda basılı tutma Vazgeç düğmesinin dışında başladı
 	bool CanControlBoard() const;
 	ADBGameMode* GM() const;
 

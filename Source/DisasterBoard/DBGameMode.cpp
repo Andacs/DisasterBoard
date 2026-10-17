@@ -792,7 +792,7 @@ void ADBGameMode::TickBelt(float Dt)
 	}
 	if (IsBeltRunning())
 	{
-		BagT += Dt / FMath::Max(1.f, BeltSeconds);
+		BagT += Dt / FMath::Max(1.f, BeltSeconds) * (bBeltFast ? BeltFastFactor : 1.f);
 		if (BagT >= 1.f)
 		{
 			DeliverBag();
@@ -1070,6 +1070,7 @@ void ADBGameMode::ClickBuilding(int32 Building)
 	}
 	const FString& Name = C.Buildings[Building].Name;
 	const int32 P = ProblemOfBuilding(Building);
+	World->JiggleBuilding(Building);   // seçildiği belli olsun
 
 	if (P == INDEX_NONE || !Revealed[P] || Solved[P])
 	{
@@ -1212,6 +1213,11 @@ void ADBGameMode::Restart(bool bDirect)
 
 void ADBGameMode::Back()
 {
+	if (bMenuConfirm)
+	{
+		bMenuConfirm = false;
+		return;
+	}
 	switch (Phase)
 	{
 	case EDBPhase::MenuPage: CloseMenuPage(); break;

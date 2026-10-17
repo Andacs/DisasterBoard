@@ -87,6 +87,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "DB") float SfxVolume = 1.8f;
 	void PlaySfx(EDBSfx Id, float Volume = 1.f, float Pan = 0.f, float Pitch = 1.f, float PanTo = -2.f);
 	float WindTime = -100.f;     // HUD: takvime yaklaşırken yandan rüzgar çizgileri
+	bool bBeltFast = false;      // TESLİM basılı tutuluyor: bant hızlı akar (PlayerController bırakınca kapatır)
+	UPROPERTY(EditAnywhere, Category = "DB") float BeltFastFactor = 4.f;
+	bool bMenuConfirm = false;   // oyundan menüye dönüş onayı açık
+	void AskMenu() { bMenuConfirm = true; CloseNpc(); }
 	int32 ComicIndex = 0;
 
 	// --- Çanta fabrikası (Purble Place gibi; bant yukarıdan aşağı akar, durmaz) ---

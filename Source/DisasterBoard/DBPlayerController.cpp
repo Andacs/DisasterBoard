@@ -103,6 +103,18 @@ void ADBPlayerController::PlayerTick(float DeltaTime)
 	const bool bMouse = GetMousePosition(MX, MY);
 	bool bHand = false;
 
+	const bool bLmbNow = IsInputKeyDown(EKeys::LeftMouseButton);
+	if (G && G->bBeltFast && bLmbPrev && !bLmbNow)
+	{
+		G->bBeltFast = false;   // TESLİM bırakıldı
+	}
+	bLmbPrev = bLmbNow;
+	if (G && G->bMenuConfirm)
+	{
+		CurrentMouseCursor = (bMouse && H && H->IsOverButton(FVector2D(MX, MY))) ? EMouseCursor::Hand : EMouseCursor::Default;
+		return;
+	}
+
 	// Mini oyun: fare sol tuşu (Vazgeç'in dışında basıldıysa) ya da boşluk basılı tutulur; tahtaya tıklanmaz
 	if (G && G->Mini != EDBMini::None)
 	{
@@ -145,6 +157,11 @@ void ADBPlayerController::OnClick()
 	float MX = 0.f, MY = 0.f;
 	GetMousePosition(MX, MY);
 	H->AddClickFx(FVector2D(MX, MY));   // her tıklamada halka + kıvılcım
+	if (G->bMenuConfirm)
+	{
+		H->HandleClick(FVector2D(MX, MY));
+		return;
+	}
 	if (G->Mini != EDBMini::None)
 	{
 		bMiniMouse = !H->HandleClick(FVector2D(MX, MY));   // Vazgeç değilse basılı tutma başlar
@@ -335,6 +352,15 @@ void ADBPlayerController::DBTest()
 	// Siparişler sırası: Ayşe (İY + kalp ilacı, gözlük), Okul (İY + astım), Yılmaz (Deprem + mama, bez), Öğrenci (Deprem + powerbank, kedi maması), Fırın (Yangın + belgeler, battaniye)
 	Add([this] { Shot(TEXT("09_bant_akiyor")); });
 	Add([this, Fab] { Fab(0, { 8, 10 }); });
+	// TESLİM basılı: bant hızlı (1,3 sn'de normalde ~0,09 ilerler)
+	Add([this] { GM()->SetBagT(0.3f); GM()->bBeltFast = true; });
+	Add([this]
+	{
+		UE_LOG(LogDBInput, Log, TEXT("DB_TEST teslim_hizli BagT 0.30 -> %.2f"), GM()->BagT);
+		Shot(TEXT("09a_teslim_hizli"));
+		GM()->SetBagT(0.3f);   // hızlı kalırken bir sonraki adımda teslime varmasın
+	});
+	Add([this] { GM()->bBeltFast = false; GM()->SetBagT(0.85f); });
 	Add([this] { Shot(TEXT("09b_canta_hazir_iniyor")); GM()->SetBagT(0.999f); });
 	Add([] {});
 	Add([this] { Shot(TEXT("09c_teslim_edildi")); });
@@ -365,6 +391,18 @@ void ADBPlayerController::DBTest()
 	Add([this] { Shot(TEXT("12c_tahta_dondu")); GM()->TurnBoard(-1); GM()->World->ZoomBoardView(60.f); });
 	Add([] {});
 	// Binalar: 4 Apartman, 5 Kitapçı, 7 Market, 8 Öğrenci, 10 Sahil, 11 Ahşap. Önlemler: 0 rögar, 1 tahliye, 2 musluk, 3 anahtar, 4 güçlendirme
+	// Ünleme tıklamak binaya tıklamakla aynı (gerçek tıklama yolu: HUD işaret alanı), bina jöle gibi esner
+	Add([this]
+	{
+		FVector2D P;
+		if (ProjectWorldLocationToScreen(GM()->World->MarkerAnchor(11), P))
+		{
+			const bool bHit = GetHUD<ADBHUD>()->HandleClick(P);
+			UE_LOG(LogDBInput, Log, TEXT("DB_TEST unlem_tik hit=%d npc=%d"), bHit ? 1 : 0, GM()->NpcBuilding);
+		}
+		FTimerHandle Hh;
+		GetWorldTimerManager().SetTimer(Hh, FTimerDelegate::CreateLambda([this] { Shot(TEXT("12a_unlem_tiklandi_jole")); }), 0.12f, false);
+	});
 	Add([this] { GM()->ClickBuilding(11); });   // Nermin Hanım derdini anlatır
 	Add([this] { Shot(TEXT("13_kasabali_konusuyor")); });
 	Add([this] { ADBGameMode* M = GM(); M->CloseNpc(); M->SelectTool(1); M->ClickBuilding(4); });
@@ -397,6 +435,9 @@ void ADBPlayerController::DBTest()
 	Add([this] { Shot(TEXT("16b_can_konusuyor")); GM()->NpcOpenFactory(); });
 	Add([] {});
 	Add([this] { Shot(TEXT("17_binadan_siparis")); });
+	Add([this] { GM()->AskMenu(); });
+	Add([this] { Shot(TEXT("17a_menu_onay")); });
+	Add([this] { GM()->bMenuConfirm = false; });
 	Add([this, Fab] { Fab(1, { 15, 13 }); GM()->SetBagT(0.999f); });
 	Add([] {});
 	Add([] {});

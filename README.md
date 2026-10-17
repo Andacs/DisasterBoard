@@ -35,14 +35,13 @@ Her satır: ad · üretici/sağlayıcı · bağlantı · lisans (gerçek koşull
 
 | Kategori | Durum | Kaynak · sağlayıcı · lisans · kullanım |
 |---|---|---|
-| Görsel | [Kullanıldı / Kullanılmadı] | [Unreal Engine temel şekilleri (`/Engine/BasicShapes`) · Epic Games · [Unreal Engine EULA](https://www.unrealengine.com/eula) · ...] |
+| Görsel | Kullanıldı | Unreal Engine temel şekilleri (`/Engine/BasicShapes`) ve motor malzemeleri (`BasicShapeMaterial`, `Widget3DPassThrough`) · Epic Games · [Unreal Engine EULA](https://www.unrealengine.com/eula) · bütün sahne bunlardan koddan kuruluyor, renkleri kodla değişiyor. 2D çizimler (karakterler, ikonlar) ekibin kendi çizimi (`Art/Kaynak/`); hazır görsel yok. |
 | Ses | Kullanılmadı | Hazır ses ya da müzik yok. Müzik ve ses efektleri oyun içinde koddan üretiliyor (`Source/DisasterBoard/DBMusic.cpp`, `DBSfx.cpp`); bkz. yapay zekâ beyanı. |
 | Kod | Kullanıldı | **Unreal Engine 5.8** · Epic Games · [Unreal Engine EULA](https://www.unrealengine.com/eula) · oyun motoru. Derleme, paketleme, trailer ve teslim betikleri (`Build/`, `Tools/`) takımın jam öncesi hazırladığı genel araçlardır (madde 3.1); oyuna girmez. |
 | Metin | Kullanıldı | **Claude (Anthropic)** · oyun içi konuşmaların, sorun notlarının ve sonuç ekranındaki hazırlık bilgilerinin ilk taslağı · `Source/DisasterBoard/DBData.cpp` |
-| Diğer | [...] | [Yazı tipleri: ad · sağlayıcı · Google Fonts bağlantısı · SIL OFL 1.1 (lisans metni `Art/Fonts/*/OFL.txt`) · nerede kullanıldı. Roboto · Google · Apache 2.0 · motorla gelir, yedek yazı tipi.] |
+| Diğer | Kullanıldı | Yazı tipi **Roboto Medium** · Google (Christian Robertson) · [Roboto](https://fonts.google.com/specimen/Roboto) · Apache License 2.0 (lisans metni `Content/Fonts/Arayuz_LICENSE.txt`, motorla gelen kopya) · bütün arayüz ve takvim yazıları (`Content/Fonts/Arayuz.ttf`), değiştirilmedi. |
 
-[Repoda bulunmayan dosyalar: yeniden dağıtımı kısıtlı ham asset varsa adı, nereden edinileceği, projeye
-nasıl ekleneceği. Yoksa: "Repoda yeniden dağıtımı kısıtlı ham asset yoktur."]
+Repoda yeniden dağıtımı kısıtlı ham asset yoktur.
 
 ## Yapay zekâ beyanı (kitapçık 4.2, EK A.5)
 

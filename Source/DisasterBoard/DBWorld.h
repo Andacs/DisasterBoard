@@ -48,6 +48,8 @@ public:
 
 	UPROPERTY() TObjectPtr<UTextureRenderTarget2D> TopRT;    // menü (üst sayfa)
 	UPROPERTY() TObjectPtr<UTextureRenderTarget2D> UnderRT;  // Ayarlar / Emeği Geçenler (alt sayfa)
+	// Bulanıklığın asıl sebebi bitmap fonttu (Runtime fontla düzeldi). 2048 + mip denendi: mipler canvas çiziminden
+	// sonra güncellenmediği için sayfa boş göründü. Yakın planda sayfa ekranda ~1100 px: 1024 yetiyor.
 	FVector2D PageTextureSize() const { return FVector2D(1024.f, 744.f); }
 	// Ekrandaki nokta sayfanın neresine denk geliyor (0..1); sayfa düğmelerine tıklamak için
 	bool PagePointFromScreen(const APlayerController* PC, const FVector2D& Screen, bool bTop, FVector2D& OutUV) const;
@@ -93,6 +95,7 @@ public:
 	// --- Deprem / geri bildirim ---
 	void StartQuake(const TArray<bool>& SafeBuildings, float Seconds);
 	void PopBuilding(int32 Building);
+	void JiggleBuilding(int32 Building);   // seçilince esneyip sallanır (jöle)
 	void StartEvacuation(int32 FromBuilding, int32 ToBuilding);   // tsunami: sakinler sokaklardan sığınağa yürür
 	// Atmosfer: riskli binanın çevresinde afetine göre renkli sis; çözülünce dağılır, kum savrulur
 	void ShowHaze(int32 Building, const FString& Hazard);
@@ -245,6 +248,7 @@ private:
 
 	TArray<float> BuildingHeights;
 	TArray<float> PopTime;
+	TArray<float> JiggleTime;
 	TArray<bool> QuakeSafe;
 	TArray<FRotator> FallRot;
 

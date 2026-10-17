@@ -27,6 +27,7 @@ public:
 	// Geri bildirim: tıklanan yerde halka + kıvılcımlar (her tıklamada PlayerController çağırır)
 	void AddClickFx(const FVector2D& P);
 	bool IsOverButton(const FVector2D& P) const;
+	bool IsOverDeliver(const FVector2D& P) const { return TgDeliver.bIsValid && TgDeliver.IsInside(P); }
 	bool IsOverUI(const FVector2D& P) const;
 
 	// Test: takvim sayfasındaki bir düğmenin ekrandaki yeri (sayfa dokusu ↔ fare eşlemesini doğrulamak için)
@@ -70,6 +71,9 @@ private:
 	TArray<FTrail> Trail;
 	float FxNow = 0.f;
 	void DrawCursorFx();
+	void DrawMenuButton();
+	void DrawMenuConfirm();
+	UFont* MakeRuntimeFont();
 	void DrawWind();
 	void DrawMini();
 	void DrawNutGame(const FBox2D& R);
