@@ -1,5 +1,37 @@
 # DEVİR: Tetkik (DisasterBoard) — 18 Ekim 03.10 (06.20'de güncellendi)
 
+## GERİ DEVİR — 18 Ekim 17.15 (Yiğit'in bilgisayarından Andaç'a)
+
+**İş Andaç'a geri geçti.** Yiğit'in Claude'u bu bilgisayarda (C:\Dev\DisasterBoard) bıraktı; git status temiz, her şey `main`'de.
+
+**Bu oturumda yapılanlar (commit):**
+- `0276ebb` Asil'in 2D çizimleri (6 eşya ikonu, tarayıcı, çanta) · `9401e35` hikâye sahneleri Asil'in 4 çizimi
+- `7e03c0b` → `07104c3` tanıtım videosu: ham çekim `DBSinema -DBSinemaHam` + kurgu `Tools/trailer_kurgu.py` (34,8 sn; KORU bölümü
+  dörde bölünmüş tek sahne, sonradan `58dfa1d`'de)
+- `58dfa1d` açılışta kutu logosu, tam ekran hikâye, 4. sahne gerçek odaya erir; Esc → takvim; Çıkış → Menüye dön / Kapat;
+  "Eğitimi geç"; jenerik isim ve görevleri; Asil/Yiğit pozları (ekibin çizimi)
+- `430aec8` konuşma sesleri: Asil kalın/ağır, Yiğit ince/hızlı · `eaf21de` erirken takvimde menü hazır
+- `434f2ef` Asil'in düzeltilmiş pozları, Elif → Aysin, masada ekipten çıkartma
+- `363abbb` Pixabay sesleri (zar, sayfa, korna, fermuar) + README hazır kaynak **Ses: Kullanıldı** + jenerikte atıf
+- (bu commit) README: Releases'tan indirme ve kaynaktan derleme; bu devir notu
+
+**Test edildi / ekranda görüldü:** her değişiklikten sonra DBTest `para=25 hata=2`; logo, tam ekran hikâye, erime, Çıkış sayfası,
+jenerik (`DB_00*`, `DB_01c/d`), `DBEscTest` (Eğitimi geç → Esc → takvim → devam), Aysin portresi (`V_12`), sticker (`DB_04b`);
+sesler oyun çıkışı kaydıyla (sayfa sesi eşleşmesi 0,18 / sessizde 0,01), konuşma perdeleri `DBSesKarakter` ile ölçüldü.
+Shipping paketi `363abbb`'den, temiz klasörde açıldı, `teslim_hazirla` BOZUK: 0 (ilk açılış yavaş: `BEKLE=75` ile).
+**Denenmedi:** gerçek fareyle tam oyun; seslerin hiçbiri kulakla dinlenmedi.
+
+**Teslim:** ZIP ve video Yiğit'te `Build/Teslim/Tetkik_Windows.zip` (352 MB, `363abbb`) ve `Tetkik_Trailer.mp4` (34,8 sn) adıyla;
+forma Yiğit yüklüyor (son teslim formda 18.15). Aynı ZIP herkese açık: **GitHub Release v1.0**
+(https://github.com/Andacs/Tetkik/releases/tag/v1.0, etiket `363abbb`). Bu son commit yalnız README/DEVIR değiştirir, paket aynı.
+Form beyan metinleri `Build/Teslim/FORM_BEYANLAR.txt` (git'e girmez). Makbuz bilgisi henüz gelmedi.
+
+**Açık sorular / dikkat:**
+- Bu oturumdaki oyun değişiklikleri CLAUDE.md kural 5'e ("36. saatten sonra yeni özellik yok") aykırı; Yiğit'in isteğiyle yapıldı.
+- README hazır kaynak **Metin** satırında Claude yazıyor (aslında yapay zekâ beyanında da var); Yiğit dokunulmasın dedi.
+- `lolurio` imzalı iki ses (Positive/Negative Feedback) kaynağı belirsiz olduğu için eklenmedi.
+- 3D figür adı `SM_Kasabali_Elif` aynı kaldı (kasabalının adı artık Aysin).
+
 ## 0. DEVİR KURALI (bu işi devralan Claude için, mutlaka uy)
 
 Bu iş sonra tekrar **Andaç'a geri geçecek**. Bu yüzden:

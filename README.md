@@ -11,9 +11,11 @@ CIVIL GAME JAM 2026 · **FreakLabs**
 **Platform ve gereksinimler:** Windows 10/11, 64 bit, DirectX 12 destekli ekran kartı. Ek yazılım
 gerekmez (gerekirse Unreal Engine önkoşulları paketin içindeki `Engine/Extras/Redist/en-us/UEPrereqSetup_x64.exe`).
 
-**Başlatma:** ZIP'i bir klasöre açın, `DisasterBoard.exe`'yi çalıştırın (oyunun adı Tetkik; Unreal projesinin iç adı DisasterBoard kaldı). [Açılış videosu / menü varsa: nasıl geçilir.]
+**İndirme:** Hazır oyun repoda değil, **[Releases → v1.0](https://github.com/Andacs/Tetkik/releases/tag/v1.0)** sayfasında: `Tetkik_Windows.zip` (352 MB, Shipping). Jüriye teslim edilen ZIP ile aynı paket.
 
-**Açılış:** Oyun 4 sahnelik kısa bir hikâyeyle açılır (tıkla: sonraki sahne, "Geç": atla), sonra duvardaki takvim menüsü gelir: **Oyna**.
+**Başlatma:** ZIP'i bir klasöre açın, `DisasterBoard.exe`'yi çalıştırın (oyunun adı Tetkik; Unreal projesinin iç adı DisasterBoard kaldı). İlk açılış birkaç saniye sürebilir.
+
+**Açılış:** Oyun logoyla ve 4 sahnelik kısa bir hikâyeyle açılır (tıkla: sonraki sahne, "Geç": atla), sonra duvardaki takvim menüsü gelir: **Oyna**. Eğitim konuşmaları "Eğitimi geç" ile atlanabilir.
 
 **Oynanış:** Amaç kasabadaki 8 afet riskini gidermek. Rehberler (Mert, Asil, Yiğit) ilk adımları gösterir: tarayıcıya bas, riskli yerlerde (!) çıkar. Çanta isteyen evler için sağdaki **Çanta Fabrikası**'nda bant akarken doğru temel kiti ve kişiye özel eşyaları seç; paket alttaki çantaya düşer ve teslim edilir (+30 TL). Şehir risklerine alttaki **şehir önlemlerinden** birini seçip riskli yere tıkla (bedeli bütçeden düşer; rögar kapağı ve İngiliz anahtarı kısa birer mini oyun). Kasabalılara tıklayıp dertlerini dinlemek Şehir Farkındalık yüzdesini artırır. Bütün işaretler yeşil olunca kasaba afetlere hazırdır: sonuçta yapılanların fotoğraf albümü ve başarımlar gelir. Süre ve kaybetme yok; yanlış denemeler sayılır ve sonuçta gösterilir.
 
@@ -32,8 +34,22 @@ gerekmez (gerekirse Unreal Engine önkoşulları paketin içindeki `Engine/Extra
 
 ## Kaynaktan derleme
 
-Unreal Engine **5.8.0**. Editör kapalıyken `Build\derle.bat`, paket için `Build\paketle.bat`
-(Shipping, çıktı `Build\Package\Windows`). Trailer: `bash Tools/trailer_yap.sh`. Teslim kontrolü:
+Yalnız oynamak için gerekmez (yukarıdaki Releases ZIP'i yeter). Kaynaktan almak için: Windows 10/11, **Unreal Engine 5.8.0**
+(Epic Games Launcher, varsayılan yer `C:\Program Files\Epic Games\UE_5.8`), **Visual Studio 2022** ("Game development with
+C++" iş yükü), **Git LFS** (görseller, modeller ve sesler LFS'te).
+
+```
+git clone https://github.com/Andacs/Tetkik.git
+cd Tetkik
+git lfs pull
+Build\derle.bat
+Build\oyna.bat
+Build\paketle.bat
+```
+
+`derle.bat` C++ modülünü derler (editör kapalı olmalı), `oyna.bat` oyunu editörden açar, `paketle.bat` Shipping paketini
+`Build\Package\Windows\DisasterBoard.exe` olarak çıkarır (~5-10 dk). Unreal başka bir yere kuruluysa betiklerdeki
+`C:\Program Files\Epic Games\UE_5.8` yolunu değiştirin. Trailer: `bash Tools/trailer_yap.sh`. Teslim kontrolü:
 `bash Tools/teslim_hazirla.sh`.
 
 ## Hazır kaynak beyanı (kitapçık 3.4, EK A.4)

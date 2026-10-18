@@ -121,6 +121,8 @@ Tek dal: `main`. Herkes oraya push eder. Feature branch + PR 48 saatte maliyeti 
 
 ## Bilinen durum
 
+**18 Ekim 17.15 — GERİ DEVİR: iş Andaç'a geri geçti.** `Docs/DEVIR.md` en üstteki "GERİ DEVİR" bölümünü oku (Yiğit'in bilgisayarında yapılanlar, commit'ler, test durumu, açık sorular). Son durum: DBTest 8/8, 25 TL, 2 hata; Shipping paketi `363abbb`, BOZUK: 0; video 34,8 sn; ZIP GitHub Release v1.0'da da var; forma Yiğit yüklüyor (son teslim formda 18.15), makbuz gelmedi.
+
 **18 Ekim 03.10 — DEVİR: iş başka bilgisayarda sürüyor. Önce `Docs/DEVIR.md`'yi oku** (saatler, kurulum, teslim için
 kalanlar sırayla, Yiğit'in dalını birleştirme, tuzaklar). Oyunun görünen adı **Tetkik**, repo `github.com/Andacs/Tetkik`;
 proje/modül iç adı DisasterBoard kalır (kural 1). Son durum (06.20): DBTest 8/8, 25 TL, 2 hata; Shipping paketi alındı ve
