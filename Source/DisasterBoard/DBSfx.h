@@ -52,6 +52,8 @@ public:
 
 	// Test: bütün efektleri sırayla dosyaya yazar (ölçmek / dinlemek için)
 	static bool WriteTestWav(const FString& Path, FString* OutReport = nullptr);
+	// Konuşma sesi ölçümü: her perde için 6 hece (a e i o u a), aralarında Gap, perdeler arasında 0,5 sn sessizlik
+	static bool WriteVoiceWav(const FString& Path, const TArray<float>& Pitches, const TArray<float>& Gaps);
 	static float Length(EDBSfx Id);
 
 	static constexpr int32 Rate = 44100;

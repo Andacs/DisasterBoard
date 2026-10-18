@@ -44,6 +44,8 @@ public:
 	UFUNCTION(Exec) void DBSinema();
 	// Esc / Eğitimi geç / Çıkış kontrolü (yalnız test): gerçek tıklama yolu, E_*.png, DB_ESCTEST satırları, kapanır
 	UFUNCTION(Exec) void DBEscTest();
+	// Rehber konuşma sesleri (Mert / Asil / Yiğit) dosyaya: Saved/DB_ses_karakter.wav, kapanır (yalnız ölçüm)
+	UFUNCTION(Exec) void DBSesKarakter();
 
 private:
 	void OnClick();

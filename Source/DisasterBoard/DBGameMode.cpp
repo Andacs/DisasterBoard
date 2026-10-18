@@ -143,8 +143,14 @@ void ADBGameMode::Tick(float Dt)
 	// Karakter sesi: rehberler konuşurken ve kasabalı balonu yazılırken
 	if (const FDBLine* L = CurrentLine())
 	{
-		const float Pitch[] = { 1.f, 1.22f, 0.86f };
-		VoiceTick(L->Text, VisibleChars(), Pitch[FMath::Clamp((int32)L->Who, 0, 2)]);
+		// Yiğit (18 Ekim): sesler karaktere uysun. Mert orta; Asil (sakallı, sakin) kalın, ağır ve düz; Yiğit (kedi
+		// kulaklı, neşeli) ince, hızlı ve hecelerde iniş çıkışlı. Önceden Asil 1,22 (en ince) ve Yiğit 0,86'ydı: tersti.
+		const float Pitch[] = { 1.f, 0.80f, 1.24f };
+		const float Gap[] = { 0.075f, 0.092f, 0.064f };
+		const float Bounce[] = { 0.07f, 0.035f, 0.12f };
+		const float Vol[] = { 0.5f, 0.56f, 0.48f };
+		const int32 Who = FMath::Clamp((int32)L->Who, 0, 2);
+		VoiceTick(L->Text, VisibleChars(), Pitch[Who], Gap[Who], Bounce[Who], Vol[Who]);
 	}
 	else if (NpcBuilding >= 0 && Phase == EDBPhase::Play)
 	{
@@ -371,7 +377,7 @@ float ADBGameMode::NpcVoicePitch() const
 	return P[FMath::Abs(NpcBuilding) % 12];
 }
 
-void ADBGameMode::VoiceTick(const FString& Text, int32 Visible, float Pitch)
+void ADBGameMode::VoiceTick(const FString& Text, int32 Visible, float Pitch, float Gap, float Bounce, float Vol)
 {
 	if (Visible < VoiceChars || !FMath::IsNearlyEqual(Pitch, VoiceSpeaker))
 	{
@@ -392,15 +398,15 @@ void ADBGameMode::VoiceTick(const FString& Text, int32 Visible, float Pitch)
 		case TEXT('u'): case 0x00FC: case 0x00DC: V = EDBSfx::VoU; break;
 		default: break;
 		}
-		if (V != EDBSfx::Count && Now - VoiceAt >= 0.075f)
+		if (V != EDBSfx::Count && Now - VoiceAt >= Gap)
 		{
 			VoiceAt = Now;
 			// Cümle sonuna yaklaştıkça perde biraz iner, soru işaretiyle biterse kalkar (konuşma melodisi)
 			const bool bQuestion = Text.EndsWith(TEXT("?"));
 			const float U = Text.Len() > 0 ? (float)VoiceChars / Text.Len() : 0.f;
 			const float Melody = bQuestion ? 1.f + 0.18f * U * U : 1.f - 0.1f * U;
-			const float Jitter = 1.f + 0.07f * FMath::Sin(VoiceChars * 2.3f + Pitch * 7.f);
-			PlaySfx(V, 0.5f, 0.f, Pitch * Melody * Jitter);
+			const float Jitter = 1.f + Bounce * FMath::Sin(VoiceChars * 2.3f + Pitch * 7.f);
+			PlaySfx(V, Vol, 0.f, Pitch * Melody * Jitter);
 		}
 	}
 }

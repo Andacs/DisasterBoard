@@ -122,7 +122,8 @@ public:
 	int32 VoiceChars = 0;
 	float VoiceAt = -100.f;
 	float VoiceSpeaker = 1.f;
-	void VoiceTick(const FString& Text, int32 Visible, float Pitch);
+	// Gap: heceler arası en kısa süre (konuşma hızı), Bounce: hece hece perde oynaması, Vol: ses düzeyi
+	void VoiceTick(const FString& Text, int32 Visible, float Pitch, float Gap = 0.075f, float Bounce = 0.07f, float Vol = 0.5f);
 	float NpcVoicePitch() const;
 	float BeltSoundAt = -100.f;
 

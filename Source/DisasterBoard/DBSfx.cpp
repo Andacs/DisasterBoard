@@ -577,6 +577,37 @@ int32 UDBSfxWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
 	return Frames * 2;
 }
 
+bool UDBSfxWave::WriteVoiceWav(const FString& Path, const TArray<float>& Pitches, const TArray<float>& Gaps)
+{
+	UDBSfxWave* W = NewObject<UDBSfxWave>();
+	TArray<int16> Pcm;
+	const EDBSfx Seq[] = { EDBSfx::VoA, EDBSfx::VoE, EDBSfx::VoI, EDBSfx::VoO, EDBSfx::VoU, EDBSfx::VoA };
+	for (int32 p = 0; p < Pitches.Num(); ++p)
+	{
+		for (EDBSfx V : Seq)
+		{
+			W->Play(V, 0.5f, 0.f, Pitches[p], -2.f);
+			const int32 Frames = FMath::RoundToInt(Gaps[p] * SR);
+			const int32 Base = Pcm.Num();
+			Pcm.AddZeroed(Frames * 2);
+			W->Mix(Pcm.GetData() + Base, Frames);
+		}
+		const int32 Base = Pcm.Num();
+		const int32 Frames = FMath::RoundToInt(0.5f * SR);
+		Pcm.AddZeroed(Frames * 2);
+		W->Mix(Pcm.GetData() + Base, Frames);
+	}
+	TArray<uint8> Wav;
+	auto U32 = [&Wav](uint32 V) { Wav.Append(reinterpret_cast<uint8*>(&V), 4); };
+	auto U16 = [&Wav](uint16 V) { Wav.Append(reinterpret_cast<uint8*>(&V), 2); };
+	const uint32 DataBytes = Pcm.Num() * 2;
+	Wav.Append((const uint8*)"RIFF", 4); U32(36 + DataBytes); Wav.Append((const uint8*)"WAVE", 4);
+	Wav.Append((const uint8*)"fmt ", 4); U32(16); U16(1); U16(2); U32(Rate); U32(Rate * 4); U16(4); U16(16);
+	Wav.Append((const uint8*)"data", 4); U32(DataBytes);
+	Wav.Append(reinterpret_cast<const uint8*>(Pcm.GetData()), DataBytes);
+	return FFileHelper::SaveArrayToFile(Wav, *Path);
+}
+
 bool UDBSfxWave::WriteTestWav(const FString& Path, FString* OutReport)
 {
 	UDBSfxWave* W = NewObject<UDBSfxWave>();

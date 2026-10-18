@@ -3,6 +3,7 @@
 #include "DBHUD.h"
 #include "DBWorld.h"
 #include "DBMusic.h"
+#include "DBSfx.h"
 #include "Misc/Paths.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -897,6 +898,15 @@ void ADBPlayerController::DBSinema()
 	Add([] { FGenericPlatformMisc::RequestExit(false); });
 
 	GetWorldTimerManager().SetTimer(TestTimer, this, &ADBPlayerController::RunTestStep, 0.5f, true, 1.f);
+}
+
+void ADBPlayerController::DBSesKarakter()
+{
+	// DBGameMode::Tick'teki profillerle aynı: Mert, Asil, Yiğit
+	const FString Path = FPaths::ProjectSavedDir() / TEXT("DB_ses_karakter.wav");
+	const bool bOk = UDBSfxWave::WriteVoiceWav(Path, { 1.f, 0.80f, 1.24f }, { 0.075f, 0.092f, 0.064f });
+	UE_LOG(LogDBInput, Log, TEXT("DB_SES_KARAKTER ok=%d %s"), bOk ? 1 : 0, *Path);
+	FGenericPlatformMisc::RequestExit(false);
 }
 
 void ADBPlayerController::DBEscTest()
