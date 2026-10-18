@@ -1,6 +1,6 @@
-# Onaylı varlıklar (79 / 85)
+# Onaylı varlıklar (83 / 85)
 
-2D: 48 / 53 · 3D: 31 / 32. Bu dosyayı `Tools/varlik_kontrol.py` yazar, elle değiştirme.
+2D: 52 / 53 · 3D: 31 / 32. Bu dosyayı `Tools/varlik_kontrol.py` yazar, elle değiştirme.
 
 | Dosya | Tür | Durum | Tarih | Not |
 |---|---|---|---|---|
@@ -10,10 +10,10 @@
 | `Karakterler/B_goster.png` | 2D | ONAYLI | 17.10 22:10 | - |
 | `Karakterler/C_durus.png` | 2D | ONAYLI | 17.10 22:11 | - |
 | `Karakterler/C_goster.png` | 2D | ONAYLI | 17.10 22:11 | - |
-| `Cizgiroman/sahne1.png` | 2D | bekliyor | | |
-| `Cizgiroman/sahne2.png` | 2D | bekliyor | | |
-| `Cizgiroman/sahne3.png` | 2D | bekliyor | | |
-| `Cizgiroman/sahne4.png` | 2D | bekliyor | | |
+| `Cizgiroman/sahne1.png` | 2D | ONAYLI | 18.10 13:08 | - |
+| `Cizgiroman/sahne2.png` | 2D | ONAYLI | 18.10 13:08 | - |
+| `Cizgiroman/sahne3.png` | 2D | ONAYLI | 18.10 13:08 | - |
+| `Cizgiroman/sahne4.png` | 2D | ONAYLI | 18.10 13:08 | - |
 | `Ikonlar/esya_sargi_bezi.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/esya_antiseptik.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/esya_yara_bandi.png` | 2D | ONAYLI | 18.10 09:55 | - |
