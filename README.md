@@ -13,14 +13,22 @@ gerekmez (gerekirse Unreal Engine önkoşulları paketin içindeki `Engine/Extra
 
 **Başlatma:** ZIP'i bir klasöre açın, `DisasterBoard.exe`'yi çalıştırın (oyunun adı Tetkik; Unreal projesinin iç adı DisasterBoard kaldı). [Açılış videosu / menü varsa: nasıl geçilir.]
 
-**Oynanış:** [Amaç, kazanma ve kaybetme. İlk adım ne.]
+**Açılış:** Oyun 4 sahnelik kısa bir hikâyeyle açılır (tıkla: sonraki sahne, "Geç": atla), sonra duvardaki takvim menüsü gelir: **Oyna**.
+
+**Oynanış:** Amaç kasabadaki 8 afet riskini gidermek. Rehberler (Mert, Asil, Yiğit) ilk adımları gösterir: tarayıcıya bas, riskli yerlerde (!) çıkar. Çanta isteyen evler için sağdaki **Çanta Fabrikası**'nda bant akarken doğru temel kiti ve kişiye özel eşyaları seç; paket alttaki çantaya düşer ve teslim edilir (+30 TL). Şehir risklerine alttaki **şehir önlemlerinden** birini seçip riskli yere tıkla (bedeli bütçeden düşer; rögar kapağı ve İngiliz anahtarı kısa birer mini oyun). Kasabalılara tıklayıp dertlerini dinlemek Şehir Farkındalık yüzdesini artırır. Bütün işaretler yeşil olunca kasaba afetlere hazırdır: sonuçta yapılanların fotoğraf albümü ve başarımlar gelir. Süre ve kaybetme yok; yanlış denemeler sayılır ve sonuçta gösterilir.
 
 | Girdi | Ne yapar |
 |---|---|
-| [Sol tık] | [...] |
-| [Esc] | [...] |
+| Sol tık | Seç / uygula / konuş; fabrikada alttaki çantaya basılı tut: bant hızlanır; mini oyunda basılı tut |
+| Sağ tık | Geri: seçimi bırak, açık konuşmayı, masayı ya da mini oyunu kapat |
+| Esc | Geri; açık bir şey yoksa duraklatma penceresi (Oyuna devam / Takvime dön / Ana menü) |
+| Q / E ya da alttaki oklar | Tahtayı döndür |
+| Fare tekerleği | Yakınlaştır / uzaklaştır |
+| Boşluk | Mini oyunda basılı tut |
+| M | Müzik aç / kapa |
+| F5 | Baştan başla |
 
-**Bilinen sorunlar:** [Yoksa "Bilinen sorun yok." Varsa: sınırlama ve geçici çözüm.]
+**Bilinen sorunlar:** Çalıştırılan dosyanın adı `DisasterBoard.exe` (Unreal projesinin iç adı; oyunun adı Tetkik). Başka bilinen sorun yok.
 
 ## Kaynaktan derleme
 
@@ -52,7 +60,7 @@ Her satır: araç · amaç · oyundaki yeri. Çok küçük kullanım da yazılı
 | Görsel | Kullanıldı | **Codex (OpenAI), görüntü üretimi** · ekibin kendi çizimleri stil referansı verilerek 7 eşya ikonu (yara bandı, el feneri, düdük, duman maskesi, gözlük, bebek maması, bebek bezi), 5 şehir önlemi ikonu, tarayıcı, çanta ve 12 kasabalı portresi üretildi; beyaz zemin `Tools/zemin_temizle.py` ile silindi, ölçüye `Tools/varlik_kontrol.py --ikon` ile oturtuldu · `Content/Ikonlar/esya_{yara_bandi,el_feneri,duduk,duman_maskesi,gozluk,bebek_mamasi,bebek_bezi}.png`, `Content/Ikonlar/onlem_*.png`, `Content/Arayuz/{tarayici,canta}.png`, `Content/Karakterler/NPC_*.png` (ham hâlleri `Art/AI_Ham/`). Aynı yolla arayüz parçaları (panel, düğme, konuşma balonu ve not kağıdı çerçeveleri, çekmece kulpu, döndürme okları, başarım rozetleri, maskeleme bandı, kraft kağıt dokusu) ve rehber karakterler Asil ile Yiğit'in iki pozu üretildi · `Content/Arayuz/ui_*.png`, `Content/Karakterler/{B,C}_{durus,goster}.png` (ham hâlleri `Art/AI_UI/`). **Claude (Anthropic)** · yan duvardaki jam afişi ve ekip logosunun yer tutucularını şekillerle çizen Python betiği (`Tools/duvar_gorsel.py`; artık yerlerinde resmi afiş ve ekip logosu var, Claude'un yaptığı yalnız afişin çerçeveye kırpılması). Ekibin 3D modellerinin (bütün evler, okul, apartman, öğrenci evi, sığınak, 12 kasabalı ve tahliye figürü, yangın musluğu, rögar kapağı, takvim, tahta) boyanması ve şablona oturtulması: yüzlere oyunun kasaba paletinden düz renk atayan, renk varyantları üreten, ölçekleyen, tabanı Z = 0'a ve ön yüzü −Y'ye çeviren Blender Python betikleri; hazır modellerin (ağaç, araba, park) ölçek, birim ve döndürmesi ile araba setinin palet dokularının bağlanması da aynı betiklerle. Modelleme ekibin ve hazır modellerin yazarlarının; görüntü üretici model yok · `Content/DisasterBoard/Meshes/` (`SM_*` ve `T_*_Palet` dokuları), `Art/Onayli/3D/`. Mert'in karakteri, kit ve eşya ikonlarının ilk 13'ü, uyarı/tamam işaretleri ve bütçe simgesi ekibin kendi çizimi. |
 | Ses | Kullanıldı | **Claude (Anthropic)** · müziği ve ses efektlerini (tık, rüzgar, sayfa, tahta, su, doğru/yanlış, karakter konuşma heceleri, korna, tarayıcı, bant, çanta fermuarı, başarım, deklanşör) oyun içinde üreten kodun yazımı; ses dosyası yok · `Source/DisasterBoard/DBMusic.cpp`, `DBSfx.cpp` |
 | Kod | Kullanıldı | **Claude (Anthropic, Claude Code)** · oyun kodunun yazımı (C++: akış, arayüz, sahne kurulumu, sis/kum efektleri, koddan müzik üreteci, otomatik test) · `Source/DisasterBoard/` |
-| Metin | [...] | [...] |
+| Metin | Kullanıldı | **Claude (Anthropic, Claude Code)** · ekibin yönlendirmesiyle oyundaki metinlerin yazımı: rehberlerin ve kasabalıların konuşmaları, ipuçları, sonuçtaki "neden önemli" bilgileri, hikâye altyazıları, başarım adları · `Source/DisasterBoard/DBData.cpp`, `DBGameMode.cpp` |
 | Diğer | [...] | [...] |
 
 ## Hak sahipliği

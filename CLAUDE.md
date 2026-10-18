@@ -121,6 +121,11 @@ Tek dal: `main`. Herkes oraya push eder. Feature branch + PR 48 saatte maliyeti 
 
 ## Bilinen durum
 
+**18 Ekim 03.10 — DEVİR: iş başka bilgisayarda sürüyor. Önce `Docs/DEVIR.md`'yi oku** (saatler, kurulum, teslim için
+kalanlar sırayla, Yiğit'in dalını birleştirme, tuzaklar). Oyunun görünen adı **Tetkik**, repo `github.com/Andacs/Tetkik`;
+proje/modül iç adı DisasterBoard kalır (kural 1). Son durum: DBTest 8/8, 25 TL, 2 hata; gerçek fareyle oynanmadı,
+sesler dinlenmedi, Shipping paketi alınmadı.
+
 **17 Ekim ~02.30 (saat 8,5): çekirdek döngü baştan sona çalışıyor, ekranda görüldü** (`DBTest`, görüntüler
 `Docs/EkranGoruntuleri/`): takvim menüsü → Ayarlar / Emeği Geçenler'de sayfa yukarı kalkıyor → Oyna → kamera
 takvimden tahtaya → A konuşur → tarayıcı tıklanınca yeşil çizgi tahtayı tarar, riskli binalarda (!) çıkar → B +
