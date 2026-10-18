@@ -1,4 +1,26 @@
-# DEVİR: Tetkik (DisasterBoard) — 18 Ekim 03.10
+# DEVİR: Tetkik (DisasterBoard) — 18 Ekim 03.10 (06.20'de güncellendi)
+
+## 0. DEVİR KURALI (bu işi devralan Claude için, mutlaka uy)
+
+Bu iş sonra tekrar **Andaç'a geri geçecek**. Bu yüzden:
+- Her anlamlı adımdan sonra **commit + push** yap. Yalnız `main`, force push / `reset --hard` yok.
+- Kullanıcı **"devret"** dediğinde ya da iş bırakılırken: (1) her şeyi commit edip pushla, `git status` temiz olsun;
+  (2) bu dosyanın en üstüne **"GERİ DEVİR — <saat>"** başlıklı bölüm ekle: bu oturumda ne yapıldı (commit
+  kimlikleriyle), ne test edildi ve ekranda görüldü, ne denenmedi, teslim listesinde sırada ne var, açık sorular;
+  (3) `CLAUDE.md` "Bilinen durum"un en üstündeki devir notunu güncelle; (4) bunları da commit + push et, son commit
+  kimliğini kullanıcıya söyle.
+- Andaç ile aynı anda çalışılmaz: biri devretmeden öbürü başlamaz.
+- Unreal Editor açıkken derleme / pull / checkout yok; editörü kendin kapatma, kullanıcıdan iste.
+- Teslim kodu (6 karakter) repoya ya da bu belgeye **asla** yazılmaz.
+
+### 06.20 durumu (Andaç'ın bilgisayarında, `bash Tools/teslim_hazirla.sh`)
+- **Shipping paketi alındı ve temiz klasörde açıldı** (menü ekranda düzgün): `Build/Teslim/DisasterBoard_Windows.zip`
+  (350 MB, 06.15). Bu dosya git'e girmez; **Andaç'ın bilgisayarında**. Yeni bilgisayarda `Build\paketle.bat` ile yeniden alınır.
+  Koda dokunulursa paketi teslimden önce yeniden al.
+- Kalan BOZUK'lar: (1) README yapay zekâ **"Diğer"** satırı `[...]` → ekip teyit edecek (aşağıda 5.2);
+  (2) **video yok** (aşağıda 5.6). Commit edilmemiş değişiklik kalmadı.
+- **Saat 06.00 geçti: artık yeni özellik yok**, yalnız hata düzeltme ve paketleme.
+
 
 Bu belge, işi başka bir bilgisayarda devralan kişi (ve onun Claude'u) içindir. Önce bunu, sonra kökteki
 `CLAUDE.md`'yi oku. Claude Code kullanıyorsan ilk mesajın: **"Docs/DEVIR.md'yi ve CLAUDE.md'yi oku, sonra
@@ -100,7 +122,13 @@ albümü + başarımlar.
    oyna, kapat.
 5. **Teslim kontrolü:** `bash Tools/teslim_hazirla.sh` → **BOZUK: 0** olmalı (editör açıksa "editor acik"
    der, kapat). Son kontrolde README'deki `[...]` boşluklarını da yakalıyor.
-6. **Tanıtım videosu:** `bash Tools/trailer_yap.sh` (≤ 60 sn, MP4, sesli; ZIP'ten ayrı yüklenir).
+6. **Tanıtım videosu** (≤ 60 sn, MP4, sesli; ZIP'ten ayrı yüklenir; dosya adı `Build/Teslim/DisasterBoard_Trailer.mp4`
+   olursa `teslim_hazirla.sh` bulur). **`Tools/trailer_yap.sh` bu projede ÇALIŞMAZ**: oyunda olmayan bir sinema konsol
+   komutuna ve `Art/Audio/MUS_Ana.wav`'a dayanıyor. En kısa yol: paketlenmiş oyunu tam ekran aç, **Win+Alt+R** (Xbox Game
+   Bar) ile kaydı başlat, ~70 sn oyna (hikâyeyi geç → takvim → Oyna → tarama → fabrikada bir çanta → bir önlem + mini
+   oyun → kasabalıyla konuşma → mümkünse sonuç albümü), kaydı durdur. Sonra 60 sn'ye indir:
+   `ffmpeg -i <kayit>.mp4 -t 60 -c:v libx264 -crf 20 -c:a aac -movflags +faststart Build/Teslim/DisasterBoard_Trailer.mp4`
+   (ffmpeg yoksa `winget install ffmpeg`). Ses: oyunun müziği ve efektleri kayda girer.
 7. **Form:** `Docs/JamKit/10_TESLIM.md` tablosundaki alanlar. ZIP büyük, **16.00'da yüklemeye başla**.
 8. Sunum: video dahil 3 dakika (10_TESLIM.md sonu).
 

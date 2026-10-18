@@ -20,3 +20,6 @@ Art/_hazir/
 Art/Reddedildi/
 Build/TestKiti/
 *.blend1
+# Yapay zekâ çıktılarının zemin temizleme ara klasörleri (Tools/zemin_temizle.py; yeniden üretilebilir)
+Art/AI_Seffaf/
+Art/AI_UI_Seffaf/
