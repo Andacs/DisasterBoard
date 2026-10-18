@@ -42,6 +42,7 @@ public:
 private:
 	void OnClick();
 	void OnBack();
+	void OnRmb();   // sağ tık: geri (seçimi bırak, açık olanı kapat) ama duraklatma penceresini açmaz
 	void OnRestart();
 	void OnMusic();
 	void OnZoom(const struct FInputActionValue& Value);

@@ -5,7 +5,7 @@ Kontrolü Claude yapar; sen dosyayı atarsın, o yerleştirir, oyunda dener, sor
 
 ## Bir kere kur (~20 dk)
 
-1. **GitHub daveti:** github.com/Andacs/DisasterBoard/invitations adresinden kabul et (e-postana da geldi).
+1. **GitHub daveti:** github.com/Andacs/Tetkik/invitations adresinden kabul et (e-postana da geldi).
 2. **Programlar:**
    - Git (Git LFS dahil gelir): https://git-scm.com
    - Python 3: https://python.org (kurarken "Add Python to PATH" işaretli olsun). Sonra komut satırında:
@@ -14,11 +14,11 @@ Kontrolü Claude yapar; sen dosyayı atarsın, o yerleştirir, oyunda dener, sor
    - Claude Code (masaüstü uygulaması ya da `claude` komutu)
 3. **Repoyu indir:**
    ```
-   git clone https://github.com/Andacs/DisasterBoard.git
+   git clone https://github.com/Andacs/Tetkik.git
    ```
 4. **Claude'u repo klasöründe aç** ve yaz: `kurulumu kontrol et`. Eksikleri söyler; oyunun test paketini
    (361 MB) kendisi indirip `Build\TestKiti\` altına açar. Unreal kurman ya da derlemen gerekmez.
-   (Elle indirmek istersen: https://github.com/Andacs/DisasterBoard/releases/tag/test-kiti-1)
+   (Elle indirmek istersen: https://github.com/Andacs/Tetkik/releases/tag/test-kiti-1)
 
 ## Her gün
 

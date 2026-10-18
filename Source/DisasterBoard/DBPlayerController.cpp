@@ -80,7 +80,7 @@ void ADBPlayerController::SetupInputComponent()
 	Bind(TEXT("IA_RotRight"), { EKeys::E }, &ADBPlayerController::OnRotRight);
 	// Sağ tık: "geri" (seçimi bırak / masayı kapat / mini oyundan vazgeç). Andaç: sağ tıkla sürükleyip döndürme yok;
 	// tahta alttaki oklarla (ya da Q/E) döner.
-	Bind(TEXT("IA_Rmb"), { EKeys::RightMouseButton }, &ADBPlayerController::OnBack);
+	Bind(TEXT("IA_Rmb"), { EKeys::RightMouseButton }, &ADBPlayerController::OnRmb);
 	{
 		UInputAction* Zoom = NewObject<UInputAction>(this, TEXT("IA_Zoom"));
 		Zoom->ValueType = EInputActionValueType::Axis1D;
@@ -259,6 +259,18 @@ void ADBPlayerController::OnBack()
 	if (ADBGameMode* G = GM())
 	{
 		G->Back();
+	}
+}
+
+void ADBPlayerController::OnRmb()
+{
+	if (ADBGameMode* G = GM())
+	{
+		if (G->bMenuConfirm)
+		{
+			return;   // duraklatma penceresi açıkken sağ tık bir şey yapmaz
+		}
+		G->Back(false);
 	}
 }
 
@@ -461,7 +473,9 @@ void ADBPlayerController::DBTest()
 		GetWorldTimerManager().SetTimer(Hh, FTimerDelegate::CreateLambda([this] { Shot(TEXT("12d_masa_oyuncaklari")); }), 0.3f, false);
 		UE_LOG(LogDBInput, Log, TEXT("DB_TEST masa oyuncak=%d lamba=%d"), Wd->NumDesk(), Wd->bLampOn ? 1 : 0);
 	});
-	Add([this] { Shot(TEXT("12e_lamba_acik")); GM()->World->PokeDesk(GM()->World->NumDesk() - 1); });
+	Add([this] { Shot(TEXT("12e_masa_sonra")); });
+	// Sağ tık: açık bir şey yokken duraklatma penceresi açılmamalı (Esc açar)
+	Add([this] { GM()->CloseNpc(); GM()->ClearSelection(); OnRmb(); UE_LOG(LogDBInput, Log, TEXT("DB_TEST sag_tik menu=%d"), GM()->bMenuConfirm ? 1 : 0); GM()->bMenuConfirm = false; });
 	// Tahta: sağ okla kalkar, döner, iner (havadayken görüntü), sonra geri; tekerlekle yakınlaştır
 	Add([this]
 	{

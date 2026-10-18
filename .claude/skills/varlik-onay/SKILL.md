@@ -26,7 +26,7 @@ Yiğit'in okuduğu adımlar: `Docs/YIGIT_KURULUM.md`. "kurulumu kontrol et" ders
    Bulamazsan kendin indir ve aç (361 MB, birkaç dakika; bu klasör git'e girmez, Unreal kurmak ya da derlemek
    gerekmez). Link boş ya da 404 verirse Yiğit'e "ZIP'i Andaç'tan iste" de:
    ```
-   curl -L -o Build/TestKiti.zip https://github.com/Andacs/DisasterBoard/releases/download/test-kiti-1/DisasterBoard_TestKiti.zip
+   curl -L -o Build/TestKiti.zip https://github.com/Andacs/Tetkik/releases/download/test-kiti-1/DisasterBoard_TestKiti.zip
    ```
    sonra ZIP'i `Build/TestKiti/` altına aç (PowerShell: `Expand-Archive Build/TestKiti.zip Build/TestKiti`),
    `Build/TestKiti/Windows/DisasterBoard.exe` oluştuğunu doğrula, `Build/TestKiti.zip`'i sil.

@@ -255,7 +255,7 @@ namespace
 
 		C.Comic = {
 			TEXT("Bir pazar günü beş arkadaş kasabada geziyordu."),
-			TEXT("Eski bir oyuncakçının vitrininde tozlu bir kutu gördüler: DisasterBoard."),
+			TEXT("Eski bir oyuncakçının vitrininde tozlu bir kutu gördüler: Tetkik."),
 			TEXT("Kutudan minicik bir kasaba çıktı. Kartta yazıyordu: Afet gelmeden kasabayı hazırla."),
 			TEXT("Hemen masaya oturdular. Sıra sende!"),
 		};

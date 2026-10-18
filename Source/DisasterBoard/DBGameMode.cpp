@@ -1476,7 +1476,7 @@ void ADBGameMode::Restart(bool bDirect)
 	UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)), true, bDirect ? TEXT("Direkt=1") : TEXT("Menu=1"));
 }
 
-void ADBGameMode::Back()
+void ADBGameMode::Back(bool bAllowMenu)
 {
 	if (bMenuConfirm)
 	{
@@ -1486,6 +1486,10 @@ void ADBGameMode::Back()
 	// Oyunda kapatılacak bir şey yoksa Esc / sağ tık duraklatma menüsünü açar
 	if (Phase == EDBPhase::Play && Mini == EDBMini::None && NpcBuilding < 0 && SelTool < 0 && SelBag < 0 && !bPanelOpen)
 	{
+		if (!bAllowMenu)
+		{
+			return;   // Andaç (18 Ekim): sağ tık menü açmasın, yalnız Esc
+		}
 		AskMenu();
 		return;
 	}

@@ -253,7 +253,7 @@ public:
 	void ClearSelection();
 	void ClickBuilding(int32 Building);
 	void Restart(bool bDirect);
-	void Back();          // Esc
+	void Back(bool bAllowMenu = true);   // Esc; sağ tık bAllowMenu=false: duraklatma penceresini açmaz
 	void TogglePanel() { if (bPanelOpen) ClosePanel(); else OpenPanel(); }
 
 	// Test / ayar

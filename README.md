@@ -1,6 +1,6 @@
-# DisasterBoard
+# Tetkik
 
-Karton bir masa oyunu kasabasında tarayıcıyla binaların deprem risklerini bulursun. Her eve ihtiyacına göre afet çantası hazırlar, şehir risklerini belediye araçlarıyla giderirsin; deprem gelmeden kasabayı hazırlamaya çalışırsın.
+Karton bir masa oyunu kasabasında tarayıcıyla afet risklerini (deprem, sel, yangın, tsunami) bulursun. Evlere ihtiyacına göre afet çantası hazırlar, şehir önlemleriyle riskleri giderir, kasabalılarla konuşursun. Bütün işaretler yeşil olunca kasaba afetlere hazırdır. Tema: doğal afetlere hazırlık ve farkındalık.
 
 CIVIL GAME JAM 2026 · **FreakLabs**
 
@@ -11,7 +11,7 @@ CIVIL GAME JAM 2026 · **FreakLabs**
 **Platform ve gereksinimler:** Windows 10/11, 64 bit, DirectX 12 destekli ekran kartı. Ek yazılım
 gerekmez (gerekirse Unreal Engine önkoşulları paketin içindeki `Engine/Extras/Redist/en-us/UEPrereqSetup_x64.exe`).
 
-**Başlatma:** ZIP'i bir klasöre açın, `DisasterBoard.exe`'yi çalıştırın. [Açılış videosu / menü varsa: nasıl geçilir.]
+**Başlatma:** ZIP'i bir klasöre açın, `DisasterBoard.exe`'yi çalıştırın (oyunun adı Tetkik; Unreal projesinin iç adı DisasterBoard kaldı). [Açılış videosu / menü varsa: nasıl geçilir.]
 
 **Oynanış:** [Amaç, kazanma ve kaybetme. İlk adım ne.]
 

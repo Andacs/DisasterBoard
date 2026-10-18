@@ -811,7 +811,7 @@ void ADBHUD::DrawMainPage(bool bEnabled)
 	}
 	else
 	{
-		Txt(TEXT("DisasterBoard"), CX, BandH + 4.f * U1, 12.f * U1, Ink, 1);
+		Txt(TEXT("Tetkik"), CX, BandH + 4.f * U1, 12.f * U1, Ink, 1);   // oyunun adı (Andaç, 18 Ekim); proje adı DisasterBoard kalır
 	}
 	// Andaç (17 Ekim ~19.30): "Afetlere hazır mısın?" alt başlığı kalktı; duraklatılmış oyunda "Oyuna devam et"
 	const TCHAR* Labels[] = { GM->bPausedGame ? TEXT("Oyuna devam et") : TEXT("Oyna"), TEXT("Ayarlar"), TEXT("Emeği Geçenler"), TEXT("Çıkış") };
@@ -1979,7 +1979,7 @@ void ADBHUD::DrawComic()
 			Box(Shop.ExpandBy(-24.f * S), U(200, 228, 240));
 			const FBox2D Game = Rect(Shop.GetCenter().X - 150.f * S, Shop.Max.Y - 200.f * S, 300.f * S, 150.f * S);
 			Card(Game, U(196, 154, 108), Ink, 6.f);
-			Txt(TEXT("DisasterBoard"), Game.GetCenter().X, Game.Min.Y + 52.f * S, 34.f * S, Paper, 1);
+			Txt(TEXT("Tetkik"), Game.GetCenter().X, Game.Min.Y + 52.f * S, 34.f * S, Paper, 1);
 			for (int32 f = 0; f < 5; ++f)
 			{
 				DrawMiniFriend(FVector2D(P.Min.X + 140.f * S + f * 70.f * S, Ground + 30.f * S), K, Friends[f], FMath::Abs(FMath::Sin(T * 2.f + f)) * 3.f * S);

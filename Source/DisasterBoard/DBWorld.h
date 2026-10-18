@@ -175,6 +175,7 @@ private:
 	UPROPERTY() TArray<TObjectPtr<USceneComponent>> Walkers;
 	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> SeaTiles;
 	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> PuddleComps;
+	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> PuddleBlobs;   // birikintinin küçük ikinci lekesi
 	TArray<FIntPoint> PuddleCells;
 	TSet<FIntPoint> Manholes;
 	UPROPERTY() TObjectPtr<USceneComponent> HydrantRoot;

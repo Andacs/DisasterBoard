@@ -262,7 +262,9 @@ void ADBWorld::BuildBoard()
 	// Su birikintileri (sel): rögar kapağı konunca kaybolur
 	for (const FIntPoint& Fc : FDBContent::Get().FloodCells)
 	{
-		PuddleComps.Add(Part(B, CubeMesh, CellLocal(Fc) + FVector(0, 0, 0.15f), FVector(CellCm - 0.8f, CellCm - 0.8f, 0.3f), RGB(104, 164, 218)));
+		// Su birikintisi: yuvarlak, düzensiz iki leke, ıslak asfalt mavisi (Andaç: karo boyu açık mavi kare kötü duruyordu)
+		PuddleComps.Add(Part(B, CylinderMesh, CellLocal(Fc) + FVector(-0.5f, 0.4f, 0.12f), FVector(6.2f, 5.4f, 0.24f), RGB(84, 120, 156)));
+		PuddleBlobs.Add(Part(B, CylinderMesh, CellLocal(Fc) + FVector(2.1f, -1.7f, 0.12f), FVector(3.4f, 2.8f, 0.24f), RGB(84, 120, 156)));
 		PuddleCells.Add(Fc);
 		// Bozuk rögar: delik açık, kapak yanına kaymış ve eğik duruyor
 		BrokenCovers.Add(Part(B, CylinderMesh, CellLocal(Fc) + FVector(0, 0, 0.32f), FVector(4.2f, 4.2f, 0.06f), RGB(34, 36, 42)));
@@ -925,6 +927,7 @@ void ADBWorld::PlaceManhole(FIntPoint Cell)
 	if (Ix != INDEX_NONE)
 	{
 		PuddleComps[Ix]->SetVisibility(false);
+		if (PuddleBlobs.IsValidIndex(Ix)) PuddleBlobs[Ix]->SetVisibility(false);
 		if (BrokenCovers.IsValidIndex(Ix * 2 + 1))
 		{
 			BrokenCovers[Ix * 2]->SetVisibility(false);
