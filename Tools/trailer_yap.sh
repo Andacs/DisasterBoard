@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Tanitim videosunu oyunun icinden ceker (Git Bash). Editor KAPALI, once Build\derle.bat.
 #
-#   bash Tools/trailer_yap.sh
+#   bash Tools/trailer_yap.sh          (ham cekim + Tools/trailer_kurgu.py; KEEP=1 kareleri birakir)
+#   ESKI=1 bash Tools/trailer_yap.sh   (eski: oyun ici altyazili tek cekim)
 #
 # Oyundaki DBSinema konsol komutu (ADBPlayerController::DBSinema) akisi DBTest gibi GameMode cagrilariyla surer,
 # baslik / altyazi cizer, her kareyi REC_f_#####.png olarak kaydeder ve oyunun koddan uretilen muzigini
@@ -25,6 +26,20 @@ W=1600   # 1920x1080 pencere 1080p ekrana sigmiyor; ffmpeg 1920x1080'e buyutur
 H=900
 mkdir -p "$OUT"
 rm -f "$SHOTS"/REC_f_*.png "$MUZIK"
+
+# Varsayilan: ham cekim + kurgu (logo, buyuk yazilar, gecisler). ESKI=1: oyunun icinde altyazili tek cekim (asagisi).
+if [ "${ESKI:-0}" != 1 ]; then
+  LOG="$ROOT/Saved/Logs/ham_run.log"
+  # Pencere acmadan 1920x1080 (ekrana sigmasi gerekmiyor); yazi / baslik cizilmez, sahne baslari log'a yazilir
+  MSYS_NO_PATHCONV=1 "$UE" "$(cygpath -w "$UPROJ")" "$HARITA"     -game -RenderOffscreen -ResX=1920 -ResY=1080 -benchmark -fps=$FPS -ExecCmds="$SINEMA" -DBSinemaHam -unattended -log     -abslog="$(cygpath -w "$LOG")" > /dev/null 2>&1 || true
+  N=$(ls "$SHOTS"/REC_f_*.png 2>/dev/null | wc -l)
+  echo "ham kare: $N"
+  grep -a "DB_SINEMA_DONE" "$LOG" || { echo "cekim bitmedi, $LOG'a bak"; exit 1; }
+  python "$ROOT/Tools/trailer_kurgu.py" --log "$LOG" --kareler "$SHOTS" --muzik "$MUZIK" --out "$OUT/${PROJE}_Trailer.mp4"
+  ffprobe -v error -show_entries format=duration,size -of default=nw=1 "$OUT/${PROJE}_Trailer.mp4"
+  [ "${KEEP:-0}" = 1 ] || rm -f "$SHOTS"/REC_f_*.png
+  exit 0
+fi
 
 # MSYS_NO_PATHCONV yalnizca bu komutta (cmd //c ile ayni komutta kullanma: CLAUDE.md).
 MSYS_NO_PATHCONV=1 "$UE" "$(cygpath -w "$UPROJ")" "$HARITA" \

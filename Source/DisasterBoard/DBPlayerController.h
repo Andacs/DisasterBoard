@@ -78,4 +78,11 @@ private:
 	float CaptionUntil = -1.f;
 	float ClosingAt = -1.f;     // kapanış kartının başladığı an
 	void Caption(const FString& Text, float Seconds);
+	// Ham çekim (-DBSinemaHam): yazı / başlık çizilmez, sahne başları log'a yazılır (DB_SAHNE <ad> kare=N), kamera
+	// yavaşça döner / yaklaşır; yazılar ve geçişler sonra kurgu betiğinde (Tools/trailer_kurgu.py) eklenir
+	bool bHam = false;
+	void Mark(const TCHAR* Name);
+	void Cam(float Yaw, float Dist, float Pitch, float Seconds);   // kamerayı şimdiki yerinden hedefe yumuşakça götürür
+	float CamT0 = 0.f, CamDur = 0.f;
+	float CamYawA = 0.f, CamYawB = 0.f, CamDistA = 330.f, CamDistB = 330.f, CamPitchA = -50.f, CamPitchB = -50.f;
 };

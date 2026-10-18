@@ -95,6 +95,17 @@ void ADBPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 
+	if (bHam && CamDur > 0.f)
+	{
+		ADBGameMode* CG = GM();
+		if (CG && CG->World)
+		{
+			const float A = FMath::SmoothStep(0.f, 1.f, FMath::Clamp((float(GetWorld()->GetTimeSeconds()) - CamT0) / CamDur, 0.f, 1.f));
+			CG->World->ViewYawTarget = FMath::Lerp(CamYawA, CamYawB, A);
+			CG->World->ViewDistTarget = FMath::Lerp(CamDistA, CamDistB, A);
+			CG->World->BoardCamPitch = FMath::Lerp(CamPitchA, CamPitchB, A);
+		}
+	}
 	if (bRecording && !bRecPaused)
 	{
 		// DBSinema: her kare REC_f_#####.png (-benchmark -fps=30 ile her kare tam 1/30 sn oyun zamanı)
@@ -604,8 +615,34 @@ void ADBPlayerController::TestFab(int32 Kit, const TArray<int32>& Personal)
 
 // ---------------------------------------------------------------- tanıtım videosu (Tools/trailer_yap.sh)
 
+void ADBPlayerController::Mark(const TCHAR* Name)
+{
+	UE_LOG(LogDBInput, Log, TEXT("DB_SAHNE %s kare=%d"), Name, RecFrame);
+}
+
+void ADBPlayerController::Cam(float Yaw, float Dist, float Pitch, float Seconds)
+{
+	ADBGameMode* G = GM();
+	if (!G || !G->World)
+	{
+		return;
+	}
+	CamYawA = G->World->ViewYawTarget;
+	CamDistA = G->World->ViewDistTarget;
+	CamPitchA = G->World->BoardCamPitch;
+	CamYawB = Yaw;
+	CamDistB = Dist;
+	CamPitchB = Pitch;
+	CamT0 = float(GetWorld()->GetTimeSeconds());
+	CamDur = FMath::Max(Seconds, 0.01f);
+}
+
 void ADBPlayerController::Caption(const FString& Text, float Seconds)
 {
+	if (bHam)
+	{
+		return;
+	}
 	if (ADBHUD* HC = GetHUD<ADBHUD>())
 	{
 		HC->CinemaCaption = Text;
@@ -634,7 +671,9 @@ void ADBPlayerController::DBSinema()
 	CaptionUntil = -1.f;
 	ClosingAt = -1.f;
 	HC->bCinema = true;
-	HC->CinemaTitle = TEXT("TETKİK");
+	bHam = FParse::Param(FCommandLine::Get(), TEXT("DBSinemaHam"));
+	CamDur = 0.f;
+	HC->CinemaTitle = bHam ? FString() : FString(TEXT("TETKİK"));
 	HC->CinemaSub = TEXT("afetlere hazır bir kasaba kur");
 	bShowMouseCursor = false;
 	auto Add = [this](TFunction<void()> F) { TestSteps.Add(MoveTemp(F)); };
@@ -668,6 +707,89 @@ void ADBPlayerController::DBSinema()
 		Add([this] { GM()->SetBagT(0.999f); });
 	};
 	auto FabQuick = [this, Add](int32 Kit, TArray<int32> Personal) { Add([this, Kit, Personal] { TestFab(Kit, Personal); GM()->SetBagT(0.999f); }); };
+
+	if (bHam)
+	{
+		// Ham çekim: kurgu betiği her sahneden kısa kesitler alır; ara konuşmalar kayıt dışı
+		Add([this]
+		{
+			int32 SX = 1920, SY = 1080;
+			GetViewportSize(SX, SY);
+			SetMouseLocation(SX / 2, 2);
+			bRecPaused = false;
+			bRecording = true;
+			GM()->SkipComic();
+			Mark(TEXT("menu"));
+		});
+		Wait(6);
+		Add([this] { Mark(TEXT("oyna")); GM()->ClickPlay(); });
+		Wait(6);
+		Rec(false);
+		Talk(2);
+		Add([this] { Cam(-14.f, 430.f, -58.f, 0.f); });
+		Wait(2);
+		Rec(true);
+		Add([this] { Mark(TEXT("tara")); Cam(10.f, 300.f, -44.f, 9.f); });
+		Wait(2);
+		Add([this] { ADBHUD* H = GetHUD<ADBHUD>(); H->HandleClick(H->DoTargetRect().GetCenter()); });
+		Wait(9);
+		Rec(false);
+		Talk(7);
+		Add([this] { Cam(0.f, 330.f, -50.f, 0.f); });
+		Rec(true);
+		Add([this] { Mark(TEXT("fabrika")); });
+		FabShow(0, { 8, 10 });
+		Wait(5);
+		Add([this] { Mark(TEXT("fabrika2")); });
+		FabQuick(1, { 11, 12 });
+		Wait(5);
+		Rec(false);
+		FabQuick(2, { 16, 14 });
+		Wait(5);
+		Add([this] { GM()->ClosePanel(); });
+		Talk(5);
+		Add([this] { Cam(-8.f, 380.f, -40.f, 0.f); });
+		Wait(2);
+		Rec(true);
+		Add([this] { Mark(TEXT("dondur")); OnRotRight(); Cam(6.f, 330.f, -46.f, 5.f); });
+		Wait(6);
+		Rec(false);
+		Add([this] { OnRotLeft(); });
+		Wait(4);
+		Talk(1);
+		Add([this] { Cam(12.f, 320.f, -42.f, 0.f); });
+		Wait(2);
+		Rec(true);
+		Add([this] { Mark(TEXT("komsu")); GM()->ClickBuilding(11); Cam(-4.f, 290.f, -48.f, 5.f); });
+		Wait(8);
+		Add([this] { GM()->CloseNpc(); Mark(TEXT("rogar")); ADBGameMode* M = GM(); M->bMiniAutoTest = true; M->SelectTool(0); M->ClickCell(FIntPoint(7, 5)); Cam(-10.f, 340.f, -52.f, 10.f); });
+		Wait(11);
+		Rec(false);
+		Wait(4);
+		Add([this] { GM()->ClickCell(FIntPoint(8, 6)); });
+		Wait(14);
+		Rec(true);
+		Add([this] { Mark(TEXT("somun")); ADBGameMode* M = GM(); M->SelectTool(3); M->ClickBuilding(11); });
+		Wait(12);
+		Add([this] { Cam(14.f, 380.f, -54.f, 0.f); });
+		Add([this] { Mark(TEXT("musluk")); ADBGameMode* M = GM(); M->SelectTool(2); M->ClickBuilding(5); Cam(4.f, 300.f, -46.f, 4.f); });
+		Wait(4);
+		Add([this] { Mark(TEXT("guclendir")); ADBGameMode* M = GM(); M->SelectTool(4); M->ClickBuilding(4); Cam(-8.f, 290.f, -44.f, 5.f); });
+		Wait(5);
+		Add([this] { Mark(TEXT("tahliye")); ADBGameMode* M = GM(); M->SelectTool(1); M->ClickBuilding(10); Cam(0.f, 360.f, -52.f, 6.f); });
+		Wait(15);
+		Add([this] { Mark(TEXT("son")); });
+		Wait(4);
+		Add([this]
+		{
+			bRecording = false;
+			UE_LOG(LogDBInput, Log, TEXT("DB_SINEMA_DONE kare=%d sure=%.1f cozulen=%d para=%d hata=%d"), RecFrame, CinemaTime, GM()->NumSolved(), GM()->Money, GM()->Mistakes);
+		});
+		Wait(2);
+		Add([] { FGenericPlatformMisc::RequestExit(false); });
+		GetWorldTimerManager().SetTimer(TestTimer, this, &ADBPlayerController::RunTestStep, 0.5f, true, 1.f);
+		return;
+	}
 
 	// 1. Takvim menüsü, oda, afiş: açılış başlığı
 	Add([this]

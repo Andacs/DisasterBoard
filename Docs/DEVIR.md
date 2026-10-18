@@ -13,6 +13,17 @@ Bu iş sonra tekrar **Andaç'a geri geçecek**. Bu yüzden:
 - Unreal Editor açıkken derleme / pull / checkout yok; editörü kendin kapatma, kullanıcıdan iste.
 - Teslim kodu (6 karakter) repoya ya da bu belgeye **asla** yazılmaz.
 
+### 13.30 — yeni tanıtım videosu: kurgulu (Yiğit'in bilgisayarı)
+- `Build/Teslim/DisasterBoard_Trailer.mp4` **38,6 sn**, 1920×1080, 30 fps, sesli; 09.45'teki 58 sn'lik videonun yerine geçer.
+  Akış: Asil'in çizgi romanı (5 arkadaş → kutu → **TETKİK! kutu logosu**, 2. sahneden kesildi → "AFET GELMEDEN... KASABANI
+  HAZIRLA!") → çizilmiş odadan oyundaki odaya geçiş → DEPREM / SEL / YANGIN / TSUNAMİ → **1 TARA · 2 HAZIRLA · DİNLE ·
+  3 KORU** (rögar, somun, yeni musluk, güçlendirme) **· ÇEVİR · TAHLİYE** → albüm "KASABA HAZIR!" → kapanış kartı (logo,
+  "ŞİMDİ OYNA", FreakLabs · CIVIL GAME JAM 2026).
+- Yöntem: `bash Tools/trailer_yap.sh` (editör kapalı) = oyun pencere açmadan 1920×1080 **ham çekim** (`DBSinema -DBSinemaHam`:
+  yazı yok, kamera yavaşça döner/yaklaşır, sahne başları log'da `DB_SAHNE`) + `Tools/trailer_kurgu.py` (kesitler, büyük
+  yazılar, whip/zoom geçişleri, punch-in, koddan whoosh/vuruş + oyunun müziği). Logo kaynağı `Art/Kaynak/Cizgiroman/sahne2_logo.jpg`.
+  Ham çekim ~10 dk, kurgu ~2,5 dk. Eski oyun içi altyazılı çekim: `ESKI=1`. Oynanış değişmedi: DBTest `para=25 hata=2`.
+
 ### 09.45 — tanıtım videosu hazır (Yiğit'in bilgisayarı)
 - **Video hazır, ZIP ve video `Build/Teslim`'de** (ikisi de git'e girmez; Yiğit'in bilgisayarında `C:\Dev\DisasterBoard\Build\Teslim\`):
   `DisasterBoard_Trailer.mp4` **58,0 sn**, 1920×1080, 30 fps, sesli (oyunun koddan müziği); `DisasterBoard_Windows.zip` Shipping.
