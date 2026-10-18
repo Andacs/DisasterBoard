@@ -25,6 +25,9 @@ Bu iş sonra tekrar **Andaç'a geri geçecek**. Bu yüzden:
 - Asil ve Yiğit'in rehber pozları Asil'in çizimi (Codex sürümlerinin yerine).
 - Test: DBTest `para=25 hata=2` (logo / 4. sahne erime / Çıkış sayfası kareleri eklendi), yeni `DBEscTest` (Eğitimi geç → Esc → takvim →
   devam, ekranda görüldü). Gerçek fareyle oynanmadı.
+- Asil'in düzeltilmiş pozları (iki poz ayak hizasına oturtuldu), kasabalı Elif → **Aysin** (ad + `NPC_Aysin.png`; 3D figür adı
+  `SM_Kasabali_Elif` aynı kaldı), masada tahtanın sağ önünde ekipten **çıkartma** (`Content/Arayuz/masa_sticker.png`,
+  `ADBWorld::StickerPos/Yaw/Size`, saydam düzlem). Ekranda görüldü (DB_04b, V_12).
 - Rehber konuşma sesleri karaktere göre (`ADBGameMode::Tick` profilleri): Asil kalın/ağır/düz (perde 0,80), Yiğit ince/hızlı/iniş
   çıkışlı (1,24), Mert aynı. Önceden Asil 1,22, Yiğit 0,86'ydı (tersti). Ölçüldü (`DBSesKarakter` → `Saved/DB_ses_karakter.wav`):
   F0 Asil 175 Hz, Mert 219 Hz, Yiğit 272 Hz; 6 hece 0,61 / 0,50 / 0,42 sn. **Kulakla dinlenmedi.**

@@ -2206,6 +2206,11 @@ void ADBWorld::BuildDesk()
 		D.BaseRot = Root->GetRelativeRotation();
 		Desks.Add(D);
 	};
+	// Yiğit (18 Ekim): masada, tahtanın sağ önünde ekipten bir çıkartma (Arayuz/masa_sticker.png, beyaz kenarlı)
+	if (UTexture2D* St = LoadWallPng(TEXT("Arayuz/masa_sticker.png")))
+	{
+		TexPlane(R, StickerPos, FRotator(0.f, StickerYaw, 0.f), FVector2D(StickerSize, StickerSize), St, true);
+	}
 	// İki zar: beyaz küp, koyu benekler (karşılıklı yüzler 7 eder)
 	auto Die = [this, R, &Add](const FVector& At, float Yaw)
 	{

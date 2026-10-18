@@ -2880,7 +2880,7 @@ void ADBHUD::Fountain(const FVector2D& Origin, float Age, int32 N, const FLinear
 namespace
 {
 	// Tools/sablon_listesi.py KASABALILAR ile aynı sıra (DBData C.Residents sırası)
-	const TCHAR* ResidentKeys[] = { TEXT("AyseTeyze"), TEXT("SelmaOgretmen"), TEXT("HasanAmca"), TEXT("Zeynep"), TEXT("KemalBey"), TEXT("Elif"),
+	const TCHAR* ResidentKeys[] = { TEXT("AyseTeyze"), TEXT("SelmaOgretmen"), TEXT("HasanAmca"), TEXT("Zeynep"), TEXT("KemalBey"), TEXT("Aysin"),
 		TEXT("AliUsta"), TEXT("RizaAbi"), TEXT("Can"), TEXT("Deniz"), TEXT("MuratAbi"), TEXT("NerminHanim") };
 }
 

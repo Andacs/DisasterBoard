@@ -6,8 +6,8 @@
 |---|---|---|---|---|
 | `Karakterler/A_durus.png` | 2D | ONAYLI | 17.10 15:16 | - |
 | `Karakterler/A_goster.png` | 2D | ONAYLI | 17.10 15:16 | - |
-| `Karakterler/B_durus.png` | 2D | ONAYLI | 18.10 14:09 | İki poz aynı hizada değil (ayaklar 0 px dikey, 16 px yatay kayık); poz değişince karakter zıplar. Aynı tuvalde, aynı yerde çiz ya da --karakter ile birlikte hazırla. |
-| `Karakterler/B_goster.png` | 2D | ONAYLI | 18.10 14:09 | - |
+| `Karakterler/B_durus.png` | 2D | ONAYLI | 18.10 15:45 | İki poz aynı hizada değil (ayaklar 0 px dikey, 16 px yatay kayık); poz değişince karakter zıplar. Aynı tuvalde, aynı yerde çiz ya da --karakter ile birlikte hazırla. |
+| `Karakterler/B_goster.png` | 2D | ONAYLI | 18.10 15:45 | - |
 | `Karakterler/C_durus.png` | 2D | ONAYLI | 18.10 14:10 | - |
 | `Karakterler/C_goster.png` | 2D | ONAYLI | 18.10 14:10 | - |
 | `Cizgiroman/sahne1.png` | 2D | ONAYLI | 18.10 13:08 | - |

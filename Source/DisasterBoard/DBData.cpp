@@ -126,7 +126,7 @@ namespace
 			  TEXT("Apartman yöneticisiyim, aidatları sorma!"),
 			  TEXT("Şu kolonlardaki çatlaklara bak... Her gece içim titriyor. Binaya bir el atılsa?"),
 			  TEXT("Bina sapasağlam! Bütün apartman sana dua ediyor.") },
-			{ TEXT("Elif"),
+			{ TEXT("Aysin"),   // Yiğit (18 Ekim): Elif yerine Aysin (portre Karakterler/NPC_Aysin.png)
 			  TEXT("Selam! Raflarımı duvara sabitledim, depremde kitaplar kimsenin başına düşmesin diye. Sen de evde yap!"),
 			  TEXT("Selam! Dükkân baştan aşağı kâğıt... Sokağımızda tek bir yangın musluğu bile yok, içim hiç rahat değil."),
 			  TEXT("Musluk kapımın önünde! Kitaplarım da ben de rahatladık, sağ ol.") },

@@ -61,6 +61,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float MenuCamFov = 55.f;
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") FVector BoardFocus = FVector(-8.f, -8.f, 10.f);
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float BoardCamDistance = 330.f;
+	// Masadaki çıkartma: tahta kamerasından tahtanın sağ önünde (masa üstü Z = 0)
+	FVector StickerPos = FVector(-102.f, 39.f, 0.15f);
+	float StickerYaw = 128.f;   // çizimin üstü kameradan uzağa (ekranda yukarı), hafif yamuk
+	float StickerSize = 24.f;
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float BoardCamPitch = -50.f;
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float BoardCamYaw = 45.f;
 	UPROPERTY(EditAnywhere, Category = "DB|Kamera") float BoardCamFov = 50.f;
