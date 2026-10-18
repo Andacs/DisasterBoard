@@ -261,17 +261,20 @@ namespace
 		};
 
 		C.Credits = {
+			// Yiğit (18 Ekim): isimler ve görevler. "~" görev satırı, "@" alt bilgi (DrawSubPage küçük çizer)
 			TEXT("FreakLabs"),
+			TEXT("Şinasi Andaç Senyücel"),
+			TEXT("~Game Designer  ·  Game Developer"),
+			TEXT("Yiğit Şahip Göynüklü"),
+			TEXT("~VFX  ·  SFX  ·  Texturing  ·  Analyzer"),
+			TEXT("Asilkan Kabasakal"),
+			TEXT("~2D Designer  ·  UI / UX / HUD Designer"),
+			TEXT("Mert Arslan"),
+			TEXT("~3D Designer"),
 			TEXT(""),
-			TEXT("Andaç: kod, oynanış"),
-			TEXT("Mert: model, doku, ışık"),
-			TEXT("Asil: konsept, model"),
-			TEXT("Yiğit: arayüz, tasarım"),
-			TEXT(""),
-			TEXT("Unreal Engine 5.8 (Epic Games)"),
-			TEXT("Modeller (CC BY): A.S.D., louieoliva, BetelgeuseMan, Das Toasty"),   // Sketchfab: bina, ağaç, araba, park; lisans atıf istiyor
-			TEXT("Kod yardımı: Claude (Anthropic)"),
-			TEXT("CIVIL GAME JAM 2026"),
+			TEXT("@Unreal Engine 5.8 (Epic Games)  ·  Kod yardımı: Claude (Anthropic)"),
+			TEXT("@Modeller (CC BY): A.S.D., louieoliva, BetelgeuseMan, Das Toasty"),   // Sketchfab: bina, ağaç, araba, park; lisans atıf istiyor
+			TEXT("@CIVIL GAME JAM 2026"),
 		};
 
 		// Ekip görsellerinin dosya adları (Tools/sablon_listesi.py ile aynı sıra; şablonlar oradan üretiliyor)

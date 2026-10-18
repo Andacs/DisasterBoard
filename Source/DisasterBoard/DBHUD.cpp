@@ -444,6 +444,16 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 	}
 	if (GM->Phase == EDBPhase::Talk)
 	{
+		for (const FHit& Hh : Hits)
+		{
+			if (Hh.Id == TEXT("TutSkip") && Hh.R.IsInside(P))
+			{
+				GM->PlaySfx(EDBSfx::Click, 0.9f);
+				AddClickFx(P);
+				GM->SkipTutorialNow();
+				return true;
+			}
+		}
 		// Etkileşimli satır: yazı bittiyse yalnızca gösterilen tuş geçer (oyuncu işlemi kendisi yapar)
 		const int32 Do = GM->DoLineTarget();
 		if (Do == 4)
@@ -498,7 +508,8 @@ bool ADBHUD::HandleClick(const FVector2D& P)
 		if (Id == TEXT("Play")) GM->ClickPlay();
 		else if (Id == TEXT("Settings")) GM->OpenMenuPage(EDBMenuPage::Settings);
 		else if (Id == TEXT("Credits")) GM->OpenMenuPage(EDBMenuPage::Credits);
-		else if (Id == TEXT("Quit")) GM->QuitGame();
+		else if (Id == TEXT("Quit")) GM->OpenMenuPage(EDBMenuPage::Quit);   // Yiğit (18 Ekim): önce "Menüye dön / Kapat"
+		else if (Id == TEXT("QuitYes")) GM->QuitGame();
 		else if (Id == TEXT("Back")) GM->CloseMenuPage();
 		else if (Id == TEXT("Fullscreen")) GM->ToggleFullscreen();
 		else if (Id == TEXT("Quality")) GM->CycleQuality();
@@ -833,11 +844,20 @@ void ADBHUD::DrawSubPage(bool bEnabled)
 	const float U1 = H / 100.f;
 	const float CX = W * 0.5f;
 	const float BandH = H * 0.18f;
-	const bool bSettings = GM->MenuPage != EDBMenuPage::Credits;
+	const bool bSettings = GM->MenuPage == EDBMenuPage::Settings;
+	const bool bQuit = GM->MenuPage == EDBMenuPage::Quit;
 	Box(0.f, 0.f, W, H, U(248, 240, 224));
-	Box(0.f, 0.f, W, BandH, U(96, 170, 164));
-	Txt(bSettings ? TEXT("AYARLAR") : TEXT("EMEĞİ GEÇENLER"), CX, BandH * 0.5f - 1.5f * U1, 8.f * U1, Paper, 1);
+	Box(0.f, 0.f, W, BandH, bQuit ? U(232, 128, 104) : U(96, 170, 164));
+	Txt(bSettings ? TEXT("AYARLAR") : bQuit ? TEXT("ÇIKIŞ") : TEXT("EMEĞİ GEÇENLER"), CX, BandH * 0.5f - 1.5f * U1, 8.f * U1, Paper, 1);
 	float Y = BandH + 3.f * U1;
+	if (bQuit)
+	{
+		// Yiğit (18 Ekim): Çıkış'a basınca seçenek: takvim menüsüne dön ya da oyunu kapat
+		Txt(TEXT("Oyundan çıkmak istiyor musun?"), CX, Y + 8.f * U1, 6.f * U1, Ink, 1);
+		Button(TEXT("Back"), -1, Rect(W * 0.15f, Y + 22.f * U1, W * 0.7f, 14.f * U1), TEXT("Menüye dön"), 7.f * U1, CardC, DarkK, Ink, bEnabled);
+		Button(TEXT("QuitYes"), -1, Rect(W * 0.15f, Y + 40.f * U1, W * 0.7f, 14.f * U1), TEXT("Kapat"), 7.f * U1, Coral, DarkK, Paper, bEnabled);
+		return;
+	}
 	if (bSettings)
 	{
 		Button(TEXT("Fullscreen"), -1, Rect(W * 0.15f, Y, W * 0.7f, 12.f * U1),
@@ -859,8 +879,13 @@ void ADBHUD::DrawSubPage(bool bEnabled)
 		const TArray<FString>& Lines = FDBContent::Get().Credits;
 		for (int32 i = 0; i < Lines.Num(); ++i)
 		{
-			Txt(Lines[i], CX, Y, (i == 0 ? 6.5f : 4.9f) * U1, i == 0 ? Coral : Ink, 1);
-			Y += (Lines[i].IsEmpty() ? 1.2f : (i == 0 ? 7.5f : 5.9f)) * U1;
+			// "~" görev (isim satırının altında, küçük), "@" alt bilgi (en küçük)
+			const FString& L = Lines[i];
+			const bool bRole = L.StartsWith(TEXT("~")), bFoot = L.StartsWith(TEXT("@"));
+			const FString Tx = (bRole || bFoot) ? L.Mid(1) : L;
+			const float Px = i == 0 ? 6.5f : bRole ? 3.9f : bFoot ? 3.3f : 5.0f;
+			Txt(Tx, CX, Y, Px * U1, i == 0 ? Coral : bRole ? DarkK : bFoot ? DarkK : Ink, 1);
+			Y += (L.IsEmpty() ? 1.5f : i == 0 ? 7.8f : bRole ? 5.6f : bFoot ? 4.4f : 5.0f) * U1;
 		}
 	}
 	Button(TEXT("Back"), -1, Rect(W * 0.35f, H - 15.f * U1, W * 0.3f, 11.f * U1), TEXT("Geri"), 6.f * U1, Coral, DarkK, Paper, bEnabled);
@@ -1514,6 +1539,9 @@ void ADBHUD::DrawTalk()
 	Disc(FVector2D(BR.Min.X + 32.f * S, BR.Min.Y + 30.f * S), 9.f * S, C.SpeakerColor[Who]);
 	Txt(C.SpeakerName[Who] + TEXT("  ·  ") + C.SpeakerRole[Who], BR.Min.X + 50.f * S, BR.Min.Y + 17.f * S, 22.f * S, DarkK);
 	Para(L->Text, BR.Min.X + 26.f * S, BR.Min.Y + 54.f * S, 26.f * S, BR.GetSize().X - 52.f * S, Ink, 1.25f, GM->VisibleChars());
+	// Yiğit (18 Ekim): eğitim atlanabilir
+	TgTutSkip = Rect(BR.Max.X - 180.f * S, BR.Min.Y - 50.f * S, 180.f * S, 40.f * S);
+	Button(TEXT("TutSkip"), -1, TgTutSkip, TEXT("Eğitimi geç  »"), 19.f * S, CardC, Ink, Ink);
 	if (GM->IsLineComplete())
 	{
 		const float A = 0.5f + 0.5f * FMath::Sin(GM->Now * 5.f);
@@ -1936,23 +1964,42 @@ void ADBHUD::DrawMiniFriend(const FVector2D& Feet, float K, const FLinearColor& 
 void ADBHUD::DrawComic()
 {
 	const FDBContent& C = FDBContent::Get();
+	if (GM->ComicIndex < 0)
+	{
+		DrawLogoIntro();
+		return;
+	}
 	const int32 Ix = FMath::Clamp(GM->ComicIndex, 0, C.Comic.Num() - 1);
 	const float T = GM->PhaseTime;
-	Box(0.f, 0.f, W, H, U(34, 26, 20, 235));
+	const bool bLast = Ix == C.Comic.Num() - 1;
+	// Son sahne: çizilmiş oda arkadaki gerçek odaya (menü kamerası aynı açıdan bakıyor) erir, trailer'daki gibi
+	const float Out = bLast ? FMath::Clamp((T - (GM->ComicSeconds - GM->ComicOutroSeconds)) / FMath::Max(0.1f, GM->ComicOutroSeconds), 0.f, 1.f) : 0.f;
+	const float Alpha = 1.f - Out * Out * (3.f - 2.f * Out);
 	Blockers.Add(Rect(0.f, 0.f, W, H));
-	const FBox2D P = Rect(W * 0.5f - 640.f * S, 60.f * S, 1280.f * S, 720.f * S);
-	Box(P.ExpandBy(10.f * S), Paper);
-	Frame(P.ExpandBy(10.f * S), Ink, 4.f * S);
+	if (Alpha < 0.01f)
+	{
+		return;
+	}
+	// Yiğit (18 Ekim): sahneler tam ekran
+	const FBox2D P = Rect(0.f, 0.f, W, H);
+	Box(P, WithA(Paper, Alpha));
 
 	if (UTexture2D* Img = LoadPng(FString::Printf(TEXT("Cizgiroman/sahne%d.png"), Ix + 1)))
 	{
 		// Revizyon 3: hafif kamera hareketi: yavaş yakınlaşma, sahneden sahneye yönü değişen kayma (doku penceresiyle)
 		const float U = FMath::Clamp(T / FMath::Max(1.f, GM->ComicSeconds), 0.f, 1.f);
 		const float Ease = U * U * (3.f - 2.f * U);
-		const float Win = 1.f / (1.f + 0.09f * Ease);
-		const FVector2D Dir = (Ix % 2 == 0) ? FVector2D(1.f, 0.4f) : FVector2D(-1.f, -0.3f);
-		const FVector2D Cn = FVector2D(0.5f, 0.5f) + Dir * (1.f - Win) * 0.5f * Ease;
-		DrawTexUV(Img, P, Cn - FVector2D(Win * 0.5f), Cn + FVector2D(Win * 0.5f));
+		// Son sahne kaymadan, az yakınlaşır: eridiğinde oyundaki odayla üst üste gelsin
+		const float Win = 1.f / (1.f + (bLast ? 0.04f : 0.09f) * Ease);
+		const FVector2D Dir = bLast ? FVector2D::ZeroVector : (Ix % 2 == 0) ? FVector2D(1.f, 0.4f) : FVector2D(-1.f, -0.3f);
+		// Ekran 16:9 değilse resim taşar (kırpılır), esnemez
+		FVector2D Ext(Win * 0.5f, Win * 0.5f);
+		const float As = W / FMath::Max(1.f, H), Ai = 16.f / 9.f;
+		if (As > Ai) Ext.Y *= Ai / As; else Ext.X *= As / Ai;
+		FVector2D Cn = FVector2D(0.5f, 0.5f) + Dir * (1.f - Win) * 0.5f * Ease;
+		Cn.X = FMath::Clamp(Cn.X, Ext.X, 1.f - Ext.X);
+		Cn.Y = FMath::Clamp(Cn.Y, Ext.Y, 1.f - Ext.Y);
+		DrawTexUV(Img, P, Cn - Ext, Cn + Ext, Alpha);
 	}
 	else
 	{
@@ -2029,6 +2076,10 @@ void ADBHUD::DrawComic()
 	}
 
 	// Atmosfer: süzülen toz / ışıltı; sahne başında kâğıttan açılma
+	if (Out > 0.f)
+	{
+		return;   // eriyor: yazı ve düğmeler yok
+	}
 	Sparkles(P, 26, GM->Now, 0.55f, 77u + Ix);
 	if (T < 0.45f)
 	{
@@ -2038,7 +2089,7 @@ void ADBHUD::DrawComic()
 	// Altyazı kutusu (çizgi roman anlatıcı kutusu): yuvarlak, sahne başında yaylanarak gelir
 	const FString& Cap = C.Comic[Ix];
 	const TArray<FString> Lines = Wrap(Cap, 30.f * S, 900.f * S);
-	FBox2D CapR = Rect(P.Min.X + 30.f * S, P.Max.Y - 40.f * S - Lines.Num() * 38.f * S, 960.f * S, Lines.Num() * 38.f * S + 24.f * S);
+	FBox2D CapR = Rect(P.Min.X + 60.f * S, P.Max.Y - 110.f * S - Lines.Num() * 38.f * S, 960.f * S, Lines.Num() * 38.f * S + 24.f * S);
 	{
 		const float Pa = FMath::Clamp((T - 0.2f) / 0.35f, 0.f, 1.f);
 		const float K = Pa >= 1.f ? 1.f : 0.85f + 0.15f * Pa + 0.08f * FMath::Sin(Pa * PI);
@@ -2058,14 +2109,67 @@ void ADBHUD::DrawComic()
 	}
 
 	// İlerleme: sahne noktaları ve süre çubuğu
+	// Alt şerit (resmin üstünde): sahne noktaları, süre çubuğu, ipucu, Geç
+	Box(Rect(0.f, H - 64.f * S, W, 64.f * S), U(34, 26, 20, 150));
 	for (int32 i = 0; i < C.Comic.Num(); ++i)
 	{
-		Disc(FVector2D(W * 0.5f + (i - (C.Comic.Num() - 1) * 0.5f) * 28.f * S, P.Max.Y + 44.f * S), 7.f * S, i <= Ix ? Paper : U(120, 100, 80));
+		Disc(FVector2D(W * 0.5f + (i - (C.Comic.Num() - 1) * 0.5f) * 28.f * S, H - 32.f * S), 7.f * S, i <= Ix ? Paper : U(120, 100, 80));
 	}
 	const float Pr = FMath::Clamp(T / GM->ComicSeconds, 0.f, 1.f);
-	Box(Rect(P.Min.X, P.Max.Y + 12.f * S, P.GetSize().X * Pr, 5.f * S), U(236, 188, 86));
-	Txt(TEXT("tıkla: sonraki sahne"), P.Min.X, P.Max.Y + 34.f * S, 18.f * S, U(220, 200, 170));
-	Button(TEXT("Skip"), -1, Rect(P.Max.X - 150.f * S, P.Max.Y + 26.f * S, 150.f * S, 46.f * S), TEXT("Geç"), 22.f * S, CardC, Ink, Ink);
+	Box(Rect(0.f, H - 64.f * S, W * Pr, 5.f * S), U(236, 188, 86));
+	Txt(TEXT("tıkla: sonraki sahne"), 30.f * S, H - 44.f * S, 18.f * S, U(236, 222, 200));
+	Button(TEXT("Skip"), -1, Rect(W - 180.f * S, H - 57.f * S, 150.f * S, 46.f * S), TEXT("Geç"), 22.f * S, CardC, Ink, Ink);
+}
+
+void ADBHUD::DrawLogoIntro()
+{
+	// Yiğit (18 Ekim): oyun açılınca önce logo: karanlıktan sıcak zemin + dönen ışınlar, kutu logosu yavaşça belirir
+	const float T = GM->PhaseTime;
+	const float Dur = FMath::Max(1.f, GM->LogoSeconds);
+	Blockers.Add(Rect(0.f, 0.f, W, H));
+	Box(0.f, 0.f, W, H, U(247, 186, 92));
+	const FVector2D Ctr(W * 0.5f, H * 0.45f);
+	const float Far = FMath::Sqrt(W * W + H * H);
+	for (int32 i = 0; i < 14; ++i)
+	{
+		const float A0 = i * 2.f * PI / 14.f + T * 0.12f;
+		const float A1 = A0 + PI / 14.f;
+		Tri(Ctr, Ctr + FVector2D(FMath::Cos(A0), FMath::Sin(A0)) * Far, Ctr + FVector2D(FMath::Cos(A1), FMath::Sin(A1)) * Far, U(255, 222, 146));
+	}
+	const float In = FMath::Clamp((T - 0.35f) / 0.9f, 0.f, 1.f);
+	const float E = 1.f - FMath::Pow(1.f - In, 3.f);
+	if (UTexture2D* Logo = LoadPng(TEXT("Arayuz/logo_kutu.png")))
+	{
+		const float Hh = H * 0.56f * (0.9f + 0.1f * E) * (1.f + 0.012f * FMath::Sin(T * 2.2f));
+		const float Ww = Hh * Logo->GetSizeX() / FMath::Max(1, Logo->GetSizeY());
+		DrawTex(Logo, Rect(Ctr.X - Ww * 0.5f, Ctr.Y - Hh * 0.5f, Ww, Hh), -3.f, FVector2D(0.5f, 0.5f), FLinearColor(1.f, 1.f, 1.f, E));
+	}
+	else
+	{
+		Txt(TEXT("TETKİK!"), Ctr.X, Ctr.Y - 70.f * S, 140.f * S, WithA(Ink, E), 1);
+	}
+	const float Sub = FMath::Clamp((T - 1.1f) / 0.5f, 0.f, 1.f);
+	if (Sub > 0.f)
+	{
+		const FString Tag = TEXT("afetlere hazır bir kasaba kur");
+		const float Px = 34.f * S;
+		const FVector2D Sz = Measure(Tag, Px);
+		const float Cy = H * 0.85f + (1.f - Sub) * 24.f * S;
+		RoundCard(Rect(W * 0.5f - Sz.X * 0.5f - 34.f * S, Cy - 32.f * S, Sz.X + 68.f * S, 64.f * S), WithA(U(44, 34, 28), 0.92f * Sub), WithA(U(246, 196, 64), Sub), 30.f * S, 4.f * Sub);
+		Txt(Tag, W * 0.5f, Cy - Px * 0.5f, Px, WithA(Paper, Sub), 1);
+	}
+	Txt(TEXT("FreakLabs"), W * 0.5f, H - 46.f * S, 22.f * S, WithA(U(110, 70, 40), E), 1);
+	Button(TEXT("Skip"), -1, Rect(W - 180.f * S, H - 66.f * S, 150.f * S, 46.f * S), TEXT("Geç"), 22.f * S, CardC, Ink, Ink);
+	// Karanlıktan açılır, sonda kâğıt beyazına döner (ilk sahne kâğıttan açılarak başlar)
+	if (T < 1.f)
+	{
+		Box(0.f, 0.f, W, H, FLinearColor(0.f, 0.f, 0.f, 1.f - T));
+	}
+	const float WhiteOut = FMath::Clamp((T - (Dur - 0.45f)) / 0.45f, 0.f, 1.f);
+	if (WhiteOut > 0.f)
+	{
+		Box(0.f, 0.f, W, H, WithA(Paper, WhiteOut));
+	}
 }
 
 // ---------------------------------------------------------------- kasabalı konuşması, ızgara ipuçları

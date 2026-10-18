@@ -42,6 +42,8 @@ public:
 	// her kareyi REC_f_#####.png kaydeder, başlık / altyazı çizer, müziği Saved/DB_muzik_trailer.wav'a yazar, kapanır.
 	// Yalnız çekim aracı: oynanışa dokunmaz.
 	UFUNCTION(Exec) void DBSinema();
+	// Esc / Eğitimi geç / Çıkış kontrolü (yalnız test): gerçek tıklama yolu, E_*.png, DB_ESCTEST satırları, kapanır
+	UFUNCTION(Exec) void DBEscTest();
 
 private:
 	void OnClick();

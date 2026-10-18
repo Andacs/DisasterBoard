@@ -106,16 +106,16 @@ def paste_center(base, layer, cx, cy, scale=1.0, alpha=1.0, angle=0.0):
     base.alpha_composite(lay, (int(cx - lay.width / 2), int(cy - lay.height / 2)))
 
 
-def zoom_view(img, z, fx, fy):
-    """Kaynaktan z kat yakin, (fx, fy) odakli 1920x1080 goruntu (Ken Burns / punch-in)."""
+def zoom_view(img, z, fx, fy, size=(W, H)):
+    """Kaynaktan z kat yakin, (fx, fy) odakli goruntu (Ken Burns / punch-in)."""
     sw, sh = img.size
     cw, ch = sw / z, sh / z
     cx = clamp(fx * sw, cw / 2, sw - cw / 2)
     cy = clamp(fy * sh, ch / 2, sh - ch / 2)
     box = (cx - cw / 2, cy - ch / 2, cx + cw / 2, cy + ch / 2)
-    if abs(z - 1) < 1e-3 and img.size == (W, H):
+    if abs(z - 1) < 1e-3 and img.size == size:
         return img.copy()
-    return img.resize((W, H), Image.BICUBIC, box=box)
+    return img.resize(size, Image.BICUBIC, box=box)
 
 
 def vignette_mask():
@@ -248,11 +248,35 @@ def render_clip(c, tl, S):
                 im = im.transform(im.size, Image.AFFINE, (1, 0, math.sin(ds * 90) * a, 0, 1, math.cos(ds * 77) * a),
                                   Image.BICUBIC)
         return im.convert('RGB')
+    if c.kind == 'grid':
+        return render_grid(tl, S, c)
     if c.kind == 'logo':
         return render_logo(tl, S, c)
     if c.kind == 'end':
         return render_end(tl, S)
     raise ValueError(c.kind)
+
+
+def render_grid(tl, S, c):
+    """Ekran dorde bolunur: her ceyrekte bir kesit ayni anda oynar, sirayla yaylanarak gelir, altinda etiket."""
+    g = 10
+    qw, qh = (W - 3 * g) // 2, (H - 3 * g) // 2
+    base = Image.new('RGBA', (W, H), INK + (255,))
+    for i, sub in enumerate(c.kw['subs']):
+        start, speed, z, f, label = sub
+        ti = tl - i * 0.10
+        a = ease_out_back(clamp(ti / 0.35), 1.5)
+        if ti <= 0:
+            continue
+        zz = z * (1 + 0.06 * clamp(tl / c.dur))
+        q = zoom_view(S['rec'].frame(start + max(0.0, tl) * FPS * speed), zz, f[0], f[1], (qw, qh)).convert('RGBA')
+        lab = S['grid_labels'][i]
+        # ust ceyreklerde etiket ustte, alttakilerde altta: ortadaki buyuk yaziya yer kalir
+        q.alpha_composite(lab, ((qw - lab.width) // 2, 18 if i < 2 else qh - lab.height - 18))
+        x = g + (i % 2) * (qw + g)
+        y = g + (i // 2) * (qh + g)
+        paste_center(base, q, x + qw / 2, y + qh / 2, 0.55 + 0.45 * a, clamp(ti / 0.15))
+    return base.convert('RGB')
 
 
 def render_logo(tl, S, c):
@@ -448,11 +472,12 @@ def build(S, marks):
         Clip('rec', 4.4, start=M('fabrika', 0.0), speed=1.9, zoom=(1.12, 1.25), focus=(0.80, 0.50), focus2=(0.80, 0.56), trans=('zoom', 0.3)),
         # Komsu
         Clip('rec', 2.2, start=M('komsu', 0.3), speed=1.2, zoom=(1.0, 1.1), focus=(0.5, 0.5), trans=('whip', 0.3)),
-        # 3 KORU: rogar, somun, musluk, guclendirme hizli kesitler
-        Clip('rec', 2.6, start=M('rogar', 0.9), speed=1.8, zoom=(1.08, 1.15), focus=(0.40, 0.5), trans=('cut', 0)),
-        Clip('rec', 1.9, start=M('somun', 0.1), speed=1.1, zoom=(1.12, 1.18), focus=(0.36, 0.5), trans=('cut', 0)),
-        Clip('rec', 1.6, start=M('musluk', 0.1), speed=1.0, zoom=(1.0, 1.12), focus=(0.5, 0.5), trans=('cut', 0)),
-        Clip('rec', 1.8, start=M('guclendir', 0.2), speed=1.3, zoom=(1.0, 1.12), focus=(0.5, 0.5), trans=('whip', 0.3)),
+        # 3 KORU: tek sahne, ekran dorde bolunur (Yigit, 18 Ekim): rogar, somun, yeni musluk, guclendirme ayni anda
+        Clip('grid', 4.2, trans=('whip', 0.3), subs=[
+            (M('rogar', 0.9), 1.3, 1.45, (0.5, 0.42), 'rögarı kapat'),
+            (M('somun', 0.1), 1.0, 1.45, (0.5, 0.42), 'musluğu onar'),
+            (M('musluk', 0.1), 0.55, 1.30, (0.5, 0.5), 'yangın musluğu kur'),
+            (M('guclendir', 0.2), 0.65, 1.30, (0.5, 0.5), 'binayı güçlendir')]),
         # Tahtayi cevir
         Clip('rec', 2.4, start=M('dondur', 0.0), speed=1.5, zoom=(1.0, 1.06), focus=(0.5, 0.5), trans=('whip', 0.3)),
         # Tahliye -> album
@@ -475,13 +500,10 @@ def captions(starts):
     C.append(Caption(s[7] + 0.05, s[8] - 0.1, caption_layer('TARA', 'riskli evleri bul', 1), 'left'))
     C.append(Caption(s[8] + 0.05, s[9] - 0.1, caption_layer('HAZIRLA', 'doğru afet çantasını yap', 2, px=140), 'left'))
     C.append(Caption(s[9] + 0.05, s[10] - 0.1, caption_layer('DİNLE', 'komşularının derdi ne?', color=(120, 200, 120)), 'left'))
-    C.append(Caption(s[10] + 0.05, s[11] - 0.05, caption_layer('KORU', 'rögarı kapat', 3), 'left'))
-    C.append(Caption(s[11], s[12] - 0.05, caption_layer('KORU', 'musluğu onar', 3), 'left', 'pop'))
-    C.append(Caption(s[12], s[13] - 0.05, caption_layer('KORU', 'yangın musluğu kur', 3), 'left', 'pop'))
-    C.append(Caption(s[13], s[14] - 0.1, caption_layer('KORU', 'binayı güçlendir', 3), 'left', 'pop'))
-    C.append(Caption(s[14] + 0.05, s[15] - 0.1, caption_layer('ÇEVİR', 'her köşeye bak', color=(120, 180, 240)), 'left'))
-    C.append(Caption(s[15] + 0.05, s[16] - 0.1, caption_layer('TAHLİYE', 'sahili boşalt', color=(52, 178, 186)), 'left'))
-    C.append(Caption(s[16] + 0.15, s[17] - 0.05, caption_layer('KASABA HAZIR!', px=150), 'center', 'pop'))
+    C.append(Caption(s[10] + 0.45, s[11] - 0.1, caption_layer('KORU', 'şehri önlemlerle hazırla', 3), 'center', 'pop'))
+    C.append(Caption(s[11] + 0.05, s[12] - 0.1, caption_layer('ÇEVİR', 'her köşeye bak', color=(120, 180, 240)), 'left'))
+    C.append(Caption(s[12] + 0.05, s[13] - 0.1, caption_layer('TAHLİYE', 'sahili boşalt', color=(52, 178, 186)), 'left'))
+    C.append(Caption(s[13] + 0.15, s[14] - 0.05, caption_layer('KASABA HAZIR!', px=150), 'center', 'pop'))
     return C
 
 
@@ -515,6 +537,12 @@ def main():
     btn.alpha_composite(bt, (45, 17))
     S['end_btn'] = btn
     S['end_team'] = text_layer('FreakLabs  ·  CIVIL GAME JAM 2026', 40, (90, 60, 40, 255))
+    S['grid_labels'] = []
+    for t in ('rögarı kapat', 'musluğu onar', 'yangın musluğu kur', 'binayı güçlendir'):
+        lt = text_layer(t, 40, CREAM + (255,))
+        pill = rounded((lt.width + 44, lt.height + 20), (lt.height + 20) // 2, INK + (225,), GOLD + (255,), 4)
+        pill.alpha_composite(lt, (22, 10))
+        S['grid_labels'].append(pill)
 
     clips = build(S, marks)
     starts = [0.0]
@@ -571,7 +599,7 @@ def main():
             im = render_clip(clips[i], t - starts[i], S)
         # kesimden hemen sonra kisa beyaz parlama
         for b in range(1, len(clips)):
-            if clips[b - 1].trans[0] == 'cut' and 0 <= t - starts[b] < 0.12 and clips[b].kind == 'rec':
+            if clips[b - 1].trans[0] == 'cut' and 0 <= t - starts[b] < 0.12 and clips[b].kind in ('rec', 'grid'):
                 flash = max(flash, 0.35 * (1 - (t - starts[b]) / 0.12))
         arr = np.asarray(im).astype(np.float32)
         if clips[i].kind in ('rec', 'img'):

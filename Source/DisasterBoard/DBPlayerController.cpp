@@ -418,8 +418,22 @@ void ADBPlayerController::DBTest()
 		}
 		M->SetBagT(0.85f);
 	};
-	// Oyun hikâyeyle açılır (menüden önce)
-	Add([this] { Shot(TEXT("00a_hikaye_1")); });
+	// Oyun açılış logosu ve hikâyeyle açılır (menüden önce)
+	Add([] {});
+	Add([this] { GM()->PhaseTime = 2.f; Shot(TEXT("00_logo")); });   // test adımları yavaş: sahne zamanı kare anında sabitlenir
+	Add([this] { GM()->NextComic(); });
+	Add([] {});
+	Add([] {});
+	Add([this] { GM()->PhaseTime = 2.f; Shot(TEXT("00a_hikaye_1")); });
+	Add([this] { GM()->NextComic(); GM()->NextComic(); GM()->NextComic(); });
+	Add([] {});
+	Add([] {});
+	Add([this] { GM()->PhaseTime = 2.f; Shot(TEXT("00b_hikaye_4")); });
+	Add([this] { GM()->NextComic(); UE_LOG(LogDBInput, Log, TEXT("DB_TEST erime t=%.2f"), GM()->PhaseTime); });   // son sahnede tıklama: gerçek odaya erime başlar
+	Add([this] { GM()->PhaseTime = GM()->ComicSeconds - GM()->ComicOutroSeconds * 0.5f; Shot(TEXT("00c_erime")); });
+	Add([] {});
+	Add([] {});
+	Add([] {});
 	Add([this] { GM()->SkipComic(); });
 	Add([this] { Shot(TEXT("01_menu")); GM()->OpenMenuPage(EDBMenuPage::Settings); });
 	Add([] {});
@@ -429,6 +443,11 @@ void ADBPlayerController::DBTest()
 	Add([this] { GM()->OpenMenuPage(EDBMenuPage::Credits); });
 	Add([] {});
 	Add([this] { Shot(TEXT("01c_emegi_gecenler")); GM()->CloseMenuPage(); });
+	Add([] {});
+	Add([] {});
+	Add([this] { GM()->OpenMenuPage(EDBMenuPage::Quit); });
+	Add([] {});
+	Add([this] { Shot(TEXT("01d_cikis")); GM()->CloseMenuPage(); });
 	Add([] {});
 	Add([] {});
 	Add([this] { GM()->ClickPlay(); });
@@ -880,6 +899,44 @@ void ADBPlayerController::DBSinema()
 	GetWorldTimerManager().SetTimer(TestTimer, this, &ADBPlayerController::RunTestStep, 0.5f, true, 1.f);
 }
 
+void ADBPlayerController::DBEscTest()
+{
+	TestSteps.Reset();
+	TestStep = 0;
+	auto Add = [this](TFunction<void()> F) { TestSteps.Add(MoveTemp(F)); };
+	auto Log = [this](const TCHAR* What)
+	{
+		ADBGameMode* M = GM();
+		UE_LOG(LogDBInput, Log, TEXT("DB_ESCTEST %s faz=%d duraklatildi=%d"), What, int32(M->Phase), M->bPausedGame ? 1 : 0);
+	};
+	Add([this] { GM()->SkipComic(); });
+	Add([] {});
+	Add([this] { GM()->ClickPlay(); });
+	for (int32 i = 0; i < 8; ++i) Add([] {});
+	Add([this, Log] { Log(TEXT("konusma")); Shot(TEXT("E1_egitimi_gec_dugmesi")); });
+	Add([this, Log]
+	{
+		ADBHUD* H = GetHUD<ADBHUD>();
+		const bool bOk = H->TgTutSkip.bIsValid && H->HandleClick(H->TgTutSkip.GetCenter());
+		UE_LOG(LogDBInput, Log, TEXT("DB_ESCTEST gec_tiklandi=%d"), bOk ? 1 : 0);
+		Log(TEXT("gecildi"));
+	});
+	Add([] {});
+	Add([this, Log] { Shot(TEXT("E2_gecildi")); OnBack(); Log(TEXT("esc")); });   // Esc tuşunun işlevi
+	for (int32 i = 0; i < 4; ++i) Add([] {});
+	Add([this, Log] { Log(TEXT("takvim")); Shot(TEXT("E3_esc_takvim")); });
+	Add([this] { GM()->OpenMenuPage(EDBMenuPage::Quit); });
+	for (int32 i = 0; i < 4; ++i) Add([] {});
+	Add([this] { Shot(TEXT("E4_cikis")); GM()->CloseMenuPage(); });
+	for (int32 i = 0; i < 4; ++i) Add([] {});
+	Add([this, Log] { GM()->ClickPlay(); Log(TEXT("devam")); });
+	for (int32 i = 0; i < 4; ++i) Add([] {});
+	Add([this, Log] { Log(TEXT("oyunda")); Shot(TEXT("E5_oyuna_dondu")); });
+	Add([] {});
+	Add([] { FGenericPlatformMisc::RequestExit(false); });
+	GetWorldTimerManager().SetTimer(TestTimer, this, &ADBPlayerController::RunTestStep, 0.5f, true, 1.f);
+}
+
 void ADBPlayerController::DBVarlikTest()
 {
 	ADBGameMode* G = GM();
@@ -895,6 +952,7 @@ void ADBPlayerController::DBVarlikTest()
 
 	// Görüntü adı → içinde görünen görseller (Tools/varlik_kontrol.py aynı eşlemeyi kullanır)
 	// Hikâye sahneleri (Cizgiroman/sahne1..4)
+	Add([this] { if (GM()->ComicIndex < 0) GM()->NextComic(); });   // açılış logosunu geç
 	Add([VShot] { VShot(TEXT("01_sahne1")); });
 	Add([this] { GM()->NextComic(); });
 	Add([VShot] { VShot(TEXT("02_sahne2")); });

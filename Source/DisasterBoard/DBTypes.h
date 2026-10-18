@@ -20,7 +20,7 @@ enum class EDBPhase : uint8
 	Result     // sonuç kartı
 };
 
-enum class EDBMenuPage : uint8 { None, Settings, Credits };
+enum class EDBMenuPage : uint8 { None, Settings, Credits, Quit };
 
 // Önlem uygulanırken açılan mini oyun: somunu yeşil çizgiye kadar sık (İngiliz anahtarı),
 // rögar kapağını yeşil alanda 4 sn tut

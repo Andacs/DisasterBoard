@@ -67,7 +67,7 @@ void ADBGameMode::StartPlay()
 		// Hikâye en başta, menüden önce (ekip, 17 Ekim)
 		if (!bSkipIntro && C.Comic.Num() > 0)
 		{
-			ComicIndex = 0;
+			ComicIndex = -1;   // Yiğit (18 Ekim): önce kutu logosu karanlıktan belirir, sonra hikâye
 			SetPhase(EDBPhase::Comic);
 		}
 		else
@@ -165,7 +165,7 @@ void ADBGameMode::Tick(float Dt)
 	switch (Phase)
 	{
 	case EDBPhase::Comic:
-		if (PhaseTime >= ComicSeconds)
+		if (PhaseTime >= (ComicIndex < 0 ? LogoSeconds : ComicSeconds))
 		{
 			NextComic();
 		}
@@ -429,6 +429,12 @@ void ADBGameMode::NextComic()
 	{
 		return;
 	}
+	// Son sahnede tıklama hemen kesmez: çizilmiş oda arkadaki gerçek odaya erir (trailer'daki geçiş), sonra menü
+	if (ComicIndex == FDBContent::Get().Comic.Num() - 1 && PhaseTime < ComicSeconds)
+	{
+		PhaseTime = FMath::Max(PhaseTime, ComicSeconds - ComicOutroSeconds);
+		return;
+	}
 	if (++ComicIndex >= FDBContent::Get().Comic.Num())
 	{
 		MenuUIDelay = 0.f;
@@ -444,6 +450,16 @@ void ADBGameMode::SkipComic()
 	{
 		MenuUIDelay = 0.f;
 		SetPhase(EDBPhase::Menu);
+	}
+}
+
+void ADBGameMode::SkipTutorialNow()
+{
+	bSkipTutorial = true;
+	for (int32 Guard = 0; Phase == EDBPhase::Talk && Talk && Guard < 64; ++Guard)
+	{
+		TalkTime = 1000.f;
+		AdvanceTalk();
 	}
 }
 
@@ -1490,7 +1506,13 @@ void ADBGameMode::Back(bool bAllowMenu)
 		{
 			return;   // Andaç (18 Ekim): sağ tık menü açmasın, yalnız Esc
 		}
-		AskMenu();
+		PauseToCalendar();   // Yiğit (18 Ekim): Esc yalnız takvimi açar (ilerleme korunur, takvimde "Oyuna devam et")
+		return;
+	}
+	// Konuşma / tarama beklerken / hazırlık masasında Esc de takvime
+	if (bAllowMenu && Phase != EDBPhase::Play && CanPause() && Phase != EDBPhase::BagPrep)
+	{
+		PauseToCalendar();
 		return;
 	}
 	switch (Phase)

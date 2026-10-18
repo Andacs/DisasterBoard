@@ -40,6 +40,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "DB") float CameraBlendSeconds = 2.2f;
 	UPROPERTY(EditAnywhere, Category = "DB") float CalendarBlendSeconds = 0.9f;  // menü ↔ takvim yakın plan
 	UPROPERTY(EditAnywhere, Category = "DB") float ComicSeconds = 5.f;           // çizgi roman: sahne başına
+	UPROPERTY(EditAnywhere, Category = "DB") float LogoSeconds = 3.4f;           // açılışta kutu logosu (ComicIndex -1)
+	UPROPERTY(EditAnywhere, Category = "DB") float ComicOutroSeconds = 1.5f;     // son sahne: çizilmiş oda gerçek odaya erir
 	UPROPERTY(EditAnywhere, Category = "DB") float MusicVolume = 1.8f;   // kayıtla ölçüldü: 0,55'te menüde -31,6 dBFS (duyulmuyordu), 1,8'de ~-21
 	UPROPERTY(EditAnywhere, Category = "DB") float BeltSeconds = 14.f;   // fabrika: çanta tepeden teslime (durmaz)
 	UPROPERTY(EditAnywhere, Category = "DB") float ScanSeconds = 2.4f;
@@ -142,7 +144,7 @@ public:
 	float FxGoodTime = -100.f;
 	float FxBadTime = -100.f;
 	int32 FxBuilding = -1;
-	int32 ComicIndex = 0;
+	int32 ComicIndex = 0;   // -1: açılış logosu
 
 	// --- Çanta fabrikası (Purble Place gibi; bant yukarıdan aşağı akar, durmaz) ---
 	static constexpr int32 NumStations = 4;    // 0 temel kit, 1..3 kişiye özel
@@ -224,6 +226,7 @@ public:
 	void ClickPlay();
 	void NextComic();
 	void SkipComic();
+	void SkipTutorialNow();   // Yiğit (18 Ekim): "Eğitimi geç": kalan eğitim konuşmaları atlanır (Tekrar Oyna'daki ?Direkt gibi)
 	void ToggleMusic();
 	FString MusicLabel() const;
 	void OpenMenuPage(EDBMenuPage Page);

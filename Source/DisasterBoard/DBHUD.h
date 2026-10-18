@@ -36,6 +36,7 @@ public:
 
 	// Tanıtım videosu çekimi (DBSinema): başlık kartı ve altyazı; Menü düğmesi, görev şeridi ve fare izi gizli,
 	// animasyon saati oyun zamanı (-benchmark sabit kare). Yalnız çekimde açık.
+	FBox2D TgTutSkip = FBox2D(ForceInit);   // "Eğitimi geç" (DBEscTest gerçek tıklama yolundan basar)
 	bool bCinema = false;
 	FString CinemaTitle;
 	FString CinemaSub;
@@ -154,6 +155,7 @@ private:
 	void DrawGuide(int32 Who, const FVector2D& Feet, float Height);
 	void DrawTasks();
 	void DrawComic();
+	void DrawLogoIntro();   // açılış: kutu logosu karanlıktan belirir (Arayuz/logo_kutu.png)
 	void DrawMiniFriend(const FVector2D& Feet, float K, const FLinearColor& Shirt, float Bob);    // sayfa dokusu ışıksız malzemede: sahneye uysun diye renk çarpanı
 
 	// Çizim yardımcıları (piksel)

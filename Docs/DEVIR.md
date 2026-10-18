@@ -13,6 +13,19 @@ Bu iş sonra tekrar **Andaç'a geri geçecek**. Bu yüzden:
 - Unreal Editor açıkken derleme / pull / checkout yok; editörü kendin kapatma, kullanıcıdan iste.
 - Teslim kodu (6 karakter) repoya ya da bu belgeye **asla** yazılmaz.
 
+### 15.00 — Yiğit'in istekleri (oyun + video)
+- Oyun açılınca önce **kutu logosu** karanlıktan belirir (`Content/Arayuz/logo_kutu.png`, Asil'in 2. sahnesinden; `ADBHUD::DrawLogoIntro`,
+  `ComicIndex -1`, `LogoSeconds` 3,4), sonra hikâye **tam ekran**; 4. sahnede tıklama/süre bitimi çizilmiş odayı arkadaki gerçek odaya
+  eritir (`ComicOutroSeconds` 1,5), sonra takvim menüsü.
+- **Esc** artık duraklatma penceresi yerine doğrudan takvimi açar (oyun duraklar, "Oyuna devam et"). **Çıkış** takvimde sayfa açar:
+  "Menüye dön" / "Kapat" (`EDBMenuPage::Quit`). Konuşma balonunda **"Eğitimi geç"** (`SkipTutorialNow`: kalan eğitim konuşmaları atlanır).
+- Jenerik: Şinasi Andaç Senyücel (Game Designer · Game Developer), Yiğit Şahip Göynüklü (VFX · SFX · Texturing · Analyzer), Asilkan
+  Kabasakal (2D Designer · UI / UX / HUD Designer), Mert Arslan (3D Designer).
+- Asil ve Yiğit'in rehber pozları Asil'in çizimi (Codex sürümlerinin yerine).
+- Test: DBTest `para=25 hata=2` (logo / 4. sahne erime / Çıkış sayfası kareleri eklendi), yeni `DBEscTest` (Eğitimi geç → Esc → takvim →
+  devam, ekranda görüldü). Gerçek fareyle oynanmadı.
+- Video 34,9 sn: KORU bölümü tek sahne, ekran dörde bölünür (rögar, somun, yeni musluk, güçlendirme aynı anda).
+
 ### 13.30 — yeni tanıtım videosu: kurgulu (Yiğit'in bilgisayarı)
 - `Build/Teslim/DisasterBoard_Trailer.mp4` **38,6 sn**, 1920×1080, 30 fps, sesli; 09.45'teki 58 sn'lik videonun yerine geçer.
   Akış: Asil'in çizgi romanı (5 arkadaş → kutu → **TETKİK! kutu logosu**, 2. sahneden kesildi → "AFET GELMEDEN... KASABANI

@@ -217,26 +217,28 @@
  },
  "Karakterler/B_durus.png": {
   "kaynak": "B_durus.png",
-  "sha1": "c4765a99feae",
-  "tarih": "17.10 22:10",
-  "uyarilar": []
+  "sha1": "6ffb020a6ddd",
+  "tarih": "18.10 14:09",
+  "uyarilar": [
+   "İki poz aynı hizada değil (ayaklar 0 px dikey, 16 px yatay kayık); poz değişince karakter zıplar. Aynı tuvalde, aynı yerde çiz ya da --karakter ile birlikte hazırla."
+  ]
  },
  "Karakterler/B_goster.png": {
   "kaynak": "B_goster.png",
-  "sha1": "744874950e83",
-  "tarih": "17.10 22:10",
+  "sha1": "b57ebbad2898",
+  "tarih": "18.10 14:09",
   "uyarilar": []
  },
  "Karakterler/C_durus.png": {
   "kaynak": "C_durus.png",
-  "sha1": "61f984d86bef",
-  "tarih": "17.10 22:11",
+  "sha1": "970a3184b5df",
+  "tarih": "18.10 14:10",
   "uyarilar": []
  },
  "Karakterler/C_goster.png": {
   "kaynak": "C_goster.png",
-  "sha1": "779929197ee3",
-  "tarih": "17.10 22:11",
+  "sha1": "d1b45937e1a1",
+  "tarih": "18.10 14:10",
   "uyarilar": []
  },
  "Karakterler/NPC_AliUsta.png": {
