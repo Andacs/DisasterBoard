@@ -17,6 +17,7 @@ Bu iş sonra tekrar **Andaç'a geri geçecek**. Bu yüzden:
 - Oyun açılınca önce **kutu logosu** karanlıktan belirir (`Content/Arayuz/logo_kutu.png`, Asil'in 2. sahnesinden; `ADBHUD::DrawLogoIntro`,
   `ComicIndex -1`, `LogoSeconds` 3,4), sonra hikâye **tam ekran**; 4. sahnede tıklama/süre bitimi çizilmiş odayı arkadaki gerçek odaya
   eritir (`ComicOutroSeconds` 1,5), sonra takvim menüsü.
+- Hikâye sırasında da takvim sayfasına menü çizilir (`RenderPage` Comic aşamasında): erime anında boş sayfa görünmüyordu (ekranda görüldü).
 - **Esc** artık duraklatma penceresi yerine doğrudan takvimi açar (oyun duraklar, "Oyuna devam et"). **Çıkış** takvimde sayfa açar:
   "Menüye dön" / "Kapat" (`EDBMenuPage::Quit`). Konuşma balonunda **"Eğitimi geç"** (`SkipTutorialNow`: kalan eğitim konuşmaları atlanır).
 - Jenerik: Şinasi Andaç Senyücel (Game Designer · Game Developer), Yiğit Şahip Göynüklü (VFX · SFX · Texturing · Analyzer), Asilkan

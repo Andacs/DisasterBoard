@@ -638,6 +638,8 @@ void ADBHUD::DrawHUD()
 		DrawCinema();
 		return;
 	case EDBPhase::Comic:
+		// Yiğit (18 Ekim): hikâye sonunda çizim eriyince takvimde menü hazır görünsün (boş sayfa bir an görünüyordu)
+		RenderPage(GM->World->TopRT, true, FVector2D(-1.f, -1.f), TopHits);
 		DrawComic();
 		DrawCursorFx();
 		DrawCinema();
@@ -795,7 +797,7 @@ void ADBHUD::RenderPage(UTextureRenderTarget2D* RT, bool bTop, const FVector2D& 
 	ColorGain = GM->World->PageGain;
 	if (bTop)
 	{
-		DrawMainPage(GM->IsMenuReady());
+		DrawMainPage(GM->IsMenuReady() || GM->Phase == EDBPhase::Comic);   // hikâyede tıklanmaz ama soluk da durmaz
 	}
 	else
 	{
