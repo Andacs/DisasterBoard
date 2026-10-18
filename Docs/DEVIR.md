@@ -28,6 +28,10 @@ Bu iş sonra tekrar **Andaç'a geri geçecek**. Bu yüzden:
 - Asil'in düzeltilmiş pozları (iki poz ayak hizasına oturtuldu), kasabalı Elif → **Aysin** (ad + `NPC_Aysin.png`; 3D figür adı
   `SM_Kasabali_Elif` aynı kaldı), masada tahtanın sağ önünde ekipten **çıkartma** (`Content/Arayuz/masa_sticker.png`,
   `ADBWorld::StickerPos/Yaw/Size`, saydam düzlem). Ekranda görüldü (DB_04b, V_12).
+- **Pixabay sesleri** (ekibin seçimi, `Art/Kaynak/Sesler/Credits.txt`): zar, takvim sayfası, korna, çanta fermuarı
+  `Content/Sesler/*.wav`'dan yüklenir (`DBSfx.cpp` `LoadWavMono`; dosya yoksa koddan üretilen ses), `Sesler` pakete NonUFS girer.
+  README hazır kaynak **Ses: Kullanıldı**, Emeği Geçenler'de atıf. Oyun çıkışı kaydıyla doğrulandı (sayfa sesi eşleşmesi 0,18 / sessizde 0,01).
+  lolurio'nun iki sesi kaynağı belli olmadığı için eklenmedi.
 - Rehber konuşma sesleri karaktere göre (`ADBGameMode::Tick` profilleri): Asil kalın/ağır/düz (perde 0,80), Yiğit ince/hızlı/iniş
   çıkışlı (1,24), Mert aynı. Önceden Asil 1,22, Yiğit 0,86'ydı (tersti). Ölçüldü (`DBSesKarakter` → `Saved/DB_ses_karakter.wav`):
   F0 Asil 175 Hz, Mert 219 Hz, Yiğit 272 Hz; 6 hece 0,61 / 0,50 / 0,42 sn. **Kulakla dinlenmedi.**

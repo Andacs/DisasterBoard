@@ -274,6 +274,7 @@ namespace
 			TEXT(""),
 			TEXT("@Unreal Engine 5.8 (Epic Games)  ·  Kod yardımı: Claude (Anthropic)"),
 			TEXT("@Modeller (CC BY): A.S.D., louieoliva, BetelgeuseMan, Das Toasty"),   // Sketchfab: bina, ağaç, araba, park; lisans atıf istiyor
+			TEXT("@Sesler (Pixabay): AbdrTar, Lenspulse, Universfield, Razzvio"),
 			TEXT("@CIVIL GAME JAM 2026"),
 		};
 

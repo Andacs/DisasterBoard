@@ -887,7 +887,7 @@ void ADBHUD::DrawSubPage(bool bEnabled)
 			const FString Tx = (bRole || bFoot) ? L.Mid(1) : L;
 			const float Px = i == 0 ? 6.5f : bRole ? 3.9f : bFoot ? 3.3f : 5.0f;
 			Txt(Tx, CX, Y, Px * U1, i == 0 ? Coral : bRole ? DarkK : bFoot ? DarkK : Ink, 1);
-			Y += (L.IsEmpty() ? 1.5f : i == 0 ? 7.8f : bRole ? 5.6f : bFoot ? 4.4f : 5.0f) * U1;
+			Y += (L.IsEmpty() ? 1.5f : i == 0 ? 7.8f : bRole ? 5.0f : bFoot ? 3.8f : 5.0f) * U1;
 		}
 	}
 	Button(TEXT("Back"), -1, Rect(W * 0.35f, H - 15.f * U1, W * 0.3f, 11.f * U1), TEXT("Geri"), 6.f * U1, Coral, DarkK, Paper, bEnabled);

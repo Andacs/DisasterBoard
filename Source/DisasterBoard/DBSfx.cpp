@@ -1,5 +1,6 @@
 #include "DBSfx.h"
 #include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 
 namespace
 {
@@ -476,6 +477,40 @@ UDBSfxWave::UDBSfxWave(const FObjectInitializer& ObjectInitializer)
 	SoundGroup = SOUNDGROUP_Effects;
 }
 
+namespace
+{
+	// Yiğit (18 Ekim): ekibin seçtiği Pixabay sesleri (Content/Sesler/*.wav: 16 bit mono 44,1 kHz, ffmpeg ile kesildi;
+	// kaynaklar ve atıf Art/Kaynak/Sesler/Credits.txt). Dosya yoksa koddan üretilen ses kalır.
+	bool LoadWavMono(const TCHAR* Rel, TArray<float>& Out)
+	{
+		TArray<uint8> D;
+		if (!FFileHelper::LoadFileToArray(D, *(FPaths::ProjectContentDir() / Rel)) || D.Num() < 44)
+		{
+			return false;
+		}
+		int32 P = 12;
+		while (P + 8 <= D.Num())
+		{
+			uint32 Len = 0;
+			FMemory::Memcpy(&Len, D.GetData() + P + 4, 4);
+			if (FMemory::Memcmp(D.GetData() + P, "data", 4) == 0)
+			{
+				const int32 N = FMath::Min<int32>((int32)Len, D.Num() - P - 8) / 2;
+				Out.SetNumUninitialized(FMath::Max(0, N));
+				for (int32 i = 0; i < N; ++i)
+				{
+					int16 V = 0;
+					FMemory::Memcpy(&V, D.GetData() + P + 8 + i * 2, 2);
+					Out[i] = V / 32768.f;
+				}
+				return N > 0;
+			}
+			P += 8 + (int32)Len + (int32)(Len & 1);
+		}
+		return false;
+	}
+}
+
 const TArray<float>& UDBSfxWave::Bank(int32 Id)
 {
 	static TArray<float> Banks[(int32)EDBSfx::Count];
@@ -507,6 +542,31 @@ const TArray<float>& UDBSfxWave::Bank(int32 Id)
 		Banks[(int32)EDBSfx::Clink] = SynthClink();  Normalize(Banks[(int32)EDBSfx::Clink], 0.5f);
 		Banks[(int32)EDBSfx::Dice] = SynthDice();    Normalize(Banks[(int32)EDBSfx::Dice], 0.55f);
 		Banks[(int32)EDBSfx::Squeak] = SynthSqueak(); Normalize(Banks[(int32)EDBSfx::Squeak], 0.5f);
+		// Ekibin Pixabay sesleri: zar, takvim sayfası, araba kornası; çantada paket tıkırtısından sonra gerçek fermuar
+		TArray<float> F;
+		if (LoadWavMono(TEXT("Sesler/zar.wav"), F)) { Banks[(int32)EDBSfx::Dice] = F; Normalize(Banks[(int32)EDBSfx::Dice], 0.55f); }
+		if (LoadWavMono(TEXT("Sesler/sayfa.wav"), F)) { Banks[(int32)EDBSfx::Page] = F; Normalize(Banks[(int32)EDBSfx::Page], 0.5f); }
+		if (LoadWavMono(TEXT("Sesler/korna.wav"), F)) { Banks[(int32)EDBSfx::Horn] = F; Normalize(Banks[(int32)EDBSfx::Horn], 0.5f); }
+		if (LoadWavMono(TEXT("Sesler/fermuar.wav"), F))
+		{
+			TArray<float>& Pk = Banks[(int32)EDBSfx::Pack];
+			const int32 At = FMath::Min(Pk.Num(), FMath::RoundToInt(0.38f * SR));   // koddaki fermuar 0,38 sn'de başlıyordu
+			const int32 Fade = FMath::RoundToInt(0.02f * SR);
+			Pk.SetNum(At);
+			for (int32 i = 0; i < Fade && i < At; ++i)
+			{
+				Pk[At - 1 - i] *= (float)i / Fade;
+			}
+			float Peak = 1e-4f;
+			for (float V : F)
+			{
+				Peak = FMath::Max(Peak, FMath::Abs(V));
+			}
+			for (float V : F)
+			{
+				Pk.Add(V / Peak * 0.5f);
+			}
+		}
 		bBuilt = true;
 	}
 	return Banks[FMath::Clamp(Id, 0, (int32)EDBSfx::Count - 1)];
