@@ -95,6 +95,31 @@ void ADBPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 
+	if (bRecording && !bRecPaused)
+	{
+		// DBSinema: her kare REC_f_#####.png (-benchmark -fps=30 ile her kare tam 1/30 sn oyun zamanı)
+		CinemaTime += DeltaTime;
+		FScreenshotRequest::RequestScreenshot(FString::Printf(TEXT("REC_f_%05d"), RecFrame++), true, false);
+		if (ADBHUD* HC = GetHUD<ADBHUD>())
+		{
+			const float T = CinemaTime;
+			if (ClosingAt > 0.f)
+			{
+				HC->CinemaTitleAlpha = FMath::Clamp((T - ClosingAt) / 0.8f, 0.f, 1.f);
+			}
+			else
+			{
+				HC->CinemaTitleAlpha = FMath::Clamp(FMath::Min(T / 0.8f, (4.6f - T) / 0.7f), 0.f, 1.f);
+			}
+			HC->CinemaCaptionAlpha = CaptionUntil > 0.f ? FMath::Clamp((CaptionUntil - T) / 0.3f, 0.f, FMath::Min(1.f, HC->CinemaCaptionAlpha + DeltaTime / 0.3f)) : 0.f;
+			if (CaptionUntil > 0.f && T > CaptionUntil)
+			{
+				HC->CinemaCaption.Reset();
+				CaptionUntil = -1.f;
+			}
+		}
+	}
+
 	HoveredBuilding = -1;
 	HoveredDesk = -1;
 	HoveredCar = -1;
@@ -575,6 +600,162 @@ void ADBPlayerController::TestFab(int32 Kit, const TArray<int32>& Personal)
 		}
 	}
 	M->SetBagT(0.5f);
+}
+
+// ---------------------------------------------------------------- tanıtım videosu (Tools/trailer_yap.sh)
+
+void ADBPlayerController::Caption(const FString& Text, float Seconds)
+{
+	if (ADBHUD* HC = GetHUD<ADBHUD>())
+	{
+		HC->CinemaCaption = Text;
+		HC->CinemaCaptionAlpha = 0.f;
+		CaptionUntil = CinemaTime + Seconds;
+	}
+}
+
+void ADBPlayerController::DBSinema()
+{
+	ADBGameMode* G = GM();
+	ADBHUD* HC = GetHUD<ADBHUD>();
+	if (!G || !HC)
+	{
+		return;
+	}
+	// Müzik: oyunun kendi koddan müziği, videodan uzun (yoğunluk 0→1); trailer_yap.sh kareleri bununla birleştirir
+	const FString MusicPath = FPaths::ProjectSavedDir() / TEXT("DB_muzik_trailer.wav");
+	const bool bMusic = UDBMusicWave::WriteTestWav(MusicPath, 64.f);
+	UE_LOG(LogDBInput, Log, TEXT("DB_SINEMA muzik=%s ok=%d"), *MusicPath, bMusic ? 1 : 0);
+
+	TestSteps.Reset();
+	TestStep = 0;
+	RecFrame = 0;
+	CinemaTime = 0.f;
+	CaptionUntil = -1.f;
+	ClosingAt = -1.f;
+	HC->bCinema = true;
+	HC->CinemaTitle = TEXT("TETKİK");
+	HC->CinemaSub = TEXT("afetlere hazır bir kasaba kur");
+	bShowMouseCursor = false;
+	auto Add = [this](TFunction<void()> F) { TestSteps.Add(MoveTemp(F)); };
+	auto Wait = [Add](int32 Steps) { for (int32 i = 0; i < Steps; ++i) { Add([] {}); } };   // adım = 0,5 sn
+	auto Rec = [this, Add](bool bOn) { Add([this, bOn] { bRecPaused = !bOn; }); };
+	auto Talk = [this, Add](int32 Times) { for (int32 i = 0; i < Times; ++i) { Add([this] { GM()->AdvanceTalk(); GM()->AdvanceTalk(); }); } };
+	// Fabrika: kit ve eşyalar görünür adımlarla (bant durmadığı için konum doğrudan ayarlanır, DBTest'teki gibi)
+	auto FabShow = [this, Add, Wait](int32 Kit, TArray<int32> Personal)
+	{
+		Add([this, Kit] { GM()->SetBagT(ADBGameMode::StationCenter(0)); GM()->StationClick(0, Kit); });
+		Wait(2);
+		for (int32 It : Personal)
+		{
+			Add([this, It]
+			{
+				const FDBContent& C = FDBContent::Get();
+				for (int32 K = 1; K <= C.Stations.Num(); ++K)
+				{
+					const int32 B = C.Stations[K - 1].Items.IndexOfByKey(It);
+					if (B != INDEX_NONE)
+					{
+						GM()->SetBagT(ADBGameMode::StationCenter(K));
+						GM()->StationClick(K, B);
+					}
+				}
+			});
+			Wait(1);
+		}
+		Add([this] { GM()->SetBagT(0.9f); });
+		Wait(1);
+		Add([this] { GM()->SetBagT(0.999f); });
+	};
+	auto FabQuick = [this, Add](int32 Kit, TArray<int32> Personal) { Add([this, Kit, Personal] { TestFab(Kit, Personal); GM()->SetBagT(0.999f); }); };
+
+	// 1. Takvim menüsü, oda, afiş: açılış başlığı
+	Add([this]
+	{
+		int32 SX = 1600, SY = 900;
+		GetViewportSize(SX, SY);
+		SetMouseLocation(SX / 2, 2);   // imleç bir şeyin üstünde durmasın
+		bRecPaused = false;
+		bRecording = true;
+		GM()->SkipComic();
+	});
+	Wait(9);
+	// 2. Oyna: kamera takvimden tahtaya iner
+	Add([this] { GM()->ClickPlay(); });
+	Wait(6);
+	// 3. Mert tarayıcıyı gösterir, tarama
+	Rec(false);
+	Talk(2);
+	Rec(true);
+	Add([this] { Caption(TEXT("Kasabanı tara, riskleri bul"), 5.5f); });
+	Wait(2);
+	Add([this] { ADBHUD* H = GetHUD<ADBHUD>(); H->HandleClick(H->DoTargetRect().GetCenter()); });
+	Wait(9);
+	// 4. Çanta fabrikası (Asil'in anlatımı kayıt dışı)
+	Rec(false);
+	Talk(7);
+	Rec(true);
+	Add([this] { Caption(TEXT("Her eve doğru afet çantasını hazırla"), 6.f); });
+	FabShow(0, { 8, 10 });
+	Wait(5);
+	Rec(false);
+	FabQuick(1, { 11, 12 });
+	Wait(5);
+	FabQuick(2, { 16, 14 });
+	Wait(5);
+	Add([this] { GM()->ClosePanel(); });
+	Talk(5);
+	// 7. Tahta oklarla döner (Q / E dersi)
+	Rec(true);
+	Add([this] { Caption(TEXT("Tahtayı çevir, her köşeye bak"), 3.2f); OnRotRight(); });
+	Wait(6);
+	Rec(false);
+	Add([this] { OnRotLeft(); });
+	Wait(4);
+	Talk(1);
+	Wait(2);
+	// 6. Kasabalıyı dinle
+	Rec(true);
+	Add([this] { Caption(TEXT("Komşularını dinle"), 3.8f); GM()->ClickBuilding(11); });
+	Wait(8);
+	Add([this] { GM()->CloseNpc(); });
+	// 5. Şehir önlemleri: rögar mini oyunu (kendisi oynar), yeni yangın musluğu, bina güçlendirme
+	Add([this] { Caption(TEXT("Şehri önlemlerle koru"), 6.f); ADBGameMode* M = GM(); M->bMiniAutoTest = true; M->SelectTool(0); M->ClickCell(FIntPoint(7, 5)); });
+	Wait(11);
+	Rec(false);
+	Wait(4);
+	Add([this] { GM()->ClickCell(FIntPoint(8, 6)); });
+	Wait(14);
+	Add([this] { ADBGameMode* M = GM(); M->SelectTool(3); M->ClickBuilding(11); });
+	Wait(12);
+	Rec(true);
+	Add([this] { ADBGameMode* M = GM(); M->SelectTool(2); M->ClickBuilding(5); });
+	Wait(4);
+	Add([this] { ADBGameMode* M = GM(); M->SelectTool(4); M->ClickBuilding(4); });
+	Wait(5);
+	// 8. Son istek: tahliye → başarım → sonuç albümü
+	Add([this] { Caption(TEXT("Kasaba afetlere hazır!"), 1.8f); ADBGameMode* M = GM(); M->SelectTool(1); M->ClickBuilding(10); });
+	Wait(15);
+	// 9. Kapanış kartı
+	Add([this]
+	{
+		if (ADBHUD* H = GetHUD<ADBHUD>())
+		{
+			H->CinemaTitle = TEXT("Tetkik");
+			H->CinemaSub = TEXT("FreakLabs  ·  CIVIL GAME JAM 2026");
+		}
+		ClosingAt = CinemaTime;
+	});
+	Wait(8);
+	Add([this]
+	{
+		bRecording = false;
+		UE_LOG(LogDBInput, Log, TEXT("DB_SINEMA_DONE kare=%d sure=%.1f cozulen=%d para=%d hata=%d"), RecFrame, CinemaTime, GM()->NumSolved(), GM()->Money, GM()->Mistakes);
+	});
+	Wait(2);
+	Add([] { FGenericPlatformMisc::RequestExit(false); });
+
+	GetWorldTimerManager().SetTimer(TestTimer, this, &ADBPlayerController::RunTestStep, 0.5f, true, 1.f);
 }
 
 void ADBPlayerController::DBVarlikTest()

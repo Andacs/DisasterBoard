@@ -611,7 +611,8 @@ void ADBHUD::DrawHUD()
 		}
 	}
 
-	FxNow = GetWorld()->GetRealTimeSeconds();
+	// Çekimde (-benchmark sabit kare) oyun zamanı: kayıt kareleri yavaş alınsa da animasyonlar videoda doğru hızda
+	FxNow = bCinema ? GetWorld()->GetTimeSeconds() : GetWorld()->GetRealTimeSeconds();
 	switch (GM->Phase)
 	{
 	case EDBPhase::Menu:
@@ -623,14 +624,17 @@ void ADBHUD::DrawHUD()
 		}
 		DrawWind();
 		DrawCursorFx();
+		DrawCinema();
 		return;
 	case EDBPhase::Comic:
 		DrawComic();
 		DrawCursorFx();
+		DrawCinema();
 		return;
 	case EDBPhase::ToBoard:
 		DrawWind();
 		DrawCursorFx();
+		DrawCinema();
 		return;
 	default:
 		break;
@@ -644,7 +648,7 @@ void ADBHUD::DrawHUD()
 		DrawBottomBar();
 		DrawMoney();
 		DrawMeters();
-		if (GM->Phase == EDBPhase::Play)
+		if (GM->Phase == EDBPhase::Play && !bCinema)
 		{
 			DrawTasks();
 		}
@@ -705,7 +709,7 @@ void ADBHUD::DrawHUD()
 	{
 		DrawMini();
 	}
-	if (GM->Phase != EDBPhase::Result)
+	if (GM->Phase != EDBPhase::Result && !bCinema)
 	{
 		DrawMenuButton();
 	}
@@ -728,6 +732,7 @@ void ADBHUD::DrawHUD()
 	}
 	DrawAchievementPopup();
 	DrawCursorFx();
+	DrawCinema();
 }
 
 // ---------------------------------------------------------------- takvim sayfaları (dokuya çizilir)
@@ -2357,6 +2362,10 @@ void ADBHUD::AddClickFx(const FVector2D& P)
 
 void ADBHUD::DrawCursorFx()
 {
+	if (bCinema)
+	{
+		return;
+	}
 	const float Now = FxNow;
 	if (GM->VfxLevel == 0)
 	{
@@ -3340,4 +3349,36 @@ void ADBHUD::DrawResult()
 	const float BY = R.Max.Y - 92.f * S;
 	Button(TEXT("Again"), -1, Rect(CX - 290.f * S, BY, 270.f * S, 62.f * S), TEXT("Tekrar Oyna"), 26.f * S, Coral, Ink, Paper);
 	Button(TEXT("Menu"), -1, Rect(CX + 20.f * S, BY, 270.f * S, 62.f * S), TEXT("Menü"), 26.f * S, CardC, DarkK, Ink);
+}
+
+// ---------------------------------------------------------------- tanıtım videosu (DBSinema)
+
+void ADBHUD::DrawCinema()
+{
+	if (!bCinema)
+	{
+		return;
+	}
+	// Altyazı: üstte, bütçe kartının altında koyu yuvarlak şerit
+	if (!CinemaCaption.IsEmpty() && CinemaCaptionAlpha > 0.01f)
+	{
+		const float A = CinemaCaptionAlpha;
+		const float Px = 46.f * S;
+		const FVector2D Sz = Measure(CinemaCaption, Px);
+		const float Cy = 150.f * S - (1.f - A) * 14.f * S;
+		const float Cx = PanelSlide > 0.3f ? PanelRect().Min.X * 0.5f : W * 0.5f;   // fabrika açıkken sipariş kartını örtmesin
+		const FBox2D R(FVector2D(Cx - Sz.X * 0.5f - 34.f * S, Cy - 40.f * S), FVector2D(Cx + Sz.X * 0.5f + 34.f * S, Cy + 40.f * S));
+		RoundCard(R, U(44, 34, 28, uint8(225 * A)), U(246, 196, 64, uint8(255 * A)), 22.f * S, 6.f * S * A);
+		Txt(CinemaCaption, Cx, Cy - Px * 0.5f, Px, U(255, 246, 228, uint8(255 * A)), 1);
+	}
+	// Başlık kartı: açılışta ve kapanışta, sahnenin üstünde yumuşak karartma
+	if (!CinemaTitle.IsEmpty() && CinemaTitleAlpha > 0.01f)
+	{
+		const float A = CinemaTitleAlpha;
+		Box(0.f, 0.f, W, H, U(24, 18, 14, uint8(185 * A)));
+		const float Ty = H * 0.40f;
+		Txt(CinemaTitle, W * 0.5f + 4.f * S, Ty + 5.f * S, 150.f * S, U(0, 0, 0, uint8(120 * A)), 1);
+		Txt(CinemaTitle, W * 0.5f, Ty, 150.f * S, U(255, 214, 120, uint8(255 * A)), 1);
+		Txt(CinemaSub, W * 0.5f, Ty + 150.f * S, 50.f * S, U(255, 246, 228, uint8(255 * A)), 1);
+	}
 }

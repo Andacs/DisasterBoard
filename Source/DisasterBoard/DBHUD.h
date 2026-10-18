@@ -33,6 +33,15 @@ public:
 
 	// Test: takvim sayfasındaki bir düğmenin ekrandaki yeri (sayfa dokusu ↔ fare eşlemesini doğrulamak için)
 	bool PageButtonScreenPos(FName Id, bool bTop, FVector2D& OutScreen) const;
+
+	// Tanıtım videosu çekimi (DBSinema): başlık kartı ve altyazı; Menü düğmesi, görev şeridi ve fare izi gizli,
+	// animasyon saati oyun zamanı (-benchmark sabit kare). Yalnız çekimde açık.
+	bool bCinema = false;
+	FString CinemaTitle;
+	FString CinemaSub;
+	FString CinemaCaption;
+	float CinemaTitleAlpha = 0.f;
+	float CinemaCaptionAlpha = 0.f;
 	FVector2D DebugDot = FVector2D(-1.f, -1.f);
 	float UiScale() const { return S; }
 
@@ -100,6 +109,7 @@ private:
 	TArray<FTrail> Trail;
 	float FxNow = 0.f;
 	void DrawCursorFx();
+	void DrawCinema();
 	void DrawMenuButton();
 	void DrawMenuConfirm();
 	// Revizyon (17 Ekim akşam): yuvarlak kart, yüzdeler, uçan para, başarı/hata efektleri, düğme basışı, görev şeridi

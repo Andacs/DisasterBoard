@@ -1,62 +1,50 @@
 #!/usr/bin/env bash
-# Trailer ve intro videosunu oyundan ceker (Git Bash). Editor KAPALI, once Build\derle.bat.
+# Tanitim videosunu oyunun icinden ceker (Git Bash). Editor KAPALI, once Build\derle.bat.
 #
 #   bash Tools/trailer_yap.sh
 #
-# Oyunda bir "sinema" konsol komutu olmali: kamerayi/oynanisi senaryoya gore surer ve her kareyi
-# REC_f_#####.png olarak kaydeder (Sallanti'da ASLPlayerController::SLSinema + FScreenshotRequest). Asagidaki
-# HARITA / SINEMA / MUZIK projeye gore degisir; intro kesitlerinin saniyeleri cekime gore ayarlanir.
+# Oyundaki DBSinema konsol komutu (ADBPlayerController::DBSinema) akisi DBTest gibi GameMode cagrilariyla surer,
+# baslik / altyazi cizer, her kareyi REC_f_#####.png olarak kaydeder ve oyunun koddan uretilen muzigini
+# Saved/DB_muzik_trailer.wav'a yazar (64 sn, yogunluk 0->1). Oynanisa dokunmaz.
 #
 # 1) Oyunu "-benchmark -fps=30" ile acar: her kare oyunda tam 1/30 sn; makine yavas da olsa video akici.
-# 2) SLSinema bolumu trailer temposunda oynar, her kareyi REC_f_#####.png olarak kaydeder (yalnizca
-#    oyun penceresi; masaustu kaydedilmez).
-# 3) ffmpeg: kareler + MUS_Cozy -> Build/Teslim/${PROJE}_Trailer.mp4 (<= 60 sn, kural 5.2 ve A.6)
-#    ve kisa kesit -> Content/Movies/Intro.mp4 (oyun acilisindaki intro, DefaultGame.ini StartupMovies).
+# 2) ffmpeg: kareler + muzik -> Build/Teslim/${PROJE}_Trailer.mp4 (<= 60 sn, kural 5.2 ve A.6).
+# Tetkik acilista video oynatmiyor: Sallanti'daki Intro.mp4 bolumu yok (Content/Movies pakete girerdi).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 UE="/c/Program Files/Epic Games/UE_5.8/Engine/Binaries/Win64/UnrealEditor.exe"
 UPROJ=$(ls "$ROOT"/*.uproject | head -1)
 PROJE=$(basename "$UPROJ" .uproject)
 HARITA="/Game/DisasterBoard/Maps/L_Ana"       # cekilecek bolum
-SINEMA="SLSinema"                              # oyundaki sinema konsol komutu
-MUZIK="$ROOT/Art/Audio/MUS_Ana.wav"            # trailer muzigi
+SINEMA="DBSinema"                              # oyundaki sinema konsol komutu
+MUZIK="$ROOT/Saved/DB_muzik_trailer.wav"       # DBSinema yazar (oyunun kendi muzigi)
 SHOTS="$ROOT/Saved/Screenshots/WindowsEditor"
 OUT="$ROOT/Build/Teslim"
 FPS=30
-W=1920
-H=1080
-mkdir -p "$OUT" "$ROOT/Content/Movies"
-rm -f "$SHOTS"/REC_f_*.png
+W=1600   # 1920x1080 pencere 1080p ekrana sigmiyor; ffmpeg 1920x1080'e buyutur
+H=900
+mkdir -p "$OUT"
+rm -f "$SHOTS"/REC_f_*.png "$MUZIK"
 
 # MSYS_NO_PATHCONV yalnizca bu komutta (cmd //c ile ayni komutta kullanma: CLAUDE.md).
 MSYS_NO_PATHCONV=1 "$UE" "$(cygpath -w "$UPROJ")" "$HARITA" \
-  -game -windowed -ResX=$W -ResY=$H -benchmark -fps=$FPS -ExecCmds="$SINEMA" -unattended -log > "$ROOT/Saved/trailer_run.log" 2>&1 || true
+  -game -windowed -ResX=$W -ResY=$H -benchmark -fps=$FPS -ExecCmds="$SINEMA" -unattended -log \
+  -abslog="$(cygpath -w "$ROOT/Saved/Logs/trailer_run.log")" > /dev/null 2>&1 || true
 N=$(ls "$SHOTS"/REC_f_*.png 2>/dev/null | wc -l)
 echo "kare: $N"
-[ "$N" -gt 100 ] || { echo "kare yok, Saved/Logs/$PROJE.log'a bak"; exit 1; }
+grep -a "DB_SINEMA_DONE" "$ROOT/Saved/Logs/trailer_run.log" || true
+[ "$N" -gt 100 ] || { echo "kare yok, Saved/Logs/trailer_run.log'a bak"; exit 1; }
+[ -f "$MUZIK" ] || { echo "muzik yok: $MUZIK"; exit 1; }
 
 DUR=$(python -c "print(round($N/$FPS,2))")
-MUSIC="$MUZIK"
+python -c "import sys; sys.exit(0 if $DUR <= 60 else 1)" || { echo "sure $DUR sn: 60'i asiyor, DBSinema'yi kisalt"; exit 1; }
 FADE_OUT=$(python -c "print(max(0,$DUR-2.5))")
 
-# Trailer: tum cekim, muzik basta ve sonda yumusak.
-ffmpeg -y -loglevel error -framerate $FPS -i "$SHOTS/REC_f_%05d.png" -stream_loop -1 -i "$MUSIC" \
-  -vf "scale=${W}:${H}:flags=lanczos,fade=t=in:st=0:d=0.6,fade=t=out:st=$(python -c "print(max(0,$DUR-0.8))"):d=0.8,format=yuv420p" \
+ffmpeg -y -loglevel error -framerate $FPS -i "$SHOTS/REC_f_%05d.png" -i "$MUZIK" \
+  -vf "scale=1920:1080:flags=lanczos,fade=t=in:st=0:d=0.6,fade=t=out:st=$(python -c "print(max(0,$DUR-0.8))"):d=0.8,format=yuv420p" \
   -af "afade=t=in:st=0:d=1.5,afade=t=out:st=$FADE_OUT:d=2.5" -t $DUR \
-  -c:v libx264 -preset slow -crf 18 -c:a aac -b:a 192k -movflags +faststart "$OUT/${PROJE}_Trailer.mp4"
-
-# Intro: baslik + uc kesit + kapanis karti (~20 sn).
-ffmpeg -y -loglevel error -framerate $FPS -i "$SHOTS/REC_f_%05d.png" -stream_loop -1 -i "$MUSIC" -filter_complex "\
-[0:v]trim=0:4,setpts=PTS-STARTPTS[a];\
-[0:v]trim=5:9,setpts=PTS-STARTPTS[b];\
-[0:v]trim=12.5:16,setpts=PTS-STARTPTS[c];\
-[0:v]trim=18:21.5,setpts=PTS-STARTPTS[d];\
-[0:v]trim=$(python -c "print(max(0,$DUR-5))"):$DUR,setpts=PTS-STARTPTS[e];\
-[a][b][c][d][e]concat=n=5:v=1:a=0,scale=${W}:${H}:flags=lanczos,fade=t=in:st=0:d=0.6,format=yuv420p[v]" \
-  -map "[v]" -map 1:a -af "afade=t=in:st=0:d=1,afade=t=out:st=17:d=2" -t 19 \
-  -c:v libx264 -preset slow -crf 20 -c:a aac -b:a 160k -movflags +faststart "$ROOT/Content/Movies/Intro.mp4"
+  -c:v libx264 -preset slow -crf 18 -r $FPS -c:a aac -b:a 192k -movflags +faststart "$OUT/${PROJE}_Trailer.mp4"
 
 ffprobe -v error -show_entries format=duration,size -of default=nw=1 "$OUT/${PROJE}_Trailer.mp4"
-ffprobe -v error -show_entries format=duration,size -of default=nw=1 "$ROOT/Content/Movies/Intro.mp4"
 [ "${KEEP:-0}" = 1 ] || rm -f "$SHOTS"/REC_f_*.png
-echo "tamam: $OUT/${PROJE}_Trailer.mp4 ve Content/Movies/Intro.mp4"
+echo "tamam: $OUT/${PROJE}_Trailer.mp4"

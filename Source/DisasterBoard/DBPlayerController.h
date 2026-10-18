@@ -38,6 +38,10 @@ public:
 	UFUNCTION(Exec) void DBQuake();                // depremi şimdi başlat
 	UFUNCTION(Exec) void DBPageGain(float Gain);   // takvim sayfası dokusunun parlaklığı
 	UFUNCTION(Exec) void DBMusicWav();             // müziği 40 sn dosyaya yazar (yoğunluk 0→1): Saved/DB_muzik_test.wav
+	// Tanıtım videosu çekimi (Tools/trailer_yap.sh, -benchmark -fps=30): akışı DBTest gibi GameMode çağrılarıyla sürer,
+	// her kareyi REC_f_#####.png kaydeder, başlık / altyazı çizer, müziği Saved/DB_muzik_trailer.wav'a yazar, kapanır.
+	// Yalnız çekim aracı: oynanışa dokunmaz.
+	UFUNCTION(Exec) void DBSinema();
 
 private:
 	void OnClick();
@@ -66,4 +70,12 @@ private:
 	FTimerHandle CursorTimer;
 	float CursorT = 0.f;
 	void Shot(const FString& Name);
+	// DBSinema
+	bool bRecording = false;
+	bool bRecPaused = false;    // kayıt duraklatıldı: oyun sürer, kare kaydedilmez (uzun ara kısımlar)
+	int32 RecFrame = 0;
+	float CinemaTime = 0.f;     // kaydedilen sürenin oyun zamanı
+	float CaptionUntil = -1.f;
+	float ClosingAt = -1.f;     // kapanış kartının başladığı an
+	void Caption(const FString& Text, float Seconds);
 };

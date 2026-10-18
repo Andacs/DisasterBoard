@@ -13,6 +13,13 @@ Bu iş sonra tekrar **Andaç'a geri geçecek**. Bu yüzden:
 - Unreal Editor açıkken derleme / pull / checkout yok; editörü kendin kapatma, kullanıcıdan iste.
 - Teslim kodu (6 karakter) repoya ya da bu belgeye **asla** yazılmaz.
 
+### 09.45 — tanıtım videosu hazır (Yiğit'in bilgisayarı)
+- **Video hazır, ZIP ve video `Build/Teslim`'de** (ikisi de git'e girmez; Yiğit'in bilgisayarında `C:\Dev\DisasterBoard\Build\Teslim\`):
+  `DisasterBoard_Trailer.mp4` **58,0 sn**, 1920×1080, 30 fps, sesli (oyunun koddan müziği); `DisasterBoard_Windows.zip` Shipping.
+- Çekim: `bash Tools/trailer_yap.sh` (editör kapalı, önce `Build\derle.bat`) → oyunda `DBSinema` (Docs/VIDEO_YIGIT.md): açılış başlığı,
+  tarama, çanta fabrikası, tahta dönüşü, komşu, rögar mini oyunu, önlemler, albüm, kapanış kartı; altyazılı. 8/8, 25 TL, 0 hata.
+  Uzun konuşmalar ve ikinci mini oyunlar kayıt dışı (`bRecPaused`). Oynanış değişmedi: DBTest yine `para=25 hata=2`.
+
 ### 06.20 durumu (Andaç'ın bilgisayarında, `bash Tools/teslim_hazirla.sh`)
 - **Shipping paketi alındı ve temiz klasörde açıldı** (menü ekranda düzgün): `Build/Teslim/DisasterBoard_Windows.zip`
   (350 MB, 06.15). Bu dosya git'e girmez; **Andaç'ın bilgisayarında**. Yeni bilgisayarda `Build\paketle.bat` ile yeniden alınır.
