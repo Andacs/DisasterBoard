@@ -16,17 +16,17 @@
 | `Cizgiroman/sahne4.png` | 2D | bekliyor | | |
 | `Ikonlar/esya_sargi_bezi.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/esya_antiseptik.png` | 2D | ONAYLI | 17.10 15:20 | - |
-| `Ikonlar/esya_yara_bandi.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Ikonlar/esya_yara_bandi.png` | 2D | ONAYLI | 18.10 09:55 | - |
 | `Ikonlar/esya_su.png` | 2D | ONAYLI | 17.10 15:20 | - |
-| `Ikonlar/esya_el_feneri.png` | 2D | ONAYLI | 17.10 21:43 | - |
-| `Ikonlar/esya_duduk.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Ikonlar/esya_el_feneri.png` | 2D | ONAYLI | 18.10 09:55 | - |
+| `Ikonlar/esya_duduk.png` | 2D | ONAYLI | 18.10 09:55 | - |
 | `Ikonlar/esya_yangin_tupu.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/esya_duman_maskesi.png` | 2D | ONAYLI | 17.10 21:43 | - |
 | `Ikonlar/esya_kalp_ilaci.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/esya_astim_spreyi.png` | 2D | ONAYLI | 17.10 15:20 | - |
-| `Ikonlar/esya_gozluk.png` | 2D | ONAYLI | 17.10 21:43 | - |
-| `Ikonlar/esya_bebek_mamasi.png` | 2D | ONAYLI | 17.10 21:43 | - |
-| `Ikonlar/esya_bebek_bezi.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Ikonlar/esya_gozluk.png` | 2D | ONAYLI | 18.10 09:55 | - |
+| `Ikonlar/esya_bebek_mamasi.png` | 2D | ONAYLI | 18.10 09:55 | - |
+| `Ikonlar/esya_bebek_bezi.png` | 2D | ONAYLI | 18.10 09:55 | - |
 | `Ikonlar/esya_kedi_mamasi.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/esya_battaniye.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/esya_powerbank.png` | 2D | ONAYLI | 17.10 15:20 | - |
@@ -39,11 +39,11 @@
 | `Ikonlar/kit_ilk_yardim.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/kit_deprem.png` | 2D | ONAYLI | 17.10 15:20 | - |
 | `Ikonlar/kit_yangin.png` | 2D | ONAYLI | 17.10 15:20 | - |
-| `Ikonlar/isaret_uyari.png` | 2D | ONAYLI | 18.10 00:13 | - |
-| `Ikonlar/isaret_tamam.png` | 2D | ONAYLI | 18.10 00:13 | - |
+| `Ikonlar/isaret_uyari.png` | 2D | ONAYLI | 18.10 09:55 | - |
+| `Ikonlar/isaret_tamam.png` | 2D | ONAYLI | 18.10 09:55 | - |
 | `Ikonlar/butce.png` | 2D | ONAYLI | 17.10 15:17 | - |
-| `Arayuz/tarayici.png` | 2D | ONAYLI | 17.10 21:43 | - |
-| `Arayuz/canta.png` | 2D | ONAYLI | 17.10 21:43 | - |
+| `Arayuz/tarayici.png` | 2D | ONAYLI | 18.10 09:55 | - |
+| `Arayuz/canta.png` | 2D | ONAYLI | 18.10 09:55 | - |
 | `Arayuz/logo.png` | 2D | bekliyor | | |
 | `Karakterler/NPC_AyseTeyze.png` | 2D | ONAYLI | 17.10 21:43 | - |
 | `Karakterler/NPC_SelmaOgretmen.png` | 2D | ONAYLI | 17.10 21:43 | - |
